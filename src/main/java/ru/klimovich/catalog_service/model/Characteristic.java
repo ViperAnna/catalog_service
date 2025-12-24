@@ -1,4 +1,4 @@
-package ru.klimovich.catalog_service.DTO;
+package ru.klimovich.catalog_service.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -11,6 +11,7 @@ import java.util.Map;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class SpecificationDTO {
+public class Characteristic {
+
     private Map<String, String> attributes;
 }

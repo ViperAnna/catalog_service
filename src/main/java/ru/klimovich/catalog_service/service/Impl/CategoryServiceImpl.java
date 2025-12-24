@@ -1,77 +1,68 @@
-package ru.klimovich.catalog_service.service.Impl;
+package ru.klimovich.catalog_service.service.impl;
 
 
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import ru.klimovich.catalog_service.DTO.CategoryDTO;
-import ru.klimovich.catalog_service.entity.Category;
-import ru.klimovich.catalog_service.exception.CategoryNotFoundException;
+
+import ru.klimovich.catalog_service.dto.request.CategoryRequestDTO;
+import ru.klimovich.catalog_service.dto.response.CategoryResponseDTO;
+import ru.klimovich.catalog_service.exception.ResourceConflictException;
+import ru.klimovich.catalog_service.util.ErrorKeys;
+import ru.klimovich.catalog_service.model.Category;
+import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
 import ru.klimovich.catalog_service.mapper.CategoryMapper;
 import ru.klimovich.catalog_service.repository.CategoryRepository;
-import ru.klimovich.catalog_service.service.CategoryService;
 
-import java.time.LocalDateTime;
+import java.text.MessageFormat;
 import java.util.List;
+import java.util.ResourceBundle;
 
 @Service
 @AllArgsConstructor
-public class CategoryServiceImpl implements CategoryService {
+public class CategoryServiceImpl implements ru.klimovich.catalog_service.service.CategoryService {
     private final CategoryRepository categoryRepo;
+    private final CategoryMapper categoryMapper;
 
     @Override
-    public CategoryDTO createCategory(@NonNull CategoryDTO categoryDetails) {
-        if (!StringUtils.hasText(categoryDetails.getName())) {
-            throw new IllegalArgumentException("Category name can't be empty.");
-        }
+    public CategoryResponseDTO createCategory(@NonNull CategoryRequestDTO categoryDetails) {
         if (categoryRepo.findByName(categoryDetails.getName()).isPresent()) {
-            throw new IllegalArgumentException("Category with name [" + categoryDetails.getName() + "] already exists.");
+            throw new ResourceConflictException(MessageFormat.format(ResourceBundle.getBundle("application").getString(ErrorKeys.CATEGORY_ALREADY_EXIST), categoryDetails.getName()));
         }
-
-        Category category = new Category();
-        category.setName(categoryDetails.getName());
-        category.setDescription(categoryDetails.getDescription());
-        category.setPicture(categoryDetails.getPicture());
-        category.setStatus(CategoryMapper.INSTANCE.stringToStatus(categoryDetails.getStatus()));
-        category.setDateCreate(LocalDateTime.now());
-        category.setDateUpdate(LocalDateTime.now());
-
-        return CategoryMapper.INSTANCE.toDTO(categoryRepo.save(category));
+        Category category = categoryMapper.toEntity(categoryDetails);
+        return categoryMapper.toDTO(categoryRepo.save(category));
     }
 
     @Override
-    public List<CategoryDTO> getAllCategories() {
+    public List<CategoryResponseDTO> getAllCategories() {
         List<Category> categoryList = categoryRepo.findAll();
         return categoryList.stream()
-                .map(CategoryMapper.INSTANCE::toDTO)
+                .map(categoryMapper::toDTO)
                 .toList();
     }
 
     @Override
-    public CategoryDTO getCategoryById(String id) {
+    public CategoryResponseDTO getCategoryById(String id) {
         Category category = categoryRepo.findById(id)
                 .orElseThrow(() ->
-                        new CategoryNotFoundException("Category not found with id: " + id));
-        return CategoryMapper.INSTANCE.toDTO(category);
+                        new ResourceNotFoundException(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY, id));
+        return categoryMapper.toDTO(category);
     }
 
     @Override
-    public CategoryDTO updateCategory(String id, CategoryDTO categoryDetails) {
+    public CategoryResponseDTO updateCategoryById(String id, CategoryRequestDTO categoryDetails) {
         Category category = categoryRepo.findById(id)
                 .orElseThrow(() ->
-                        new CategoryNotFoundException("Category not found with id: " + id));
-        CategoryMapper.INSTANCE.updateCategoryFromDTO(categoryDetails, category);
-        return CategoryMapper.INSTANCE.toDTO(categoryRepo.save(category));
+                        new ResourceNotFoundException(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY, id));
+        categoryMapper.updateCategoryFromDTO(categoryDetails, category);
+        return categoryMapper.toDTO(categoryRepo.save(category));
     }
 
     @Override
     public void deleteCategoryById(String id) {
         Category category = categoryRepo.findById(id)
                 .orElseThrow(() ->
-                        new CategoryNotFoundException("Category not found with id: " + id));
-        /*** нужно ли добавить в категорию список товаров, а при удалении
-         категории удалять все товары? ***/
+                        new ResourceNotFoundException(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY, id));
         categoryRepo.delete(category);
     }
 }

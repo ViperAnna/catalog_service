@@ -1,18 +1,20 @@
 package ru.klimovich.catalog_service.service;
 
-import ru.klimovich.catalog_service.DTO.CategoryDTO;
+
+import ru.klimovich.catalog_service.dto.request.CategoryRequestDTO;
+import ru.klimovich.catalog_service.dto.response.CategoryResponseDTO;
 
 import java.util.List;
 
 public interface CategoryService {
 
-    CategoryDTO createCategory(CategoryDTO categoryDTO);
+    CategoryResponseDTO createCategory(CategoryRequestDTO categoryDTO);
 
-    List<CategoryDTO> getAllCategories();
+    List<CategoryResponseDTO> getAllCategories();
 
-    CategoryDTO getCategoryById(String id);
+    CategoryResponseDTO getCategoryById(String id);
 
-    CategoryDTO updateCategory(String id, CategoryDTO categoryDetails);
+    CategoryResponseDTO updateCategoryById(String id, CategoryRequestDTO categoryDetails);
 
     void deleteCategoryById(String id);
 }

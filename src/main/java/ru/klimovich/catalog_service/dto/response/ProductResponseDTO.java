@@ -1,4 +1,4 @@
-package ru.klimovich.catalog_service.DTO;
+package ru.klimovich.catalog_service.dto.response;
 
 import lombok.*;
 
@@ -10,15 +10,17 @@ import java.util.List;
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
-public class ItemDTO {
+public class ProductResponseDTO {
+
     private String id;
     private String name;
     private String description;
     private String brand;
     private BigDecimal price;
-    private Long articleNumber;
+    private String articleNumber;
     private List<String> picture;
-    private SpecificationDTO specification;
+    private List<String> categories;
+    private CharacteristicResponseDTO characteristic;
     private List<String> tag;
     private String status;
 }

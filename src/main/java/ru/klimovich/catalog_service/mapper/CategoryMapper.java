@@ -1,49 +1,32 @@
 package ru.klimovich.catalog_service.mapper;
 
 import org.mapstruct.*;
-import org.mapstruct.factory.Mappers;
-import ru.klimovich.catalog_service.DTO.CategoryDTO;
-import ru.klimovich.catalog_service.entity.Category;
-import ru.klimovich.catalog_service.entity.emum.StatusCategory;
 
+import ru.klimovich.catalog_service.dto.request.CategoryRequestDTO;
+import ru.klimovich.catalog_service.dto.response.CategoryResponseDTO;
+import ru.klimovich.catalog_service.model.Category;
+import ru.klimovich.catalog_service.model.CategoryStatus;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 
 public interface CategoryMapper {
-    CategoryMapper INSTANCE = Mappers.getMapper(CategoryMapper.class);
 
-    @Mappings({
-            @Mapping(source = "status", target = "status", qualifiedByName = "mapStatusDTO")
-    })
-    Category toEntity(ru.klimovich.catalog_service.DTO.CategoryDTO categoryDTO);
+    @Mapping(source = "status", target = "status", qualifiedByName = "mapStatusDTO")
+    Category toEntity(CategoryRequestDTO categoryDTO);
 
-    @Mappings({
-            @Mapping(source = "status", target = "status", qualifiedByName = "mapStatus")
-    })
-    CategoryDTO toDTO(Category category);
+    @Mapping(source = "status", target = "status", qualifiedByName = "mapStatus")
+    CategoryResponseDTO toDTO(Category category);
 
     @Named("mapStatusDTO")
-    default StatusCategory stringToStatus(String status) {
-        if (status == null) {
-            return null;
-        }
-        return StatusCategory.valueOf(status.toUpperCase());
+    default CategoryStatus stringToStatus(String status) {
+        return status != null ? CategoryStatus.valueOf(status.toUpperCase()) : CategoryStatus.DRAFT;
     }
 
     @Named("mapStatus")
-    default String statusToString(StatusCategory status) {
-        if (status == null) {
-            return null;
-        }
-        return switch (status) {
-            case ACTIVE -> "active";
-            case INACTIVE -> "inactive";
-            case ARCHIVED -> "archived";
-            case DRAFT -> "draft";
-            default -> throw new IllegalArgumentException("Unknown status: " + status);
-        };
+    default String statusToString(CategoryStatus status) {
+        return status.name().toLowerCase();
     }
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void updateCategoryFromDTO(CategoryDTO categoryDetails, @MappingTarget Category category);
+    void updateCategoryFromDTO(CategoryRequestDTO categoryDetails, @MappingTarget Category category);
 }

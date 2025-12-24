@@ -2,7 +2,7 @@ package ru.klimovich.catalog_service.repository;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
-import ru.klimovich.catalog_service.entity.Category;
+import ru.klimovich.catalog_service.model.Category;
 
 import java.util.Optional;
 
