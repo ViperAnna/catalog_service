@@ -1,5 +1,6 @@
 package ru.klimovich.catalog_service.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,21 +19,20 @@ import java.util.List;
 @RestController
 @RequestMapping("/categories")
 @RequiredArgsConstructor
+@Validated
 public class CategoryController {
 
     private final CategoryServiceImpl categoryService;
 
     @PostMapping
-    public ResponseEntity<Response> createCategory(@Validated(CreateGroup.class) @RequestBody CategoryRequestDTO categoryDTO) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public Response createCategory(@Valid @RequestBody CategoryRequestDTO categoryDTO) {
         categoryService.createCategory(categoryDTO);
-        Response body = new Response(
+        return new Response(
                 ErrorKeys.CATEGORY_CREATED_SUCCESSFULLY,
                 HttpStatus.CREATED.value(),
                 LocalDateTime.now()
         );
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(body);
     }
 
     @GetMapping

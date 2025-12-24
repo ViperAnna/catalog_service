@@ -12,13 +12,13 @@ import lombok.*;
 @NoArgsConstructor
 public class CategoryRequestDTO {
 
-    @NotBlank(message = "Category name must not be empty.", groups = CreateGroup.class)
+    @NotBlank(message = "Category name must not be empty.")
     private String name;
-    @Size(max = 500, message = "Description can't exceed 500 characters.", groups = CreateGroup.class)
+    @Size(max = 500, message = "Description can't exceed 500 characters.")
     private String description;
-    @NotBlank(groups = CreateGroup.class)
+    @NotBlank
     private String picture;
-    @Pattern(regexp = "ACTIVE|INACTIVE|ARCHIVED|DRAFT", message = "Status must be one of: ACTIVE, INACTIVE, ARCHIVED, DRAFT", groups = CreateGroup.class)
+    @Pattern(regexp = "ACTIVE|INACTIVE|ARCHIVED|DRAFT", message = "Status must be one of: ACTIVE, INACTIVE, ARCHIVED, DRAFT")
     private String status;
 
 }
