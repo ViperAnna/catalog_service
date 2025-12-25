@@ -2,14 +2,14 @@ package ru.klimovich.catalog_service.mapper;
 
 import org.mapstruct.Mapper;
 
-import ru.klimovich.catalog_service.dto.request.CharacteristicRequestDTO;
-import ru.klimovich.catalog_service.dto.response.CharacteristicResponseDTO;
+import ru.klimovich.catalog_service.dto.request.CharacteristicRequest;
+import ru.klimovich.catalog_service.dto.response.CharacteristicResponse;
 import ru.klimovich.catalog_service.model.Characteristic;
 
 @Mapper(componentModel = "spring")
 
 public interface CharacteristicMapper {
-    Characteristic toEntity(CharacteristicRequestDTO characteristicDTO);
+    Characteristic toEntity(CharacteristicRequest characteristicDTO);
 
-    CharacteristicResponseDTO toDTO(Characteristic characteristic);
+    CharacteristicResponse toDTO(Characteristic characteristic);
 }

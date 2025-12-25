@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.NOT_FOUND)
 public class ResourceNotFoundException extends ClientException {
-    public ResourceNotFoundException(String message, String resource) {
-        super(message, resource);
+    public ResourceNotFoundException(String message) {
+        super(message);
     }
 }

@@ -1,4 +1,4 @@
-package ru.klimovich.catalog_service.dto.response;
+package ru.klimovich.catalog_service.dto.request;
 
 import lombok.*;
 
@@ -9,6 +9,6 @@ import java.util.Map;
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
-public class CharacteristicResponseDTO {
+public class CharacteristicRequest {
     private Map<String, String> attributes;
 }

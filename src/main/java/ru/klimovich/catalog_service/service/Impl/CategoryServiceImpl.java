@@ -5,8 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import org.springframework.stereotype.Service;
 
-import ru.klimovich.catalog_service.dto.request.CategoryRequestDTO;
-import ru.klimovich.catalog_service.dto.response.CategoryResponseDTO;
+import ru.klimovich.catalog_service.dto.request.CategoryRequest;
+import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 import ru.klimovich.catalog_service.exception.ResourceConflictException;
 import ru.klimovich.catalog_service.util.ErrorKeys;
 import ru.klimovich.catalog_service.model.Category;
@@ -25,16 +25,18 @@ public class CategoryServiceImpl implements ru.klimovich.catalog_service.service
     private final CategoryMapper categoryMapper;
 
     @Override
-    public CategoryResponseDTO createCategory(@NonNull CategoryRequestDTO categoryDetails) {
+    public CategoryResponse createCategory(@NonNull CategoryRequest categoryDetails) {
         if (categoryRepo.findByName(categoryDetails.getName()).isPresent()) {
-            throw new ResourceConflictException(MessageFormat.format(ResourceBundle.getBundle("application").getString(ErrorKeys.CATEGORY_ALREADY_EXIST), categoryDetails.getName()));
+            throw new ResourceConflictException(MessageFormat
+                    .format(ResourceBundle.getBundle("application")
+                            .getString(ErrorKeys.CATEGORY_ALREADY_EXIST), categoryDetails.getName()));
         }
         Category category = categoryMapper.toEntity(categoryDetails);
         return categoryMapper.toDTO(categoryRepo.save(category));
     }
 
     @Override
-    public List<CategoryResponseDTO> getAllCategories() {
+    public List<CategoryResponse> getAllCategories() {
         List<Category> categoryList = categoryRepo.findAll();
         return categoryList.stream()
                 .map(categoryMapper::toDTO)
@@ -42,18 +44,22 @@ public class CategoryServiceImpl implements ru.klimovich.catalog_service.service
     }
 
     @Override
-    public CategoryResponseDTO getCategoryById(String id) {
+    public CategoryResponse getCategoryById(String id) {
         Category category = categoryRepo.findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY, id));
+                        new ResourceNotFoundException(MessageFormat
+                                .format(ResourceBundle.getBundle("application")
+                                        .getString(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY), id)));
         return categoryMapper.toDTO(category);
     }
 
     @Override
-    public CategoryResponseDTO updateCategoryById(String id, CategoryRequestDTO categoryDetails) {
+    public CategoryResponse updateCategoryById(String id, CategoryRequest categoryDetails) {
         Category category = categoryRepo.findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY, id));
+                        new ResourceNotFoundException(MessageFormat
+                                .format(ResourceBundle.getBundle("application")
+                                        .getString(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY), id)));
         categoryMapper.updateCategoryFromDTO(categoryDetails, category);
         return categoryMapper.toDTO(categoryRepo.save(category));
     }
@@ -62,7 +68,9 @@ public class CategoryServiceImpl implements ru.klimovich.catalog_service.service
     public void deleteCategoryById(String id) {
         Category category = categoryRepo.findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY, id));
+                        new ResourceNotFoundException(MessageFormat
+                                .format(ResourceBundle.getBundle("application")
+                                        .getString(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY), id)));
         categoryRepo.delete(category);
     }
 }

@@ -1,22 +1,22 @@
 package ru.klimovich.catalog_service.service;
 
 
-import ru.klimovich.catalog_service.dto.request.ProductRequestDTO;
-import ru.klimovich.catalog_service.dto.response.ProductResponseDTO;
+import ru.klimovich.catalog_service.dto.request.ProductRequest;
+import ru.klimovich.catalog_service.dto.response.ProductResponse;
 
 import java.util.List;
 
 public interface ProductService {
 
-    ProductResponseDTO createProduct(ProductRequestDTO productDetails);
+    ProductResponse createProduct(ProductRequest productDetails);
 
-    List<ProductResponseDTO> getAllProducts();
+    List<ProductResponse> getAllProducts();
 
-    ProductResponseDTO getProductById(String id);
+    ProductResponse getProductById(String id);
 
-    List<ProductResponseDTO> getProductByName(String productName);
+    List<ProductResponse> getProductByName(String productName);
 
-    ProductResponseDTO updateProductById(String id, ProductRequestDTO productDetails);
+    ProductResponse updateProductById(String id, ProductRequest productDetails);
 
     void deleteProductById(String id);
 }

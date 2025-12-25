@@ -1,21 +1,21 @@
 package ru.klimovich.catalog_service.mapper;
 
 import org.mapstruct.*;
-import ru.klimovich.catalog_service.dto.request.CharacteristicRequestDTO;
-import ru.klimovich.catalog_service.dto.request.ProductRequestDTO;
-import ru.klimovich.catalog_service.dto.response.CharacteristicResponseDTO;
-import ru.klimovich.catalog_service.dto.response.ProductResponseDTO;
+import ru.klimovich.catalog_service.dto.request.CharacteristicRequest;
+import ru.klimovich.catalog_service.dto.request.ProductRequest;
+import ru.klimovich.catalog_service.dto.response.CharacteristicResponse;
+import ru.klimovich.catalog_service.dto.response.ProductResponse;
 import ru.klimovich.catalog_service.model.Product;
 import ru.klimovich.catalog_service.model.Characteristic;
 import ru.klimovich.catalog_service.model.ProductStatus;
-import ru.klimovich.catalog_service.util.ArticleUtils;
+import ru.klimovich.catalog_service.util.Utils;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE, uses = {CharacteristicMapper.class})
 public interface ProductMapper {
 
     @BeforeMapping
-    default void setGeneratedFields(ProductRequestDTO productDTO, @MappingTarget Product product) {
-        product.setArticleNumber(ArticleUtils.generateArticle());
+    default void setGeneratedFields(ProductRequest productDTO, @MappingTarget Product product) {
+        product.setArticleNumber(Utils.generateArticle());
         if (product.getStatus() == null) {
             product.setStatus(ProductStatus.DRAFT);
         }
@@ -26,19 +26,19 @@ public interface ProductMapper {
             @Mapping(source = "status", target = "status", qualifiedByName = "mapStatusDTO"),
             @Mapping(target = "articleNumber", ignore = true)
     })
-    Product toEntity(ProductRequestDTO productDTO);
+    Product toEntity(ProductRequest productDTO);
 
     @Mappings({
             @Mapping(source = "characteristic", target = "characteristic", qualifiedByName = "mapCharacteristic"),
             @Mapping(source = "status", target = "status", qualifiedByName = "mapStatus")
     })
-    ProductResponseDTO toDTO(Product product);
+    ProductResponse toDTO(Product product);
 
     @Named("mapCharacteristicDTO")
-    Characteristic mapCharacteristicDTO(CharacteristicRequestDTO characteristicDTO);
+    Characteristic mapCharacteristicDTO(CharacteristicRequest characteristicDTO);
 
     @Named("mapCharacteristic")
-    CharacteristicResponseDTO mapCharacteristic(Characteristic characteristic);
+    CharacteristicResponse mapCharacteristic(Characteristic characteristic);
 
 
     @Named("mapStatusDTO")
@@ -52,6 +52,6 @@ public interface ProductMapper {
     }
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void updateProductFromDTO(ProductRequestDTO productDetails, @MappingTarget Product product);
+    void updateProductFromDTO(ProductRequest productDetails, @MappingTarget Product product);
 }
 

@@ -2,8 +2,8 @@ package ru.klimovich.catalog_service.mapper;
 
 import org.mapstruct.*;
 
-import ru.klimovich.catalog_service.dto.request.CategoryRequestDTO;
-import ru.klimovich.catalog_service.dto.response.CategoryResponseDTO;
+import ru.klimovich.catalog_service.dto.request.CategoryRequest;
+import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 import ru.klimovich.catalog_service.model.Category;
 import ru.klimovich.catalog_service.model.CategoryStatus;
 
@@ -12,10 +12,10 @@ import ru.klimovich.catalog_service.model.CategoryStatus;
 public interface CategoryMapper {
 
     @Mapping(source = "status", target = "status", qualifiedByName = "mapStatusDTO")
-    Category toEntity(CategoryRequestDTO categoryDTO);
+    Category toEntity(CategoryRequest categoryDTO);
 
     @Mapping(source = "status", target = "status", qualifiedByName = "mapStatus")
-    CategoryResponseDTO toDTO(Category category);
+    CategoryResponse toDTO(Category category);
 
     @Named("mapStatusDTO")
     default CategoryStatus stringToStatus(String status) {
@@ -28,5 +28,5 @@ public interface CategoryMapper {
     }
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    void updateCategoryFromDTO(CategoryRequestDTO categoryDetails, @MappingTarget Category category);
+    void updateCategoryFromDTO(CategoryRequest categoryDetails, @MappingTarget Category category);
 }
