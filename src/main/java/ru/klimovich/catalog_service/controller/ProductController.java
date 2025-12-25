@@ -9,7 +9,7 @@ import ru.klimovich.catalog_service.dto.Response;
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
 import ru.klimovich.catalog_service.service.impl.ProductServiceImpl;
-import ru.klimovich.catalog_service.util.ErrorKeys;
+import ru.klimovich.catalog_service.util.MessageKeys;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,7 +26,7 @@ public class ProductController {
     public Response creatProduct(@Valid @RequestBody ProductRequest productDTO) {
         productService.createProduct(productDTO);
         return new Response(
-                ErrorKeys.PRODUCT_CREATED_SUCCESSFULLY,
+                MessageKeys.PRODUCT_CREATED_SUCCESSFULLY,
                 LocalDateTime.now()
         );
     }
@@ -49,10 +49,10 @@ public class ProductController {
 
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.CREATED)
-    public Response updateProduct(@PathVariable String id, @RequestBody ProductRequest productDetails) {
+    public Response updateProduct(@PathVariable String id, @Valid @RequestBody ProductRequest productDetails) {
         productService.updateProductById(id, productDetails);
         return new Response(
-                ErrorKeys.PRODUCT_UPDATE_SUCCESSFULLY,
+                MessageKeys.PRODUCT_UPDATE_SUCCESSFULLY,
                 LocalDateTime.now()
         );
     }
@@ -62,7 +62,7 @@ public class ProductController {
     public Response deleteProduct(@PathVariable String id) {
         productService.deleteProductById(id);
         return new Response(
-                ErrorKeys.PRODUCT_DELETE_SUCCESSFULLY,
+                MessageKeys.PRODUCT_DELETE_SUCCESSFULLY,
                 LocalDateTime.now()
         );
     }

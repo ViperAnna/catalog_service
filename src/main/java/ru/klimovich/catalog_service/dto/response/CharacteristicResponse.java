@@ -7,8 +7,9 @@ import java.util.Map;
 @Getter
 @Setter
 @ToString
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class CharacteristicResponse {
+
     private Map<String, String> attributes;
 }

@@ -40,7 +40,7 @@ public class Product {
     @Field(value = "picture")
     private List<String> picture;
 
-    @Field(value = "specification")
+    @Field(value = "characteristic")
     private Characteristic characteristic;
 
     @Field(value = "tags")

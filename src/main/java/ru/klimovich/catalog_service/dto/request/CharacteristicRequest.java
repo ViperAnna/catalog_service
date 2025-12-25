@@ -10,5 +10,6 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CharacteristicRequest {
+
     private Map<String, String> attributes;
 }

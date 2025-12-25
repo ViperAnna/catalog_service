@@ -6,16 +6,14 @@ import org.springframework.stereotype.Service;
 
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
-import ru.klimovich.catalog_service.util.ErrorKeys;
+import ru.klimovich.catalog_service.util.MessageKeys;
 import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
 import ru.klimovich.catalog_service.model.Product;
 import ru.klimovich.catalog_service.mapper.ProductMapper;
 import ru.klimovich.catalog_service.repository.ProductRepository;
 import ru.klimovich.catalog_service.service.CategoryService;
 
-import java.text.MessageFormat;
 import java.util.List;
-import java.util.ResourceBundle;
 
 @Service
 @AllArgsConstructor
@@ -46,9 +44,8 @@ public class ProductServiceImpl implements ru.klimovich.catalog_service.service.
     @Override
     public ProductResponse getProductById(String id) {
         Product product = productRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageFormat
-                        .format(ResourceBundle.getBundle("application")
-                                .getString(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY), id)));
+                .orElseThrow(() -> new ResourceNotFoundException(String
+                        .format(MessageKeys.PRODUCT_NOT_FOUND_ID_KEY, id)));
         return productMapper.toDTO(product);
     }
 
@@ -56,9 +53,8 @@ public class ProductServiceImpl implements ru.klimovich.catalog_service.service.
     public List<ProductResponse> getProductByName(String productName) {
         List<Product> products = productRepo.findByNameIgnoreCase(productName);
         if (products.isEmpty()) {
-            throw new ResourceNotFoundException(MessageFormat
-                    .format(ResourceBundle.getBundle("application")
-                            .getString(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY), productName));
+            throw new ResourceNotFoundException(String
+                    .format(MessageKeys.PRODUCT_NOT_FOUND_NAME_KEY, productName));
         }
         return products.stream()
                 .map(productMapper::toDTO)
@@ -68,9 +64,8 @@ public class ProductServiceImpl implements ru.klimovich.catalog_service.service.
     @Override
     public ProductResponse updateProductById(String id, ProductRequest productDetails) {
         Product product = productRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageFormat
-                        .format(ResourceBundle.getBundle("application")
-                                .getString(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY), id)));
+                .orElseThrow(() -> new ResourceNotFoundException(String
+                        .format(MessageKeys.PRODUCT_NOT_FOUND_ID_KEY, id)));
         productMapper.updateProductFromDTO(productDetails, product);
         return productMapper.toDTO(productRepo.save(product));
     }
@@ -78,9 +73,8 @@ public class ProductServiceImpl implements ru.klimovich.catalog_service.service.
     @Override
     public void deleteProductById(String id) {
         Product product = productRepo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(MessageFormat
-                        .format(ResourceBundle.getBundle("application")
-                                .getString(ErrorKeys.CATEGORY_NOT_FOUND_NAME_KEY), id)));
+                .orElseThrow(() -> new ResourceNotFoundException(String
+                        .format(MessageKeys.PRODUCT_NOT_FOUND_ID_KEY, id)));
         productRepo.delete(product);
     }
 }

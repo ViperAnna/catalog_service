@@ -9,7 +9,7 @@ import ru.klimovich.catalog_service.dto.request.CategoryRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 import ru.klimovich.catalog_service.dto.Response;
 import ru.klimovich.catalog_service.service.impl.CategoryServiceImpl;
-import ru.klimovich.catalog_service.util.ErrorKeys;
+import ru.klimovich.catalog_service.util.MessageKeys;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,7 +26,7 @@ public class CategoryController {
     public Response createCategory(@Valid @RequestBody CategoryRequest categoryRequest) {
         categoryService.createCategory(categoryRequest);
         return new Response(
-                ErrorKeys.CATEGORY_CREATED_SUCCESSFULLY,
+                MessageKeys.CATEGORY_CREATED_SUCCESSFULLY,
                 LocalDateTime.now()
         );
     }
@@ -43,10 +43,10 @@ public class CategoryController {
 
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.CREATED)
-    public Response updateCategory(@PathVariable String id, @RequestBody CategoryRequest categoryDetails) {
+    public Response updateCategory(@PathVariable String id, @Valid @RequestBody CategoryRequest categoryDetails) {
         categoryService.updateCategoryById(id, categoryDetails);
         return new Response(
-                ErrorKeys.CATEGORY_UPDATE_SUCCESSFULLY,
+                MessageKeys.CATEGORY_UPDATE_SUCCESSFULLY,
                 LocalDateTime.now()
         );
     }
@@ -56,7 +56,7 @@ public class CategoryController {
     public Response deleteCategory(@PathVariable String id) {
         categoryService.deleteCategoryById(id);
         return new Response(
-                ErrorKeys.CATEGORY_DELETE_SUCCESSFULLY,
+                MessageKeys.CATEGORY_DELETE_SUCCESSFULLY,
                 LocalDateTime.now()
         );
     }

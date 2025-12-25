@@ -1,17 +1,16 @@
-package ru.klimovich.catalog_service.dto.request;
+package ru.klimovich.catalog_service.dto;
 
 import jakarta.validation.constraints.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
+import ru.klimovich.catalog_service.dto.request.CharacteristicRequest;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 @Getter
 @Setter
-@ToString
-@AllArgsConstructor
-@NoArgsConstructor
-public class ProductRequest {
+public abstract class TemplateProduct {
 
     @NotBlank(message = "Product name must not be empty.")
     private String name;

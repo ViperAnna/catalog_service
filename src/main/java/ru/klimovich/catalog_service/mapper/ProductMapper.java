@@ -38,7 +38,7 @@ public interface ProductMapper {
     Characteristic mapCharacteristicDTO(CharacteristicRequest characteristicDTO);
 
     @Named("mapCharacteristic")
-    CharacteristicResponse mapCharacteristic(Characteristic characteristic);
+    CharacteristicRequest mapCharacteristic(Characteristic characteristic);
 
 
     @Named("mapStatusDTO")
