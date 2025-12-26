@@ -1,8 +1,5 @@
 package ru.klimovich.catalog_service.util;
 
-import lombok.NoArgsConstructor;
-
-@NoArgsConstructor
 public class MessageKeys {
 
     public static final String CATEGORY_ALREADY_EXIST = "Category with name [%s] already exists.";

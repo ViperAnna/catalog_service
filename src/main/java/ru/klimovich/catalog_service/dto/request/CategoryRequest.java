@@ -7,7 +7,6 @@ import ru.klimovich.catalog_service.dto.TemplateCategory;
 @Setter
 @ToString
 @NoArgsConstructor
-
 public class CategoryRequest extends TemplateCategory {
 
 }
