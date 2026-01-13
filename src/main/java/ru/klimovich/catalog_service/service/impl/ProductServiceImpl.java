@@ -2,10 +2,13 @@ package ru.klimovich.catalog_service.service.impl;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
+import ru.klimovich.catalog_service.service.ProductService;
 import ru.klimovich.catalog_service.util.MessageKeys;
 import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
 import ru.klimovich.catalog_service.model.Product;
@@ -17,7 +20,7 @@ import java.util.List;
 
 @Service
 @AllArgsConstructor
-public class ProductServiceImpl implements ru.klimovich.catalog_service.service.ProductService {
+public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepo;
     private final CategoryService categoryService;
@@ -34,11 +37,10 @@ public class ProductServiceImpl implements ru.klimovich.catalog_service.service.
     }
 
     @Override
-    public List<ProductResponse> getAllProducts() {
-        List<Product> productList = productRepo.findAll();
-        return productList.stream()
-                .map(productMapper::toDTO)
-                .toList();
+    public Page<ProductResponse> getAllProducts(Pageable pageable) {
+        Page<Product> productPage = productRepo.findAll(pageable);
+        return productPage
+                .map(productMapper::toDTO);
     }
 
     @Override
