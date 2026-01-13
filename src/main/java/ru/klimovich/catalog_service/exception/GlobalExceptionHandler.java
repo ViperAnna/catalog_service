@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ru.klimovich.catalog_service.dto.Response;
 
@@ -13,16 +14,9 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    private ResponseEntity<Object> createErrorResponse(String message, HttpStatus status) {
-        Response body = new Response(
-                message,
-                LocalDateTime.now()
-        );
-        return new ResponseEntity<>(body, status);
-    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    protected ResponseEntity<Object> handleValidationResourceException(MethodArgumentNotValidException ex) {
+    protected ResponseEntity<Response> handleValidationResourceException(MethodArgumentNotValidException ex) {
         String fieldErrors = ex.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
@@ -35,15 +29,16 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    protected ResponseEntity<Object> handleResourceNotFound(ResourceNotFoundException ex) {
-        return createErrorResponse(
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    protected Response handleResourceNotFound(ResourceNotFoundException ex) {
+        return new Response(
                 ex.getMessage(),
-                HttpStatus.NOT_FOUND
+                LocalDateTime.now()
         );
     }
 
     @ExceptionHandler(ResourceConflictException.class)
-    protected ResponseEntity<Object> handleResourceConflict(ResourceConflictException ex) {
+    protected ResponseEntity<Response> handleResourceConflict(ResourceConflictException ex) {
         return createErrorResponse(
                 ex.getMessage(),
                 HttpStatus.CONFLICT

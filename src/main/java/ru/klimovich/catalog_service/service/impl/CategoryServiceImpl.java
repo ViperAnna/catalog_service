@@ -23,13 +23,13 @@ public class CategoryServiceImpl implements ru.klimovich.catalog_service.service
     private final CategoryMapper categoryMapper;
 
     @Override
-    public CategoryResponse createCategory(@NonNull CategoryRequest categoryDetails) {
+    public void createCategory(@NonNull CategoryRequest categoryDetails) {
         if (categoryRepo.findByName(categoryDetails.getName()).isPresent()) {
             throw new ResourceConflictException(String
                     .format(MessageKeys.CATEGORY_ALREADY_EXIST, categoryDetails.getName()));
         }
         Category category = categoryMapper.toEntity(categoryDetails);
-        return categoryMapper.toDTO(categoryRepo.save(category));
+        categoryRepo.save(category);
     }
 
     @Override
@@ -50,13 +50,13 @@ public class CategoryServiceImpl implements ru.klimovich.catalog_service.service
     }
 
     @Override
-    public CategoryResponse updateCategoryById(String id, CategoryRequest categoryDetails) {
+    public void updateCategoryById(String id, CategoryRequest categoryDetails) {
         Category category = categoryRepo.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(String
                                 .format(MessageKeys.CATEGORY_NOT_FOUND_ID_KEY, id)));
         categoryMapper.updateCategoryFromDTO(categoryDetails, category);
-        return categoryMapper.toDTO(categoryRepo.save(category));
+        categoryRepo.save(category);
     }
 
     @Override

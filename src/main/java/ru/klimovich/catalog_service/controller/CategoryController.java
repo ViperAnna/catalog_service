@@ -3,16 +3,16 @@ package ru.klimovich.catalog_service.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 import ru.klimovich.catalog_service.dto.Response;
 import ru.klimovich.catalog_service.service.impl.CategoryServiceImpl;
-import ru.klimovich.catalog_service.util.MessageKeys;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
+import static ru.klimovich.catalog_service.util.MessageKeys.*;
 
 @RestController
 @RequestMapping("/categories")
@@ -26,28 +26,27 @@ public class CategoryController {
     public Response createCategory(@Valid @RequestBody CategoryRequest categoryRequest) {
         categoryService.createCategory(categoryRequest);
         return new Response(
-                MessageKeys.CATEGORY_CREATED_SUCCESSFULLY,
+                CATEGORY_CREATED_SUCCESSFULLY,
                 LocalDateTime.now()
         );
     }
 
 
     @GetMapping
-    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
-        return ResponseEntity.ok(categoryService.getAllCategories());
+    public List<CategoryResponse> getAllCategories() {
+        return categoryService.getAllCategories();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable String id) {
-        return ResponseEntity.ok(categoryService.getCategoryById(id));
+    public CategoryResponse getCategoryById(@PathVariable String id) {
+        return categoryService.getCategoryById(id);
     }
 
     @PutMapping("/{id}")
-    @ResponseStatus(HttpStatus.CREATED)
     public Response updateCategory(@PathVariable String id, @Valid @RequestBody CategoryRequest categoryDetails) {
         categoryService.updateCategoryById(id, categoryDetails);
         return new Response(
-                MessageKeys.CATEGORY_UPDATE_SUCCESSFULLY,
+                CATEGORY_UPDATE_SUCCESSFULLY,
                 LocalDateTime.now()
         );
     }
@@ -57,7 +56,7 @@ public class CategoryController {
     public Response deleteCategory(@PathVariable String id) {
         categoryService.deleteCategoryById(id);
         return new Response(
-                MessageKeys.CATEGORY_DELETE_SUCCESSFULLY,
+                CATEGORY_DELETE_SUCCESSFULLY,
                 LocalDateTime.now()
         );
     }
