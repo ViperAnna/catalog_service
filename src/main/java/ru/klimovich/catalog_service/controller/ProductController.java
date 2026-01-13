@@ -2,9 +2,6 @@ package ru.klimovich.catalog_service.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,9 +37,9 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<ProductResponse>> getAllProducts(@PageableDefault(size = 5, page = 0) Pageable pageable) {
+    public ResponseEntity<List<ProductResponse>> getAllProducts() {
         return ResponseEntity
-                .ok(productService.getAllProducts(pageable));
+                .ok(productService.getAllProducts());
     }
 
     @GetMapping("/productByName/{productName}")

@@ -12,7 +12,7 @@ public interface ProductService {
 
     ProductResponse createProduct(ProductRequest productDetails);
 
-    Page<ProductResponse> getAllProducts(Pageable pageable);
+    List<ProductResponse> getAllProducts();
 
     ProductResponse getProductById(String id);
 

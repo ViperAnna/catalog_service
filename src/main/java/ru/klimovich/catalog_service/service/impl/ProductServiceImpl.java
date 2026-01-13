@@ -37,10 +37,11 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Page<ProductResponse> getAllProducts(Pageable pageable) {
-        Page<Product> productPage = productRepo.findAll(pageable);
-        return productPage
-                .map(productMapper::toDTO);
+    public List<ProductResponse> getAllProducts() {
+        List<Product> productList = productRepo.findAll();
+        return productList.stream()
+                .map(productMapper::toDTO)
+                .toList();
     }
 
     @Override
