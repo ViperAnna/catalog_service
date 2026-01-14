@@ -15,9 +15,9 @@ public class CategoryResponse extends TemplateCategory {
 
     private String id;
 
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime dateCreate;
+    @JsonFormat(pattern = "dd.MM.yyyy")
+    private LocalDateTime createdAt;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime dateUpdate;
+    private LocalDateTime updatedAt;
 }
