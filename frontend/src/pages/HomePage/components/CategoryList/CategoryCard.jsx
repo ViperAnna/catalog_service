@@ -2,14 +2,15 @@ import React from 'react';
 import {Link} from 'react-router-dom';
 import {FiArrowRight, FiCheckCircle} from 'react-icons/fi';
 import EmptyImage from "../../../../components/EmptyImage.jsx";
+import moment from "moment";
 
 const CategoryCard = ({category}) => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'active':
+            case 'ACTIVE':
                 return 'bg-green-100 text-green-800';
-            case 'inactive':
+            case 'INACTIVE':
                 return 'bg-red-100 text-red-800';
             default:
                 return 'bg-blue-100 text-blue-800';
@@ -18,9 +19,9 @@ const CategoryCard = ({category}) => {
 
     const getStatusText = (status) => {
         switch (status) {
-            case 'active':
+            case 'ACTIVE':
                 return 'Активна';
-            case 'inactive':
+            case 'INACTIVE':
                 return 'Неактивна';
             default:
                 return status;
@@ -83,7 +84,7 @@ const CategoryCard = ({category}) => {
                     </div>
 
                     <div className="mt-3 text-xs text-gray-400">
-                        Изменено: {new Date(category.updatedAt).toLocaleDateString('ru-RU')}
+                        Изменено: {moment(category.updatedAt, 'YYYY-MM-DD HH:mm:ss').format('DD.MM.YYYY HH:mm:ss')}
                     </div>
                 </div>
 
