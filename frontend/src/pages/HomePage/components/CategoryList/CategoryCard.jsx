@@ -33,9 +33,9 @@ const CategoryCard = ({category}) => {
             <div
                 className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 hover:border-green-200">
                 <div className="relative h-48 overflow-hidden">
-                    {category.image ? (
+                    {category.pictureUrl ? (
                         <img
-                            src={category.image}
+                            src={category.pictureUrl}
                             alt={category.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />

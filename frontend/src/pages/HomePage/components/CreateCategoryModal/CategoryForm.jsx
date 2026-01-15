@@ -10,7 +10,7 @@ const CategoryForm = ({onClose}) => {
         name: '',
         description: '',
         image: null,
-        status: 'active',
+        status: 'ACTIVE',
     });
 
     const [imagePreview, setImagePreview] = useState(null);
@@ -111,7 +111,7 @@ const CategoryForm = ({onClose}) => {
             name: '',
             description: '',
             image: null,
-            status: 'active',
+            status: 'ACTIVE',
         });
         setImagePreview(null);
         if (fileInputRef.current) {
@@ -213,8 +213,8 @@ const CategoryForm = ({onClose}) => {
                             <input
                                 type="radio"
                                 name="status"
-                                value="active"
-                                checked={formData.status === 'active'}
+                                value="ACTIVE"
+                                checked={formData.status === 'ACTIVE'}
                                 onChange={handleInputChange}
                                 className="w-4 h-4 text-emerald-600 focus:ring-emerald-500"
                             />
@@ -224,8 +224,8 @@ const CategoryForm = ({onClose}) => {
                             <input
                                 type="radio"
                                 name="status"
-                                value="inactive"
-                                checked={formData.status === 'inactive'}
+                                value="INACTIVE"
+                                checked={formData.status === 'INACTIVE'}
                                 onChange={handleInputChange}
                                 className="w-4 h-4 text-gray-600 focus:ring-gray-500"
                             />
