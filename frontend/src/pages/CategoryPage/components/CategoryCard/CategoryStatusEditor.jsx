@@ -17,10 +17,10 @@ const CategoryStatusEditor = ({
             <div className="flex space-x-4">
                 <button
                     type="button"
-                    onClick={() => onStatusChange('active')}
+                    onClick={() => onStatusChange('ACTIVE')}
                     disabled={isSubmitting}
                     className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg border-2 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed ${
-                        editedStatus === 'active'
+                        editedStatus === 'ACTIVE'
                             ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                             : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                     }`}
@@ -30,10 +30,10 @@ const CategoryStatusEditor = ({
                 </button>
                 <button
                     type="button"
-                    onClick={() => onStatusChange('inactive')}
+                    onClick={() => onStatusChange('INACTIVE')}
                     disabled={isSubmitting}
                     className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg border-2 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed ${
-                        editedStatus === 'inactive'
+                        editedStatus === 'INACTIVE'
                             ? 'border-red-500 bg-red-50 text-red-700'
                             : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                     }`}
