@@ -11,10 +11,14 @@ import ru.klimovich.catalog_service.model.CategoryStatus;
 
 public interface CategoryMapper {
 
+@Mapping(target = "picture", ignore = true)
+@Mapping(target = "id", ignore = true)
     Category toEntity(CategoryRequest categoryDTO);
 
+@Mapping(source = "picture", target = "pictureUrl")
     CategoryResponse toDTO(Category category);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+//    @Mapping(target = "picture", ignore = true)
     void updateCategoryFromDTO(CategoryRequest categoryDetails, @MappingTarget Category category);
 }

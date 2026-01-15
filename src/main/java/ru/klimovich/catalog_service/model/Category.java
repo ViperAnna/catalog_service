@@ -33,9 +33,9 @@ public class Category {
 
     @CreatedDate
     @Field(value = "date_create")
-    private LocalDateTime dateCreate;
+    private LocalDateTime createdAt;
 
     @LastModifiedDate
     @Field(value = "date_update")
-    private LocalDateTime dateUpdate;
+    private LocalDateTime updatedAt;
 }
