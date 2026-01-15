@@ -8,12 +8,21 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - ./minio/data:/data
     command: server /data --console-address ":9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
 
   createbuckets:
     image: minio/mc
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     entrypoint: >
       /bin/sh -c "
       /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
@@ -21,3 +30,30 @@ services:
       /usr/bin/mc anonymous set public myminio/categories;
       exit 0;
       "
+    restart: "no"
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: catalog_db
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+  front:
+    image: frontend-mock
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongodb:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    command: npm run dev:java
+    restart: unless-stopped
+volumes:
+  mongodb_data:
