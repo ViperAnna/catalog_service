@@ -16,13 +16,13 @@ const CategoryCard = ({category, onSuccess}) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState(category.name);
     const [editedDescription, setEditedDescription] = useState(category.description || '');
-    const [editedStatus, setEditedStatus] = useState(category.status || 'active');
+    const [editedStatus, setEditedStatus] = useState(category.status);
     const [imagePreview, setImagePreview] = useState(initialImage);
     const [imageFile, setImageFile] = useState(null);
     const [originalData, setOriginalData] = useState({
         name: category.name,
         description: category.description || '',
-        status: category.status || 'active',
+        status: category.status,
         image: null
     });
     const [hasChanges, setHasChanges] = useState(false);

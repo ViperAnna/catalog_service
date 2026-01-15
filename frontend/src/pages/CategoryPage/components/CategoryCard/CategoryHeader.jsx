@@ -10,7 +10,7 @@ const CategoryHeader = ({
                             onKeyDown
                         }) => {
     const getStatusStyles = (status) => {
-        if (status === 'active') {
+        if (status === 'ACTIVE') {
             return {
                 bg: 'bg-emerald-100',
                 text: 'text-emerald-800',

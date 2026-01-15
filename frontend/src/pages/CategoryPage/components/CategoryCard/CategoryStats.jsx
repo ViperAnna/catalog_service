@@ -1,4 +1,5 @@
 import React from 'react';
+import moment from "moment";
 
 const CategoryStats = ({category}) => {
     const stats = [
@@ -9,12 +10,12 @@ const CategoryStats = ({category}) => {
         },
         {
             label: 'Создана',
-            value: new Date(category.createdAt).toLocaleDateString('ru-RU'),
+            value: moment(category.updatedAt, 'YYYY-MM-DD HH:mm:ss').format('DD.MM.YYYY HH:mm:ss'),
             isDate: true
         },
         {
             label: 'Обновлена',
-            value: new Date(category.updatedAt).toLocaleDateString('ru-RU'),
+            value: moment(category.updatedAt, 'YYYY-MM-DD HH:mm:ss').format('DD.MM.YYYY HH:mm:ss'),
             isDate: true
         }
     ];
