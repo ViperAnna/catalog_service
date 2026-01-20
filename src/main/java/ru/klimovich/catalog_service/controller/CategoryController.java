@@ -1,7 +1,7 @@
 package ru.klimovich.catalog_service.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +15,7 @@ import java.util.List;
 
 import static ru.klimovich.catalog_service.util.MessageKeys.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/categories")
 @RequiredArgsConstructor
@@ -26,9 +27,7 @@ public class CategoryController {
     @ResponseStatus(HttpStatus.CREATED)
     public Response createCategory(@ModelAttribute CategoryRequest categoryRequest) {
         categoryService.createCategory(categoryRequest);
-//        if (file.isEmpty()) {
-//            throw new IllegalArgumentException("Picture file cannot be empty");
-//        }
+        log.info("Successfully created category with name: {}", categoryRequest.getName());
         return new Response(
                 CATEGORY_CREATED_SUCCESSFULLY,
                 LocalDateTime.now()
@@ -48,6 +47,7 @@ public class CategoryController {
     @PutMapping("/{id}")
     public Response updateCategory(@PathVariable String id, @ModelAttribute CategoryRequest categoryDetails) {
         categoryService.updateCategoryById(id, categoryDetails);
+        log.info("Successfully update category with id: {}", id);
         return new Response(
                 CATEGORY_UPDATE_SUCCESSFULLY,
                 LocalDateTime.now()
@@ -58,6 +58,7 @@ public class CategoryController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public Response deleteCategory(@PathVariable String id) {
         categoryService.deleteCategoryById(id);
+        log.info("Successfully delete category with id: {}", id);
         return new Response(
                 CATEGORY_DELETE_SUCCESSFULLY,
                 LocalDateTime.now()

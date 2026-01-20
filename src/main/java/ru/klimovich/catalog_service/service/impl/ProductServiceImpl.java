@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
+import ru.klimovich.catalog_service.model.Category;
+import ru.klimovich.catalog_service.repository.CategoryRepository;
 import ru.klimovich.catalog_service.service.ProductService;
 import ru.klimovich.catalog_service.util.MessageKeys;
 import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
@@ -24,6 +26,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepo;
     private final CategoryService categoryService;
+    private final CategoryRepository categoryRepo;
     private final ProductMapper productMapper;
 
     @Override
@@ -59,6 +62,17 @@ public class ProductServiceImpl implements ProductService {
                     .format(MessageKeys.PRODUCT_NOT_FOUND_NAME_KEY, productName));
         }
         return products.stream()
+                .map(productMapper::toDTO)
+                .toList();
+    }
+    @Override
+    public List<ProductResponse> getProductsByCategory(String categoryName){
+        Category category = categoryRepo.findByName(categoryName)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(String
+                                .format(MessageKeys.CATEGORY_NOT_FOUND_NAME_KEY, categoryName)));
+        List<Product> categoryList = productRepo.findByCategoriesContaining(category.getId());
+        return categoryList.stream()
                 .map(productMapper::toDTO)
                 .toList();
     }

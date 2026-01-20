@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
+import ru.klimovich.catalog_service.exception.ResourceConflictException;
 import ru.klimovich.catalog_service.service.CategoryService;
 import ru.klimovich.catalog_service.util.MessageKeys;
 import ru.klimovich.catalog_service.model.Category;
@@ -27,13 +28,14 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryResponse createCategory(@NonNull CategoryRequest categoryDetails) {
 
-//        if (categoryRepo.findByName(categoryDetails.getName()).isPresent()) {
-//            throw new ResourceConflictException(String
-//                    .format(MessageKeys.CATEGORY_ALREADY_EXIST, categoryDetails.getName()));
-//        }
-//        if(file.isEmpty()){
-//            throw new IllegalArgumentException("Picture file cannot be empty");
-//        }
+        if (categoryRepo.findByName(categoryDetails.getName()).isPresent()) {
+            throw new ResourceConflictException(String
+                    .format(MessageKeys.CATEGORY_ALREADY_EXIST, categoryDetails.getName()));
+        }
+        if (categoryDetails.getImage().isEmpty()) {
+            throw new ResourceNotFoundException(String
+                    .format(MessageKeys.CATEGORY_IMAGE_NOT_FOUND));
+        }
         String fileName = fileStorageService.uploadFile(categoryDetails.getImage());
         Category category = categoryMapper.toEntity(categoryDetails);
         category.setPicture(fileName);
@@ -56,6 +58,7 @@ public class CategoryServiceImpl implements CategoryService {
                                 .format(MessageKeys.CATEGORY_NOT_FOUND_ID_KEY, id)));
         return categoryMapper.toDTO(category);
     }
+
 
     @Override
     public CategoryResponse updateCategoryById(String id, CategoryRequest categoryDetails) {

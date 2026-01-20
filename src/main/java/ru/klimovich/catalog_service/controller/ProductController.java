@@ -2,6 +2,7 @@ package ru.klimovich.catalog_service.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -17,6 +18,7 @@ import ru.klimovich.catalog_service.util.MessageKeys;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/products")
@@ -26,8 +28,9 @@ public class ProductController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Response creatProduct(@Valid @RequestBody ProductRequest productDTO) {
-        productService.createProduct(productDTO);
+    public Response creatProduct(@Valid @RequestBody ProductRequest productRequest) {
+        productService.createProduct(productRequest);
+        log.info("Successfully created product with name: {}", productRequest.getName());
         return new Response(
                 MessageKeys.PRODUCT_CREATED_SUCCESSFULLY,
                 LocalDateTime.now()
@@ -50,10 +53,16 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductByName(productName));
     }
 
+    @GetMapping("/productsByCategory/{categoryName}")
+    public ResponseEntity<List<ProductResponse>> getProductsByCategory(@PathVariable String categoryName) {
+        return ResponseEntity.ok(productService.getProductsByCategory(categoryName));
+    }
+
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.CREATED)
     public Response updateProduct(@PathVariable String id, @Valid @RequestBody ProductRequest productDetails) {
         productService.updateProductById(id, productDetails);
+        log.info("Successfully updated product with id: {}", id);
         return new Response(
                 MessageKeys.PRODUCT_UPDATE_SUCCESSFULLY,
                 LocalDateTime.now()
@@ -64,6 +73,7 @@ public class ProductController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public Response deleteProduct(@PathVariable String id) {
         productService.deleteProductById(id);
+        log.info("Successfully deleted product with id: {}", id);
         return new Response(
                 MessageKeys.PRODUCT_DELETE_SUCCESSFULLY,
                 LocalDateTime.now()
