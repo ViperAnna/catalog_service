@@ -19,6 +19,8 @@ import ru.klimovich.catalog_service.repository.ProductRepository;
 import ru.klimovich.catalog_service.service.CategoryService;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -36,14 +38,29 @@ public class ProductServiceImpl implements ProductService {
             categoryService.getCategoryById(categoryId);
         }
         Product product = productMapper.toEntity(productDetails);
-        return productMapper.toDTO(productRepo.save(product));
+        productRepo.save(product);
+        Map<String, String> categoryNames = categoryRepo.findAllById(product.getCategories())
+                .stream()
+                .collect(Collectors.toMap(Category::getId, Category::getName));
+        return productMapper.toDTO(product, categoryNames);
     }
 
     @Override
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
         Page<Product> productPage = productRepo.findAll(pageable);
+
+        Map<String,String> categoryInfo = categoryRepo.findAllById(
+                productPage.getContent()
+                        .stream()
+                        .flatMap(p -> p.getCategories().stream())
+                        .distinct()
+                        .toList()
+        ).stream()
+                .collect(Collectors.toMap(Category::getId, Category::getName));
+
+
         return productPage
-                .map(productMapper::toDTO);
+                .map(p->productMapper.toDTO(p,categoryInfo));
     }
 
     @Override
@@ -51,7 +68,10 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(String
                         .format(MessageKeys.PRODUCT_NOT_FOUND_ID_KEY, id)));
-        return productMapper.toDTO(product);
+        Map<String, String> categoriesNames = categoryRepo.findAllById(product.getCategories())
+                .stream()
+                .collect(Collectors.toMap(Category::getId,Category::getName));
+        return productMapper.toDTO(product, categoriesNames);
     }
 
     @Override
@@ -61,8 +81,16 @@ public class ProductServiceImpl implements ProductService {
             throw new ResourceNotFoundException(String
                     .format(MessageKeys.PRODUCT_NOT_FOUND_NAME_KEY, productName));
         }
+        List<String> categoryId = products.stream()
+                .flatMap(p-> p.getCategories().stream())
+                .distinct()
+                .toList();
+        Map<String, String> categoriesNames = categoryRepo.findAllById(categoryId)
+                .stream()
+                .collect(Collectors.toMap(Category::getId,Category::getName));
+
         return products.stream()
-                .map(productMapper::toDTO)
+                .map(p -> productMapper.toDTO(p, categoriesNames))
                 .toList();
     }
     @Override
@@ -72,8 +100,16 @@ public class ProductServiceImpl implements ProductService {
                         new ResourceNotFoundException(String
                                 .format(MessageKeys.CATEGORY_NOT_FOUND_NAME_KEY, categoryName)));
         List<Product> categoryList = productRepo.findByCategoriesContaining(category.getId());
+        List<String> categoryIds = categoryList.stream()
+                .flatMap(p -> p.getCategories().stream())
+                .distinct()
+                .toList();
+
+        Map<String, String> categoryNames = categoryRepo.findAllById(categoryIds)
+                .stream()
+                .collect(Collectors.toMap(Category::getId, Category::getName));
         return categoryList.stream()
-                .map(productMapper::toDTO)
+                .map(p -> productMapper.toDTO(p, categoryNames))
                 .toList();
     }
 
@@ -83,7 +119,12 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException(String
                         .format(MessageKeys.PRODUCT_NOT_FOUND_ID_KEY, id)));
         productMapper.updateProductFromDTO(productDetails, product);
-        return productMapper.toDTO(productRepo.save(product));
+        productRepo.save(product);
+        List<String> categoryIds = product.getCategories();
+        Map<String, String> categoryNames = categoryRepo.findAllById(categoryIds)
+                .stream()
+                .collect(Collectors.toMap(Category::getId, Category::getName));
+        return productMapper.toDTO(product, categoryNames);
     }
 
     @Override

@@ -4,6 +4,8 @@ import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import ru.klimovich.catalog_service.dto.request.CharacteristicRequest;
+import ru.klimovich.catalog_service.dto.response.CategoryResponse;
+import ru.klimovich.catalog_service.dto.response.CategoryShortResponse;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -24,7 +26,7 @@ public abstract class TemplateProduct {
     @NotEmpty(message = "At least one picture URL must be provided.")
     private List<String> picture;
     @NotEmpty(message = "Categories list cannot be empty.")
-    private List<String> categories;
+    private List<CategoryShortResponse> categories;
     @NotNull(message = "Characteristic details must be provided.")
     private CharacteristicRequest characteristic;
     @NotEmpty(message = "At least one tag must be provided.")

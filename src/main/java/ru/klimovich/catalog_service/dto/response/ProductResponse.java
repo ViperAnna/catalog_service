@@ -8,6 +8,5 @@ import ru.klimovich.catalog_service.dto.TemplateProduct;
 @ToString
 @NoArgsConstructor
 public class ProductResponse extends TemplateProduct {
-
     private String id;
 }

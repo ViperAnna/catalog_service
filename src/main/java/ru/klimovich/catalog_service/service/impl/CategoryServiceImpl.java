@@ -17,6 +17,8 @@ import ru.klimovich.catalog_service.mapper.CategoryMapper;
 import ru.klimovich.catalog_service.repository.CategoryRepository;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -57,6 +59,16 @@ public class CategoryServiceImpl implements CategoryService {
                         new ResourceNotFoundException(String
                                 .format(MessageKeys.CATEGORY_NOT_FOUND_ID_KEY, id)));
         return categoryMapper.toDTO(category);
+    }
+    public Map<String, String> getNamesById(List<String> id){
+        if (id == null || id.isEmpty()){
+            return Map.of();
+        }
+        return categoryRepo.findAllById(id).stream()
+                .collect(Collectors.toMap(
+                        Category::getId,
+                        Category::getName
+                ));
     }
 
 
