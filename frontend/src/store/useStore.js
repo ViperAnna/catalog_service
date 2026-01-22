@@ -1,6 +1,14 @@
 import {create} from 'zustand';
 import {api} from '../services/api';
 
+const MINIO_INTERNAL_URL = 'http://minio:9000';
+const MINIO_EXTERNAL_URL = 'http://localhost:9000';
+
+const convertPictureUrl = (url) => {
+    if (!url) return null;
+    return url.replace(MINIO_INTERNAL_URL, MINIO_EXTERNAL_URL);
+};
+
 export const useStore = create((set, get) => ({
     categories: [],
     currentCategory: null,
@@ -20,7 +28,11 @@ export const useStore = create((set, get) => ({
         set({loading: true, error: null});
         try {
             const response = await api.get('/categories');
-            set({categories: response.data, loading: false});
+            const categoriesWithConvertedUrls = response.data.map(category => ({
+                ...category,
+                pictureUrl: convertPictureUrl(category.pictureUrl)
+            }));
+            set({categories: categoriesWithConvertedUrls, loading: false});
         } catch (e) {
             set({error: e.message, loading: false})
         }
@@ -34,7 +46,12 @@ export const useStore = create((set, get) => ({
         set({loading: true, error: null});
         try {
             const response = await api.get(`/categories/${id}`);
-            set({currentCategory: response.data, loading: false});
+            const category = response.data
+            const convertedCategory = {
+                ...category,
+                pictureUrl: convertPictureUrl(category.pictureUrl)
+            };
+            set({currentCategory: convertedCategory, loading: false});
         } catch (e) {
             set({error: e.message, loading: false});
         }

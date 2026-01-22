@@ -10,7 +10,7 @@ const CategoryStats = ({category}) => {
         },
         {
             label: 'Создана',
-            value: moment(category.updatedAt, 'YYYY-MM-DD HH:mm:ss').format('DD.MM.YYYY HH:mm:ss'),
+            value: moment(category.createdAt, 'YYYY-MM-DD HH:mm:ss').format('DD.MM.YYYY HH:mm:ss'),
             isDate: true
         },
         {
