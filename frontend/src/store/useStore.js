@@ -57,12 +57,22 @@ export const useStore = create((set, get) => ({
         }
     },
 
-    createCategory: async (categoryData) => {
-        return await api.post('/categories', categoryData)
+    createCategory: async (categoryData, options = {}) => {
+        return await api.post('/categories', categoryData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+            ...options,
+        });
     },
 
-    updateCategory: async (id, categoryData) => {
-        return await api.put(`/categories/${id}`, categoryData);
+    updateCategory: async (id, categoryData, options = {}) => {
+        return await api.put(`/categories/${id}`, categoryData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+            ...options,
+        });
     },
 
     deleteCategory: async (id) => {
