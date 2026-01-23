@@ -30,12 +30,13 @@ const CategoryCard = ({category, onSuccess}) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     useEffect(() => {
         const convertImageToDataURL = async () => {
-            if (category.image && !category.image.startsWith('data:')) {
+            if (category.pictureUrl && !category.pictureUrl.startsWith('data:')) {
                 try {
-                    const response = await fetch(category.image);
+                    const response = await fetch(category.pictureUrl);
                     const blob = await response.blob();
                     return new Promise((resolve) => {
                         const reader = new FileReader();
@@ -43,10 +44,10 @@ const CategoryCard = ({category, onSuccess}) => {
                         reader.readAsDataURL(blob);
                     });
                 } catch (error) {
-                    return category.image;
+                    return category.pictureUrl;
                 }
             }
-            return category.image;
+            return category.pictureUrl;
         };
 
         convertImageToDataURL().then(dataURL => {
@@ -56,7 +57,7 @@ const CategoryCard = ({category, onSuccess}) => {
                 image: dataURL
             }));
         });
-    }, [category.image]);
+    }, [category.pictureUrl]);
 
     useEffect(() => {
         const nameChanged = editedName !== originalData.name;
@@ -81,6 +82,7 @@ const CategoryCard = ({category, onSuccess}) => {
         if (!hasChanges) return;
 
         setIsSubmitting(true);
+        setUploadProgress(0);
 
         try {
             const formData = new FormData();
@@ -92,8 +94,14 @@ const CategoryCard = ({category, onSuccess}) => {
             } else if (!imagePreview && originalData.image) {
                 formData.append('image', '');
             }
-
-            const response = await updateCategory(category.id, formData);
+            const response = await updateCategory(category.id, formData, {
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round(
+                        (progressEvent.loaded * 100) / progressEvent.total
+                    );
+                    setUploadProgress(percentCompleted);
+                }
+            });
 
             if (response?.status === 200) {
                 toast.success('Категория успешно обновлена!');
@@ -107,6 +115,7 @@ const CategoryCard = ({category, onSuccess}) => {
             toast.error('Не удалось обновить категорию');
         } finally {
             setIsSubmitting(false);
+            setUploadProgress(0);
         }
     };
 
@@ -193,7 +202,19 @@ const CategoryCard = ({category, onSuccess}) => {
                     onRemoveImage={handleRemoveImage}
                     onRestoreImage={handleRestoreImage}
                 />
-
+                {isSubmitting && uploadProgress > 0 && uploadProgress < 100 && (
+                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+                        <div className="text-white text-sm mb-2 text-center">
+                            Загрузка изображения: {uploadProgress}%
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2">
+                            <div
+                                className="bg-emerald-400 h-2 rounded-full transition-all duration-300"
+                                style={{width: `${uploadProgress}%`}}
+                            ></div>
+                        </div>
+                    </div>
+                )}
                 <div className="md:w-3/5 p-8">
                     <CategoryActionButtons
                         isEditing={isEditing}

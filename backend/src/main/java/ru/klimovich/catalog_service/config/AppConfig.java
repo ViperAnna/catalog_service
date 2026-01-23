@@ -1,14 +1,9 @@
 package ru.klimovich.catalog_service.config;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.Random;
+import org.springframework.data.mongodb.config.EnableMongoAuditing;
 
 @Configuration
+@EnableMongoAuditing
 public class AppConfig {
-    @Bean
-    public Random random(){
-        return new Random();
-    }
 }

@@ -1,0 +1,79 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    env_file:
+      - .env.mongodb
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: >
+        bash -c '
+        mongosh --quiet \
+          -u "$$MONGO_INITDB_ROOT_USERNAME" \
+          -p "$$MONGO_INITDB_ROOT_PASSWORD" \
+          --authenticationDatabase admin \
+          --eval "db.runCommand({connectionStatus: 1}).ok === 1"
+        '
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    env_file:
+      - .env.minio
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./minio/data:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 minioadmin minioadmin &&
+      mc mb --ignore-existing myminio/categories &&
+      mc anonymous set public myminio/categories
+      "
+    restart: "no"
+  catalog-service:
+    build: ./backend
+    container_name: catalog-service
+    env_file:
+      - .env.spring
+    ports:
+      - "8080:8080"
+    depends_on:
+      createbuckets:
+        condition: service_completed_successfully
+      mongodb:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+  front:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    command: npm run dev:java
+    restart: unless-stopped
+volumes:
+  mongodb_data:

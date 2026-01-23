@@ -16,6 +16,7 @@ const CategoryForm = ({onClose}) => {
     const [imagePreview, setImagePreview] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFormValid, setIsFormValid] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const fileInputRef = useRef(null);
 
     useEffect(() => {
@@ -80,6 +81,7 @@ const CategoryForm = ({onClose}) => {
         }
 
         setIsSubmitting(true);
+        setUploadProgress(0);
 
         try {
             const formDataToSend = new FormData();
@@ -89,8 +91,14 @@ const CategoryForm = ({onClose}) => {
             if (formData.image) {
                 formDataToSend.append('image', formData.image);
             }
-
-            const response = await createCategory(formDataToSend);
+            const response = await createCategory(formDataToSend, {
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round(
+                        (progressEvent.loaded * 100) / progressEvent.total
+                    );
+                    setUploadProgress(percentCompleted);
+                }
+            });
 
             if (response?.status === 201) {
                 toast.success('Категория успешно создана!');
@@ -100,9 +108,14 @@ const CategoryForm = ({onClose}) => {
                 toast.error(response.data.message);
             }
         } catch (error) {
-            toast.error('Не удалось создать категорию. Попробуйте еще раз.');
+            if (error?.message.includes('already exists')) {
+                toast.error('Такая категория уже существует');
+            } else {
+                toast.error('Не удалось создать категорию. Попробуйте еще раз.');
+            }
         } finally {
             setIsSubmitting(false);
+            setUploadProgress(0);
         }
     };
 
@@ -180,6 +193,21 @@ const CategoryForm = ({onClose}) => {
                             >
                                 <FiX className="w-5 h-5 text-gray-700"/>
                             </button>
+                            {isSubmitting && uploadProgress > 0 && uploadProgress < 100 && (
+                                <div className="absolute bottom-0 left-0 right-0 bg-gray-200/90 backdrop-blur-sm rounded-b-lg">
+                                    <div className="px-4 py-2">
+                                        <div className="text-xs text-gray-700 mb-1">
+                                            Загрузка: {uploadProgress}%
+                                        </div>
+                                        <div className="w-full bg-gray-300 rounded-full h-2">
+                                            <div
+                                                className="bg-emerald-500 h-2 rounded-full transition-all duration-300 ease-out"
+                                                style={{ width: `${uploadProgress}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div

@@ -1,18 +1,21 @@
 package ru.klimovich.catalog_service.service;
 
-import ru.klimovich.catalog_service.DTO.CategoryDTO;
+
+import org.springframework.web.multipart.MultipartFile;
+import ru.klimovich.catalog_service.dto.request.CategoryRequest;
+import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 
 import java.util.List;
 
 public interface CategoryService {
 
-    CategoryDTO createCategory(CategoryDTO categoryDTO);
+    CategoryResponse createCategory(CategoryRequest categoryDTO);
 
-    List<CategoryDTO> getAllCategories();
+    List<CategoryResponse> getAllCategories();
 
-    CategoryDTO getCategoryById(String id);
+    CategoryResponse getCategoryById(String id);
 
-    CategoryDTO updateCategory(String id, CategoryDTO categoryDetails);
+    CategoryResponse updateCategoryById(String id, CategoryRequest categoryDetails);
 
     void deleteCategoryById(String id);
 }

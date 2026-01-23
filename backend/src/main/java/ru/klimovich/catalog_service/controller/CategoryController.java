@@ -1,49 +1,68 @@
 package ru.klimovich.catalog_service.controller;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import ru.klimovich.catalog_service.DTO.CategoryDTO;
-import ru.klimovich.catalog_service.service.Impl.CategoryServiceImpl;
+import ru.klimovich.catalog_service.aop.Loggable;
+import ru.klimovich.catalog_service.dto.request.CategoryRequest;
+import ru.klimovich.catalog_service.dto.response.CategoryResponse;
+import ru.klimovich.catalog_service.dto.Response;
+import ru.klimovich.catalog_service.service.impl.CategoryServiceImpl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
-@AllArgsConstructor
+import static ru.klimovich.catalog_service.util.MessageKeys.*;
+
 @RestController
 @RequestMapping("/categories")
+@RequiredArgsConstructor
 public class CategoryController {
 
+    private final CategoryServiceImpl categoryService;
 
-    private final CategoryServiceImpl categoryServiceImp;
-
-    @PostMapping
-    public ResponseEntity<CategoryDTO> createCategory(@RequestBody CategoryDTO categoryDTO) {
-        CategoryDTO category = categoryServiceImp.createCategory(categoryDTO);
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(category);
+    @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    @Loggable
+    public Response createCategory(@ModelAttribute CategoryRequest categoryRequest) {
+        categoryService.createCategory(categoryRequest);
+        return new Response(
+                CATEGORY_CREATED_SUCCESSFULLY,
+                LocalDateTime.now()
+        );
     }
 
     @GetMapping
-    public ResponseEntity<List<CategoryDTO>> getAllCategory() {
-        return ResponseEntity.ok(categoryServiceImp.getAllCategories());
+    @Loggable
+    public List<CategoryResponse> getAllCategories() {
+        return categoryService.getAllCategories();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CategoryDTO> getCategoryById(@PathVariable String id) {
-        return ResponseEntity.ok(categoryServiceImp.getCategoryById(id));
+    @Loggable
+    public CategoryResponse getCategoryById(@PathVariable String id) {
+        return categoryService.getCategoryById(id);
     }
 
-    @PostMapping("/{id}")
-    public ResponseEntity<CategoryDTO> updateCategory(@PathVariable String id, @RequestBody CategoryDTO categoryDetails) {
-        return ResponseEntity.ok(categoryServiceImp.updateCategory(id, categoryDetails));
-
+    @PutMapping("/{id}")
+    @Loggable
+    public Response updateCategory(@PathVariable String id, @ModelAttribute CategoryRequest categoryDetails) {
+        categoryService.updateCategoryById(id, categoryDetails);
+        return new Response(
+                CATEGORY_UPDATE_SUCCESSFULLY,
+                LocalDateTime.now()
+        );
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable String id) {
-        categoryServiceImp.deleteCategoryById(id);
-        return ResponseEntity.noContent().build();
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Loggable
+    public Response deleteCategory(@PathVariable String id) {
+        categoryService.deleteCategoryById(id);
+        return new Response(
+                CATEGORY_DELETE_SUCCESSFULLY,
+                LocalDateTime.now()
+        );
     }
 }
