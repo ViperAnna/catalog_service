@@ -1,7 +1,9 @@
 package ru.klimovich.catalog_service.exception;
 
+import io.minio.errors.MinioException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -50,6 +52,22 @@ public class GlobalExceptionHandler {
         return createErrorResponse(
                 ex.getMessage(),
                 HttpStatus.CONFLICT
+        );
+    }
+
+    @ExceptionHandler(MinioException.class)
+    public ResponseEntity<Object> handleMinio(MinioException ex) {
+        return createErrorResponse(
+                ex.getMessage(),
+                HttpStatus.SERVICE_UNAVAILABLE
+        );
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Object> handleJsonParse(HttpMessageNotReadableException ex) {
+        return createErrorResponse(
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST
         );
     }
 }

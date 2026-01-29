@@ -8,6 +8,7 @@ public class MessageKeys {
     public static final String CATEGORY_CREATED_SUCCESSFULLY = "The category was successfully created.";
     public static final String CATEGORY_UPDATE_SUCCESSFULLY = "The category was successfully updated.";
     public static final String CATEGORY_DELETE_SUCCESSFULLY = "The category was successfully deleted.";
+    public static final String CATEGORY_HAS_PRODUCTS_EXCEPTION = "Category has products. Category cannot be deleted.";
     public static final String CATEGORY_IMAGE_NOT_FOUND = "Image not found.";
     public static final String PRODUCT_NOT_FOUND_ID_KEY = "Product not found with id: [%s].";
     public static final String PRODUCT_NOT_FOUND_NAME_KEY = "Product not found with name: [%s].";

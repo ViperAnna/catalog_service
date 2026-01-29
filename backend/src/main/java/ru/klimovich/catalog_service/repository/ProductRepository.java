@@ -1,11 +1,11 @@
 package ru.klimovich.catalog_service.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.data.mongodb.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import ru.klimovich.catalog_service.model.Product;
-import ru.klimovich.catalog_service.model.ProductStatus;
+import ru.klimovich.catalog_service.model.Status;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,8 +17,8 @@ public interface ProductRepository extends MongoRepository<Product, String> {
 
     List<Product> findByNameIgnoreCase(String name);
 
-    List<Product> findByCategoriesContaining(String nameCategory);
-
-    List<Product> findProductByStatus(ProductStatus status);
+    Page<Product> findByCategoriesContaining(Pageable pageable,String categoryId);
+    List<Product> findByCategoriesContaining(String categoryId);
+    List<Product> findProductByStatus(Status status);
 
 }

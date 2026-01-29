@@ -29,7 +29,7 @@ public class Category {
     private String picture;
 
     @Field(value = "status")
-    private CategoryStatus status;
+    private Status status;
 
     @CreatedDate
     @Field(value = "date_create")

@@ -17,7 +17,7 @@ public interface ProductService {
     ProductResponse getProductById(String id);
 
     List<ProductResponse> getProductByName(String productName);
-     List<ProductResponse> getProductsByCategory(String nameCategory);
+     Page<ProductResponse> getProductsByCategory(Pageable pageable, String categoryId);
 
     ProductResponse updateProductById(String id, ProductRequest productDetails);
 

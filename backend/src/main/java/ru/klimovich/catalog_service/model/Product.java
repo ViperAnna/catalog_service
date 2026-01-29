@@ -40,17 +40,17 @@ public class Product {
     @Field(value = "picture")
     private List<String> picture;
 
+    @Field(value = "categories")
+    private List<String> categories;
+
     @Field(value = "characteristic")
     private Characteristic characteristic;
 
     @Field(value = "tags")
     private List<String> tag;
 
-    @Field(value = "categories")
-    private List<String> categories;
-
     @Field(value = "status")
-    private ProductStatus status;
+    private Status status;
 
     @Field(value = "date_create")
     private LocalDateTime dateCreate;

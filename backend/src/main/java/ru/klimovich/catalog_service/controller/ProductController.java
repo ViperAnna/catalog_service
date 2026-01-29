@@ -6,9 +6,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.klimovich.catalog_service.aop.Loggable;
 import ru.klimovich.catalog_service.dto.Response;
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
@@ -26,9 +26,8 @@ public class ProductController {
 
     private final ProductServiceImpl productService;
 
-    @PostMapping
+    @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    @Loggable
     public Response creatProduct(@Valid @RequestBody ProductRequest productRequest) {
         productService.createProduct(productRequest);
         return new Response(
@@ -38,33 +37,28 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    @Loggable
-    public ResponseEntity<ProductResponse> getProductById(@PathVariable String id) {
-        return ResponseEntity.ok(productService.getProductById(id));
+    public ProductResponse getProductById(@PathVariable String id) {
+        return productService.getProductById(id);
     }
 
     @GetMapping
-    @Loggable
-    public ResponseEntity<Page<ProductResponse>> getAllProducts(@PageableDefault(size = 5, page = 0) Pageable pageable) {
+    public ResponseEntity<Page<ProductResponse>> getAllProducts(@PageableDefault(size = 5, page = 0) Pageable pageable,
+                                                                @RequestParam(required = false) String categoryId) {
+        if (categoryId != null) {
+            return ResponseEntity.ok(
+                    productService.getProductsByCategory(pageable, categoryId));
+        }
         return ResponseEntity
                 .ok(productService.getAllProducts(pageable));
     }
 
     @GetMapping("/productByName/{productName}")
-    @Loggable
     public ResponseEntity<List<ProductResponse>> getProductByName(@PathVariable String productName) {
         return ResponseEntity.ok(productService.getProductByName(productName));
     }
 
-    @GetMapping("/productsByCategory/{categoryName}")
-    @Loggable
-    public ResponseEntity<List<ProductResponse>> getProductsByCategory(@PathVariable String categoryName) {
-        return ResponseEntity.ok(productService.getProductsByCategory(categoryName));
-    }
-
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.CREATED)
-    @Loggable
     public Response updateProduct(@PathVariable String id, @Valid @RequestBody ProductRequest productDetails) {
         productService.updateProductById(id, productDetails);
         return new Response(
@@ -75,7 +69,6 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Loggable
     public Response deleteProduct(@PathVariable String id) {
         productService.deleteProductById(id);
         return new Response(

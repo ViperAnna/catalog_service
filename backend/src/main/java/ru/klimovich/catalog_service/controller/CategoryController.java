@@ -1,10 +1,10 @@
 package ru.klimovich.catalog_service.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import ru.klimovich.catalog_service.aop.Loggable;
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 import ru.klimovich.catalog_service.dto.Response;
@@ -24,8 +24,7 @@ public class CategoryController {
 
     @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    @Loggable
-    public Response createCategory(@ModelAttribute CategoryRequest categoryRequest) {
+    public Response createCategory(@Valid @ModelAttribute CategoryRequest categoryRequest) {
         categoryService.createCategory(categoryRequest);
         return new Response(
                 CATEGORY_CREATED_SUCCESSFULLY,
@@ -34,20 +33,17 @@ public class CategoryController {
     }
 
     @GetMapping
-    @Loggable
     public List<CategoryResponse> getAllCategories() {
         return categoryService.getAllCategories();
     }
 
     @GetMapping("/{id}")
-    @Loggable
     public CategoryResponse getCategoryById(@PathVariable String id) {
         return categoryService.getCategoryById(id);
     }
 
     @PutMapping("/{id}")
-    @Loggable
-    public Response updateCategory(@PathVariable String id, @ModelAttribute CategoryRequest categoryDetails) {
+    public Response updateCategory(@PathVariable String id, @Valid @ModelAttribute CategoryRequest categoryDetails) {
         categoryService.updateCategoryById(id, categoryDetails);
         return new Response(
                 CATEGORY_UPDATE_SUCCESSFULLY,
@@ -56,8 +52,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Loggable
+//    @ResponseStatus(HttpStatus.NO_CONTENT)
     public Response deleteCategory(@PathVariable String id) {
         categoryService.deleteCategoryById(id);
         return new Response(
