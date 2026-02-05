@@ -37,8 +37,8 @@ public class Product {
     @Field(value = "article_number")
     private String articleNumber;
 
-    @Field(value = "picture")
-    private List<String> picture;
+    @Field(value = "images")
+    private List<String> images;
 
     @Field(value = "categories")
     private List<String> categories;

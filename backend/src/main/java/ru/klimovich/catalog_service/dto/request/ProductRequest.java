@@ -29,7 +29,7 @@ public class ProductRequest {
     private BigDecimal price;
 
     @NotEmpty
-    private List<MultipartFile> picture;
+    private List<MultipartFile> images;
 
     private String articleNumber;
 
@@ -42,6 +42,6 @@ public class ProductRequest {
     @NotEmpty(message = "At least one tag must be provided.")
     private List<String> tag;
 
-    @Pattern(regexp = "OUT_OF_STOCK|IN_STOCK|PRE_ORDER|DRAFT", message = "Status must be one of: OUT_OF_STOCK, IN_STOCK, PRE_ORDER, DRAFT")
+    @Pattern(regexp = "ACTIVE|INACTIVE|ARCHIVED|DRAFT", message = "Status must be one of: ACTIVE, INACTIVE, ARCHIVED, DRAFT")
     private String status;
 }

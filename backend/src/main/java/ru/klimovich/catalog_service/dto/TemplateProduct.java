@@ -27,8 +27,8 @@ public abstract class TemplateProduct {
 
     private String articleNumber;
 
-    @NotEmpty(message = "At least one picture URL must be provided.")
-    private List<String> pictureUrl;
+    @NotEmpty(message = "At least one image URL must be provided.")
+    private List<String> imagesUrl;
 
     @NotEmpty(message = "Categories list cannot be empty.")
     private List<CategoryShortResponse> categories;

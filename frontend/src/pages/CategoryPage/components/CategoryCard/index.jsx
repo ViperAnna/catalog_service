@@ -34,9 +34,9 @@ const CategoryCard = ({category, onSuccess}) => {
 
     useEffect(() => {
         const convertImageToDataURL = async () => {
-            if (category.pictureUrl && !category.pictureUrl.startsWith('data:')) {
+            if (category.imageUrl && !category.imageUrl.startsWith('data:')) {
                 try {
-                    const response = await fetch(category.pictureUrl);
+                    const response = await fetch(category.imageUrl);
                     const blob = await response.blob();
                     return new Promise((resolve) => {
                         const reader = new FileReader();
@@ -44,10 +44,10 @@ const CategoryCard = ({category, onSuccess}) => {
                         reader.readAsDataURL(blob);
                     });
                 } catch (error) {
-                    return category.pictureUrl;
+                    return category.imageUrl;
                 }
             }
-            return category.pictureUrl;
+            return category.imageUrl;
         };
 
         convertImageToDataURL().then(dataURL => {
@@ -57,7 +57,7 @@ const CategoryCard = ({category, onSuccess}) => {
                 image: dataURL
             }));
         });
-    }, [category.pictureUrl]);
+    }, [category.imageUrl]);
 
     useEffect(() => {
         const nameChanged = editedName !== originalData.name;

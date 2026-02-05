@@ -52,6 +52,9 @@ services:
   catalog-service:
     build: ./backend
     container_name: catalog-service
+    environment:
+      SPRING_PROFILES_ACTIVE: generate-data
+#      APP_INIT_CATEGORIES: true
     env_file:
       - .env.spring
     ports:

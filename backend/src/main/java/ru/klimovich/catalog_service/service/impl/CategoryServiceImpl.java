@@ -41,7 +41,7 @@ public class CategoryServiceImpl implements CategoryService {
         }
         String fileName = fileStorageService.uploadCategoryImage(categoryDetails.getImage());
         Category category = categoryMapper.toEntity(categoryDetails);
-        category.setPicture(fileName);
+        category.setImage(fileName);
         return categoryMapper.toDTO(categoryRepo.save(category));
     }
 
@@ -80,9 +80,9 @@ public class CategoryServiceImpl implements CategoryService {
                         new ResourceNotFoundException(String
                                 .format(MessageKeys.CATEGORY_NOT_FOUND_ID_KEY, id)));
 
-        MultipartFile newPicture = categoryDetails.getImage();
-        String newPictureUrl = fileStorageService.uploadCategoryImage(newPicture);
-        category.setPicture(newPictureUrl);
+        MultipartFile newImage = categoryDetails.getImage();
+        String newImageUrl = fileStorageService.uploadCategoryImage(newImage);
+        category.setImage(newImageUrl);
 
         categoryMapper.updateCategoryFromDTO(categoryDetails, category);
         return categoryMapper.toDTO(categoryRepo.save(category));

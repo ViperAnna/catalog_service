@@ -24,7 +24,7 @@ public class CategoryResponse {
     private String description;
 
     @NotBlank
-    private String pictureUrl;
+    private String imageUrl;
 
     @Pattern(regexp = "ACTIVE|INACTIVE|ARCHIVED|DRAFT", message = "Status must be one of: ACTIVE, INACTIVE, ARCHIVED, DRAFT")
     private String status;

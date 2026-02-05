@@ -1,5 +1,6 @@
 package ru.klimovich.catalog_service.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -25,8 +26,8 @@ public class Category {
     @Field(value = "description")
     private String description;
 
-    @Field(value = "picture")
-    private String picture;
+    @Field(value = "image")
+    private String image;
 
     @Field(value = "status")
     private Status status;

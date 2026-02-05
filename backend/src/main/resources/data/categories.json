@@ -1,0 +1,218 @@
+[
+  {
+    "id": 1,
+    "name": "Электроника",
+    "description": "Смартфоны, ноутбуки, планшеты и гаджеты",
+    "imageUrl": "image/categories/electronics.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-15 10:30:00",
+    "updatedAt": "2024-01-20 10:30:00"
+  },
+  {
+    "id": 2,
+    "name": "Одежда",
+    "description": "Мужская, женская и детская одежда",
+    "imageUrl": "image/categories/clothes.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-16 11:00:00",
+    "updatedAt": "2024-01-16 11:00:00"
+  },
+  {
+    "id": 3,
+    "name": "Книги",
+    "description": "Художественная литература, учебники, бизнес-книги",
+    "imageUrl": "image/categories/books.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-17 09:15:00",
+    "updatedAt": "2024-01-17 09:15:00"
+  },
+  {
+    "id": 4,
+    "name": "Спорт и отдых",
+    "description": "Спортивный инвентарь, туризм, велосипеды",
+    "imageUrl": "image/categories/sport.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-18 14:20:00",
+    "updatedAt": "2024-01-18 14:20:00"
+  },
+  {
+    "id": 6,
+    "name": "Дом и интерьер",
+    "description": "Мебель, декор, освещение",
+    "imageUrl": "image/categories/furniture.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-20 12:15:00",
+    "updatedAt": "2024-01-20 12:15:00"
+  },
+  {
+    "id": 7,
+    "name": "Авто и мото",
+    "description": "Запчасти, аксессуары, инструменты",
+    "imageUrl": "image/categories/car.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-21 09:45:00",
+    "updatedAt": "2024-01-21 09:45:00"
+  },
+  {
+    "id": 8,
+    "name": "Детские товары",
+    "description": "Игрушки, одежда, детская мебель",
+    "imageUrl": "image/categories/baby.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-22 11:30:00",
+    "updatedAt": "2024-01-22 11:30:00"
+  },
+  {
+    "id": 9,
+    "name": "Компьютеры и ПО",
+    "description": "Ноутбуки, ПК, софт и игры",
+    "imageUrl": "image/categories/computers.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-23 14:10:00",
+    "updatedAt": "2024-01-23 14:10:00"
+  },
+  {
+    "id": 10,
+    "name": "Сад и огород",
+    "description": "Инструменты, семена, растения",
+    "imageUrl": "image/categories/garden.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-24 10:05:00",
+    "updatedAt": "2024-01-24 10:05:00"
+  },
+  {
+    "id": 11,
+    "name": "Товары для животных",
+    "description": "Корма, аксессуары, игрушки",
+    "imageUrl": "image/categories/pet.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-25 09:50:00",
+    "updatedAt": "2024-01-25 09:50:00"
+  },
+  {
+    "id": 12,
+    "name": "Музыка и фильмы",
+    "description": "CD, винил, DVD, стриминг-подписки",
+    "imageUrl": "image/categories/music.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-26 13:30:00",
+    "updatedAt": "2024-01-26 13:30:00"
+  },
+  {
+    "id": 13,
+    "name": "Цифровые устройства",
+    "description": "Смарт-часы, планшеты, аксессуары",
+    "imageUrl": "image/categories/gadgets.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-27 15:10:00",
+    "updatedAt": "2024-01-27 15:10:00"
+  },
+  {
+    "id": 14,
+    "name": "Продукты питания",
+    "description": "Снэки, напитки, бакалея",
+    "imageUrl": "image/categories/food.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-28 12:00:00",
+    "updatedAt": "2024-01-28 12:00:00"
+  },
+  {
+    "id": 15,
+    "name": "Товары для дома",
+    "description": "Хозяйственные товары, уборка, хранение",
+    "imageUrl": "image/categories/household.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-29 16:40:00",
+    "updatedAt": "2024-01-29 16:40:00"
+  },
+  {
+    "id": 16,
+    "name": "Садовый инвентарь",
+    "description": "Газонокосилки, инструменты, семена",
+    "imageUrl": "image/categories/gardenTech.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-30 14:10:00",
+    "updatedAt": "2024-01-30 14:10:00"
+  },
+  {
+    "id": 17,
+    "name": "Цифровые товары",
+    "description": "Программное обеспечение, игры, подписки",
+    "imageUrl": "image/categories/digital.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-01-31 16:20:00",
+    "updatedAt": "2024-01-31 16:20:00"
+  },
+  {
+    "id": 18,
+    "name": "Антиквариат",
+    "description": "Старинные вещи, коллекционные предметы",
+    "imageUrl": "image/categories/antiques.jpg",
+    "status": "INACTIVE",
+    "createdAt": "2024-02-01 10:05:00",
+    "updatedAt": "2024-02-01 10:05:00"
+  },
+  {
+    "id": 19,
+    "name": "Туризм и путешествия",
+    "description": "Чемоданы, рюкзаки, палатки",
+    "imageUrl": "image/categories/tourism.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-02-02 12:30:00",
+    "updatedAt": "2024-02-02 12:30:00"
+  },
+  {
+    "id": 20,
+    "name": "Хобби и творчество",
+    "description": "Наборы для рукоделия, рисования, моделирования",
+    "imageUrl": "image/categories/hobby.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-02-03 15:15:00",
+    "updatedAt": "2024-02-03 15:15:00"
+  },
+  {
+    "id": 21,
+    "name": "Офис и канцтовары",
+    "description": "Бумага, ручки, папки, оргтехника",
+    "imageUrl": "image/categories/office.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-02-04 11:00:00",
+    "updatedAt": "2024-02-04 11:00:00"
+  },
+  {
+    "id": 22,
+    "name": "Подарки и сувениры",
+    "description": "Бижутерия, подарочные наборы, открытки",
+    "imageUrl": "image/categories/jewellery.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-02-05 12:20:00",
+    "updatedAt": "2024-02-05 12:20:00"
+  },
+  {
+    "id": 23,
+    "name": "Электроинструменты",
+    "description": "Дрели, шуруповерты, болгарки",
+    "imageUrl": "image/categories/tools.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-02-06 14:50:00",
+    "updatedAt": "2024-02-06 14:50:00"
+  },
+  {
+    "id": 24,
+    "name": "Игры и развлечения",
+    "description": "Настольные игры, карты, головоломки",
+    "imageUrl": "image/categories/games.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-02-07 13:30:00",
+    "updatedAt": "2024-02-07 13:30:00"
+  },
+  {
+    "id": 25,
+    "name": "Цифровая техника",
+    "description": "Фотокамеры, дроны, видеокамеры",
+    "imageUrl": "image/categories/digital_devices.jpg",
+    "status": "ACTIVE",
+    "createdAt": "2024-02-08 15:00:00",
+    "updatedAt": "2024-02-08 15:00:00"
+  }
+]

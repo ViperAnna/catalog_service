@@ -17,14 +17,14 @@ public interface ProductMapper {
 
     @Mappings({
             @Mapping(target = "id", ignore = true),
-            @Mapping(target = "picture", ignore = true),
+            @Mapping(target = "images", ignore = true),
             @Mapping(target = "articleNumber", expression = "java(java.util.UUID.randomUUID().toString())"),
             @Mapping(target = "status", qualifiedByName = "mapStatusDTO")
     })
     Product toEntity(ProductRequest productDTO);
 
     @Mappings({
-            @Mapping(source = "picture", target = "pictureUrl"),
+            @Mapping(source = "images", target = "imagesUrl"),
             @Mapping(target = "categories", qualifiedByName = "mapCategories")
     })
     ProductResponse toDTO(Product product, @Context Map<String, String> categoryNames);
@@ -53,7 +53,7 @@ public interface ProductMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "articleNumber", ignore = true)
-    @Mapping(target = "picture", ignore = true)
+    @Mapping(target = "images", ignore = true)
     void updateProductFromDTO(ProductRequest productDetails, @MappingTarget Product product);
 
 }

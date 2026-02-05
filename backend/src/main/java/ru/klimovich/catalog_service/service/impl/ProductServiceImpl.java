@@ -46,10 +46,10 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse createProduct(@NotNull ProductRequest productDetails) {
         productDetails.getCategories().forEach(categoryService::getCategoryById);
 
-        List<String> fileNameList = fileStorageService.uploadProductImage(productDetails.getPicture());
+        List<String> fileNameList = fileStorageService.uploadProductImage(productDetails.getImages());
 
         Product product = productMapper.toEntity(productDetails);
-        product.setPicture(fileNameList);
+        product.setImages(fileNameList);
         productRepo.save(product);
 
         return buildProductResponse(product);
@@ -109,10 +109,10 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(String
                         .format(MessageKeys.PRODUCT_NOT_FOUND_ID_KEY, id)));
-        List<MultipartFile> newPicture = productDetails.getPicture();
+        List<MultipartFile> newImage = productDetails.getImages();
 
-        List<String> newPictureUrl = fileStorageService.uploadProductImage(newPicture);
-        product.setPicture(newPictureUrl);
+        List<String> newImageUrl = fileStorageService.uploadProductImage(newImage);
+        product.setImages(newImageUrl);
 
         productMapper.updateProductFromDTO(productDetails, product);
         productRepo.save(product);
