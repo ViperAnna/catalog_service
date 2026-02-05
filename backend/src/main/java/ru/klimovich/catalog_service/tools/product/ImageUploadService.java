@@ -17,6 +17,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -28,12 +29,14 @@ import java.util.concurrent.TimeUnit;
 public class ImageUploadService {
 
     private final FileStorageService fileStorageService;
-    private static final Path TEMP_DIR = Paths.get("D:/PRACTICA/IdeaProjects/temp/images/products");
+    private static final Path TEMP_DIR = Paths.get("/temp/images/products");
     private static final int THREADS = 8;
 
     public List<String> uploadRandomImages(int totalImages, int width, int height) throws IOException, InterruptedException {
-        Files.createDirectories(TEMP_DIR);
-
+        if(!Files.exists(TEMP_DIR)){
+            Files.createDirectories(TEMP_DIR);
+            log.info("Created temp directory: [{}]", TEMP_DIR.toAbsolutePath());
+        }
 
         List<String> uploadedUrls = Collections.synchronizedList(new ArrayList<>());
         ExecutorService executor = Executors.newFixedThreadPool(THREADS);
@@ -45,11 +48,9 @@ public class ImageUploadService {
                 try {
                     Thread.sleep(100);
                     String imageUrl = String.format("https://picsum.photos/%d/%d?random=%d", width, height, index);
-                    Path localFile = TEMP_DIR.resolve("img_" + index + ".jpg");
-
+                    Path localFile = TEMP_DIR.resolve("img_" + UUID.randomUUID() + ".jpg");
 
                     try (InputStream is = new URL(imageUrl).openStream()) {
-
                         Files.copy(is, localFile, StandardCopyOption.REPLACE_EXISTING);
                     }
 

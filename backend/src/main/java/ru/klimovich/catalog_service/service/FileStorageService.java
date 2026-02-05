@@ -10,4 +10,5 @@ public interface FileStorageService {
     List<String> uploadProductImage(List<MultipartFile> fileList);
     String uploadProductImage(MultipartFile files);
     void deleteAllProductImages();
+    void deleteAllCategoryImage();
 }

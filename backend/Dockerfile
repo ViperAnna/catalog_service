@@ -1,7 +1,8 @@
 FROM maven:3.9.12-eclipse-temurin-17 AS build
 WORKDIR /app
 
-COPY ../pom.xml .
+#COPY ../pom.xml .
+COPY pom.xml .
 COPY .mvn .mvn
 COPY src src
 

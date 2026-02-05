@@ -19,7 +19,7 @@ services:
         '
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
     restart: unless-stopped
   minio:
     image: minio/minio:latest
@@ -36,7 +36,8 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
+
   createbuckets:
     image: minio/mc
     depends_on:
@@ -49,16 +50,35 @@ services:
       mc anonymous set public myminio/categories
       "
     restart: "no"
+
   catalog-service:
     build: ./backend
     container_name: catalog-service
-    environment:
-      SPRING_PROFILES_ACTIVE: generate-data
+#    environment:
+#      SPRING_PROFILES_ACTIVE: generate-data
 #      APP_INIT_CATEGORIES: true
     env_file:
       - .env.spring
     ports:
       - "8080:8080"
+    depends_on:
+      data-generator:
+        condition: service_completed_successfully
+#      createbuckets:
+#        condition: service_completed_successfully
+#      mongodb:
+#        condition: service_healthy
+#      minio:
+#        condition: service_healthy
+    restart: unless-stopped
+
+  data-generator:
+    build: ./backend
+    container_name: data-generator
+    environment:
+      SPRING_PROFILES_ACTIVE: generate-data
+    env_file:
+      - .env.spring
     depends_on:
       createbuckets:
         condition: service_completed_successfully
@@ -66,16 +86,19 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    restart: unless-stopped
+    restart: "no"
+
   front:
     build: ./frontend
     ports:
       - "3000:3000"
     depends_on:
-      mongodb:
+      catalog-service:
         condition: service_healthy
-      minio:
-        condition: service_healthy
+#      mongodb:
+#        condition: service_healthy
+#      minio:
+#        condition: service_healthy
     command: npm run dev:java
     restart: unless-stopped
 volumes:

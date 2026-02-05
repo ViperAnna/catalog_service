@@ -20,20 +20,18 @@ import java.util.*;
 @Slf4j
 public class ProductGenerator {
 
-    private final ProductService productService;
     private final ProductRepository productRepo;
-    private List<String> categoryIds = new ArrayList<>();
 
-    public void createProduct(int index, List<String> imageFiles) {
+    public void createProduct(int index, List<String> imageFiles, List<String> categoryIds) {
+
         Product product = new Product();
         product.setName("Product " + index);
         product.setDescription("Generated product " + index);
         product.setBrand("Brand " + (index % 5));
         product.setPrice(BigDecimal.valueOf(100 + index));
-        product.setArticleNumber("ART-" + index);
+        product.setArticleNumber("ART-" + UUID.randomUUID());
         product.setImages(pickRandomImages(imageFiles, 3));
-
-        product.setCategories(pickRandomCategories(categoryIds,3));
+        product.setCategories(pickRandomCategories(categoryIds, 3));
         product.setCharacteristic(defaultCharacteristic());
         product.setTag(List.of("product", product.getName()));
         product.setStatus(Status.valueOf(index % 2 == 0 ? "ACTIVE" : "INACTIVE"));
@@ -45,16 +43,22 @@ public class ProductGenerator {
     }
 
     private List<String> pickRandomImages(List<String> urls, int count) {
+        if (urls == null || urls.isEmpty()) {
+            return Collections.emptyList();
+        }
         List<String> copy = new ArrayList<>(urls);
         Collections.shuffle(copy);
         return copy.subList(0, Math.min(count, copy.size()));
     }
+
     private List<String> pickRandomCategories(List<String> allCategoryIds, int count) {
+        if (allCategoryIds == null || allCategoryIds.isEmpty()) {
+            return Collections.emptyList();
+        }
         List<String> copy = new ArrayList<>(allCategoryIds);
         Collections.shuffle(copy);
         return new ArrayList<>(copy.subList(0, Math.min(count, copy.size())));
     }
-
 
     private Characteristic defaultCharacteristic() {
         Characteristic request = new Characteristic();

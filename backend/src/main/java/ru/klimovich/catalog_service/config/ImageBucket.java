@@ -9,5 +9,4 @@ public enum ImageBucket {
     CATEGORIES("categories"),
     PRODUCTS("products");
     private final String name;
-
 }

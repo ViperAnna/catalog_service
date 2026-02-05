@@ -10,7 +10,6 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.klimovich.catalog_service.config.ImageBucket;
 import ru.klimovich.catalog_service.service.FileStorageService;
 
-import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
@@ -46,15 +45,15 @@ public class FileStorageServiceImpl implements FileStorageService {
     @Override
     public String uploadProductImage(MultipartFile file) {
         return uploadSingleFile(file, ImageBucket.PRODUCTS);
-
     }
 
     @Override
     public void deleteAllProductImages() {
         try {
+            log.info("Deleting all category image from MinIO bucket [{}]", ImageBucket.PRODUCTS);
             Iterable<Result<Item>> object = minioClient.listObjects(
                     ListObjectsArgs.builder()
-                            .bucket(ImageBucket.PRODUCTS.toString())
+                            .bucket(ImageBucket.PRODUCTS.getName())
                             .recursive(true)
                             .build()
             );
@@ -63,21 +62,46 @@ public class FileStorageServiceImpl implements FileStorageService {
                 String objectName = item.objectName();
                 minioClient.removeObject(
                         RemoveObjectArgs.builder()
-                                .bucket(ImageBucket.PRODUCTS.toString())
+                                .bucket(ImageBucket.PRODUCTS.getName())
                                 .object(objectName)
                                 .build()
                 );
             }
-
         }
         catch (Exception e){
-            throw  new RuntimeException("Failed to delete all product images from MinIO", e);
+            throw  new RuntimeException("Failed to delete all product images from MinIO bucket: " + ImageBucket.PRODUCTS, e);
+        }
+    }
+
+    @Override
+    public void deleteAllCategoryImage() {
+        try {
+            log.info("Deleting all category image from MinIO bucket [{}]", ImageBucket.CATEGORIES);
+            Iterable<Result<Item>> object = minioClient.listObjects(
+                    ListObjectsArgs.builder()
+                            .bucket(ImageBucket.CATEGORIES.getName())
+                            .recursive(true)
+                            .build()
+            );
+            for (Result<Item> result : object) {
+                Item item = result.get();
+                String objectName = item.objectName();
+                minioClient.removeObject(
+                        RemoveObjectArgs.builder()
+                                .bucket(ImageBucket.CATEGORIES.getName())
+                                .object(objectName)
+                                .build()
+                );
+            }
+        }
+        catch (Exception e){
+            throw  new RuntimeException("Failed to delete all category images from MinIO from bucket: " + ImageBucket.CATEGORIES,  e);
         }
     }
 
     @SneakyThrows
     private String uploadSingleFile(MultipartFile file, ImageBucket bucket) {
-        log.info("Staring upload method.");
+        log.info("Starting upload method.");
         String originalFileName = Objects.requireNonNullElse(file.getOriginalFilename(), "unknown.jpg");
         originalFileName = Paths.get(originalFileName).getFileName().toString();
         String objectKey = UUID.randomUUID().toString() + "_" + originalFileName;
@@ -95,7 +119,6 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @SneakyThrows
     public void ensureBucketExists(String bucketName) {
-
         boolean found = minioClient.bucketExists(
                 BucketExistsArgs.builder()
                         .bucket(bucketName)

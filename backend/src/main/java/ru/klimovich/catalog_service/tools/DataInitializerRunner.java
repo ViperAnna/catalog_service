@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 import ru.klimovich.catalog_service.tools.product.ProductInitializer;
 import ru.klimovich.catalog_service.tools.category.CategoryInitializer;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 @Profile("generate-data")
@@ -18,12 +20,14 @@ public class DataInitializerRunner implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         log.info("Starting category initialization...");
-        categoryInitializer.initCategories();
+       categoryInitializer.initCategories();
         log.info("Categories initialized.");
 
         log.info("Starting product initialization...");
         productInitializer.initProducts();
         log.info("Products initialized.");
 
+        log.info("DataInitializerRunner completed.");
+        System.exit(0);
     }
 }

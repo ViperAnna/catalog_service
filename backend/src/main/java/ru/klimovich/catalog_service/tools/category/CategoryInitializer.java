@@ -40,10 +40,15 @@ public class CategoryInitializer {
 
         if (!initCategories) {
             log.info("Category initialization disabled app.init.categories=false");
-            return categoryIds;
+            return categoryRepo.findAll()
+                    .stream()
+                    .map(Category::getId)
+                    .toList();
         }
 
         if (categoryRepo.count() > 0) {
+            log.info("Category initialization:delete all existing category images...");
+            fileStorageService.deleteAllCategoryImage();
             log.info("Category initialization:delete all existing categories...");
             categoryRepo.deleteAll();
         }
