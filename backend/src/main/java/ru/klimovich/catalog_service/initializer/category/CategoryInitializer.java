@@ -1,14 +1,13 @@
-package ru.klimovich.catalog_service.tools.category;
+package ru.klimovich.catalog_service.initializer.category;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Component;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 import ru.klimovich.catalog_service.model.Category;
@@ -18,7 +17,7 @@ import ru.klimovich.catalog_service.service.FileStorageService;
 
 import java.io.InputStream;
 import java.net.URLConnection;
-import java.nio.file.Paths;;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 

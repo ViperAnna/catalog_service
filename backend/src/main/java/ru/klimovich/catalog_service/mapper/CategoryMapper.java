@@ -1,7 +1,6 @@
 package ru.klimovich.catalog_service.mapper;
 
 import org.mapstruct.*;
-
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 import ru.klimovich.catalog_service.model.Category;

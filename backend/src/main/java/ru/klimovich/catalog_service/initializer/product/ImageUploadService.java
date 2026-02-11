@@ -1,4 +1,4 @@
-package ru.klimovich.catalog_service.tools.product;
+package ru.klimovich.catalog_service.initializer.product;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -33,7 +32,7 @@ public class ImageUploadService {
     private static final int THREADS = 8;
 
     public List<String> uploadRandomImages(int totalImages, int width, int height) throws IOException, InterruptedException {
-        if(!Files.exists(TEMP_DIR)){
+        if (!Files.exists(TEMP_DIR)) {
             Files.createDirectories(TEMP_DIR);
             log.info("Created temp directory: [{}]", TEMP_DIR.toAbsolutePath());
         }

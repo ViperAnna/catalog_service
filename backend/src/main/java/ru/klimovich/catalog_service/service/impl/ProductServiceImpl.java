@@ -5,20 +5,19 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
 import org.springframework.web.multipart.MultipartFile;
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
+import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
+import ru.klimovich.catalog_service.mapper.ProductMapper;
 import ru.klimovich.catalog_service.model.Category;
+import ru.klimovich.catalog_service.model.Product;
 import ru.klimovich.catalog_service.repository.CategoryRepository;
+import ru.klimovich.catalog_service.repository.ProductRepository;
+import ru.klimovich.catalog_service.service.CategoryService;
 import ru.klimovich.catalog_service.service.FileStorageService;
 import ru.klimovich.catalog_service.service.ProductService;
 import ru.klimovich.catalog_service.util.MessageKeys;
-import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
-import ru.klimovich.catalog_service.model.Product;
-import ru.klimovich.catalog_service.mapper.ProductMapper;
-import ru.klimovich.catalog_service.repository.ProductRepository;
-import ru.klimovich.catalog_service.service.CategoryService;
 
 import java.util.List;
 import java.util.Map;
@@ -40,7 +39,6 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toMap(Category::getId, Category::getName));
         return productMapper.toDTO(product, categoryNames);
     }
-
 
     @Override
     public ProductResponse createProduct(@NotNull ProductRequest productDetails) {
@@ -98,7 +96,7 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException(String
                                 .format(MessageKeys.CATEGORY_NOT_FOUND_ID_KEY, categoryId)));
-        Page<Product> categoryList = productRepo.findByCategoriesContaining(pageable,categoryId);
+        Page<Product> categoryList = productRepo.findByCategoriesContaining(pageable, categoryId);
 
         return categoryList
                 .map(this::buildProductResponse);

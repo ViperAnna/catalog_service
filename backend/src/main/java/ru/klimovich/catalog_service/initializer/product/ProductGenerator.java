@@ -1,4 +1,4 @@
-package ru.klimovich.catalog_service.tools.product;
+package ru.klimovich.catalog_service.initializer.product;
 
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -8,7 +8,6 @@ import ru.klimovich.catalog_service.model.Characteristic;
 import ru.klimovich.catalog_service.model.Product;
 import ru.klimovich.catalog_service.model.Status;
 import ru.klimovich.catalog_service.repository.ProductRepository;
-import ru.klimovich.catalog_service.service.ProductService;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

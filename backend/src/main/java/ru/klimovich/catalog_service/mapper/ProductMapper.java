@@ -5,8 +5,8 @@ import ru.klimovich.catalog_service.dto.request.CharacteristicRequest;
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryShortResponse;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
-import ru.klimovich.catalog_service.model.Product;
 import ru.klimovich.catalog_service.model.Characteristic;
+import ru.klimovich.catalog_service.model.Product;
 import ru.klimovich.catalog_service.model.Status;
 
 import java.util.List;

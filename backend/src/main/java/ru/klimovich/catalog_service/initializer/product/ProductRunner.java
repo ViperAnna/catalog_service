@@ -1,4 +1,4 @@
-package ru.klimovich.catalog_service.tools.product;
+package ru.klimovich.catalog_service.initializer.product;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

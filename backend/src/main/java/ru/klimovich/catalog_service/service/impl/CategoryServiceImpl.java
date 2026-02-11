@@ -3,18 +3,17 @@ package ru.klimovich.catalog_service.service.impl;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import org.springframework.web.multipart.MultipartFile;
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 import ru.klimovich.catalog_service.exception.ResourceConflictException;
+import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
+import ru.klimovich.catalog_service.mapper.CategoryMapper;
+import ru.klimovich.catalog_service.model.Category;
+import ru.klimovich.catalog_service.repository.CategoryRepository;
 import ru.klimovich.catalog_service.repository.ProductRepository;
 import ru.klimovich.catalog_service.service.CategoryService;
 import ru.klimovich.catalog_service.util.MessageKeys;
-import ru.klimovich.catalog_service.model.Category;
-import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
-import ru.klimovich.catalog_service.mapper.CategoryMapper;
-import ru.klimovich.catalog_service.repository.CategoryRepository;
 
 import java.util.List;
 import java.util.Map;

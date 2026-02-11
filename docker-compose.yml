@@ -1,4 +1,6 @@
 services:
+
+  # ------------------ MongoDB ------------------
   mongodb:
     image: mongo:latest
     container_name: mongodb
@@ -21,6 +23,8 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
+  # ------------------ MinIO ------------------
   minio:
     image: minio/minio:latest
     container_name: minio
@@ -37,7 +41,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
+  # ------------------ Create Buckets ------------------
   createbuckets:
     image: minio/mc
     depends_on:
@@ -47,31 +53,14 @@ services:
       /bin/sh -c "
       mc alias set myminio http://minio:9000 minioadmin minioadmin &&
       mc mb --ignore-existing myminio/categories &&
-      mc anonymous set public myminio/categories
+       mc mb --ignore-existing myminio/products &&
+      mc anonymous set public myminio/categories &&
+      mc anonymous set public myminio/products
+      
       "
     restart: "no"
 
-  catalog-service:
-    build: ./backend
-    container_name: catalog-service
-#    environment:
-#      SPRING_PROFILES_ACTIVE: generate-data
-#      APP_INIT_CATEGORIES: true
-    env_file:
-      - .env.spring
-    ports:
-      - "8080:8080"
-    depends_on:
-      data-generator:
-        condition: service_completed_successfully
-#      createbuckets:
-#        condition: service_completed_successfully
-#      mongodb:
-#        condition: service_healthy
-#      minio:
-#        condition: service_healthy
-    restart: unless-stopped
-
+  # ------------------ Data Generator ------------------
   data-generator:
     build: ./backend
     container_name: data-generator
@@ -80,26 +69,42 @@ services:
     env_file:
       - .env.spring
     depends_on:
-      createbuckets:
-        condition: service_completed_successfully
       mongodb:
         condition: service_healthy
       minio:
         condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
     restart: "no"
 
+  # ------------------ Catalog Service ------------------
+  catalog-service:
+    build: ./backend
+    container_name: catalog-service
+    env_file:
+      - .env.spring
+    ports:
+      - "8080:8080"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      data-generator:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # ------------------ Frontend ------------------
   front:
     build: ./frontend
     ports:
       - "3000:3000"
     depends_on:
       catalog-service:
-        condition: service_healthy
-#      mongodb:
-#        condition: service_healthy
-#      minio:
-#        condition: service_healthy
+        condition: service_started
     command: npm run dev:java
     restart: unless-stopped
+
+
 volumes:
   mongodb_data:

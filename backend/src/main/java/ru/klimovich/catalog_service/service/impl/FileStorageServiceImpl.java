@@ -67,9 +67,8 @@ public class FileStorageServiceImpl implements FileStorageService {
                                 .build()
                 );
             }
-        }
-        catch (Exception e){
-            throw  new RuntimeException("Failed to delete all product images from MinIO bucket: " + ImageBucket.PRODUCTS, e);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete all product images from MinIO bucket: " + ImageBucket.PRODUCTS, e);
         }
     }
 
@@ -93,9 +92,8 @@ public class FileStorageServiceImpl implements FileStorageService {
                                 .build()
                 );
             }
-        }
-        catch (Exception e){
-            throw  new RuntimeException("Failed to delete all category images from MinIO from bucket: " + ImageBucket.CATEGORIES,  e);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete all category images from MinIO from bucket: " + ImageBucket.CATEGORIES, e);
         }
     }
 

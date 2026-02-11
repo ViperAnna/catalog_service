@@ -1,14 +1,12 @@
-package ru.klimovich.catalog_service.tools;
+package ru.klimovich.catalog_service.initializer;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import ru.klimovich.catalog_service.tools.product.ProductInitializer;
-import ru.klimovich.catalog_service.tools.category.CategoryInitializer;
-
-import java.util.List;
+import ru.klimovich.catalog_service.initializer.category.CategoryInitializer;
+import ru.klimovich.catalog_service.initializer.product.ProductInitializer;
 
 @Component
 @RequiredArgsConstructor
@@ -17,10 +15,11 @@ import java.util.List;
 public class DataInitializerRunner implements CommandLineRunner {
     private final CategoryInitializer categoryInitializer;
     private final ProductInitializer productInitializer;
+
     @Override
     public void run(String... args) throws Exception {
         log.info("Starting category initialization...");
-       categoryInitializer.initCategories();
+        categoryInitializer.initCategories();
         log.info("Categories initialized.");
 
         log.info("Starting product initialization...");
