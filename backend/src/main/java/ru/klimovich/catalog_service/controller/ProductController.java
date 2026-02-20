@@ -39,7 +39,7 @@ public class ProductController {
 
     @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Response creatProduct(@Valid @RequestBody ProductRequest productRequest) {
+    public Response creatProduct(@Valid @ModelAttribute ProductRequest productRequest) {
         productService.createProduct(productRequest);
         return new Response(
                 MessageKeys.PRODUCT_CREATED_SUCCESSFULLY,

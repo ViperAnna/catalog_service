@@ -34,10 +34,7 @@ public class CategoryServiceImpl implements CategoryService {
             throw new ResourceConflictException(String
                     .format(MessageKeys.CATEGORY_ALREADY_EXIST, categoryDetails.getName()));
         }
-        if (categoryDetails.getImage().isEmpty()) {
-            throw new ResourceNotFoundException(String
-                    .format(MessageKeys.CATEGORY_IMAGE_NOT_FOUND));
-        }
+
         String fileName = fileStorageService.uploadCategoryImage(categoryDetails.getImage());
         Category category = categoryMapper.toEntity(categoryDetails);
         category.setImage(fileName);

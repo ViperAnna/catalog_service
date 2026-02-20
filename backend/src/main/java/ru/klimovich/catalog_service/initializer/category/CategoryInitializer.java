@@ -36,7 +36,6 @@ public class CategoryInitializer {
     public List<String> initCategories() throws Exception {
         List<String> categoryIds = new ArrayList<>();
 
-
         if (!initCategories) {
             log.info("Category initialization disabled app.init.categories=false");
             return categoryRepo.findAll()
@@ -45,10 +44,11 @@ public class CategoryInitializer {
                     .toList();
         }
 
+        log.info("Category initialization: deleting all existing category images...");
+        fileStorageService.deleteAllCategoryImage();
+
         if (categoryRepo.count() > 0) {
-            log.info("Category initialization:delete all existing category images...");
-            fileStorageService.deleteAllCategoryImage();
-            log.info("Category initialization:delete all existing categories...");
+            log.info("Category initialization: deleting all existing categories...");
             categoryRepo.deleteAll();
         }
 

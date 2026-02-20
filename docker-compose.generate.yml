@@ -1,0 +1,23 @@
+services:
+
+  # ------------------ Data Generator ------------------
+  data-generator:
+    build: ./backend
+    container_name: data-generator
+    profiles: [ "generate" ]
+    environment:
+      SPRING_PROFILES_ACTIVE: generate-data
+    env_file:
+      - .env.spring
+    #      - .env.spring.generate-data
+    #    ports:
+    #      - "8081:8081"
+#    depends_on:
+#      mongodb:
+#        condition: service_healthy
+#      minio:
+#        condition: service_healthy
+#      createbuckets:
+#        condition: service_completed_successfully
+    restart: "no"
+

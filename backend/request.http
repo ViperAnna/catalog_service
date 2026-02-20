@@ -1,0 +1,31 @@
+# curl -X POST http://localhost:8080/categories
+#  -H "Accept: application/json"
+#  -F "name=Фотоаппараты"
+#  -F "description=Камеры и объективы"
+#  -F "status=ACTIVE"
+#  -F "image=@D:/080_original.jpg"
+
+POST http://localhost:8080/categories
+Accept: application/json
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Фотоаппараты
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+Камеры и объективы
+--WebAppBoundary
+Content-Disposition: form-data; name="status"
+
+ACTIVE
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="080_original.jpg"
+
+< D:\080_original.jpg
+--WebAppBoundary--
+
+###
+

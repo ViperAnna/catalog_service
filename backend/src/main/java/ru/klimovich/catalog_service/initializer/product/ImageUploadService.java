@@ -1,5 +1,9 @@
 package ru.klimovich.catalog_service.initializer.product;
 
+import io.minio.ListObjectsArgs;
+import io.minio.MinioClient;
+import io.minio.Result;
+import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mock.web.MockMultipartFile;
@@ -31,6 +35,41 @@ public class ImageUploadService {
     private static final Path TEMP_DIR = Paths.get("/temp/images/products");
     private static final int THREADS = 8;
 
+    private final MinioClient minioClient;
+    private static final String BUCKET_NAME = "products";
+
+    public List<String> listExistingImages() throws Exception {
+        List<String> images = new ArrayList<>();
+
+        Iterable<Result<Item>> results = minioClient.listObjects(
+                ListObjectsArgs.builder()
+                        .bucket(BUCKET_NAME)
+                        .recursive(true)
+                        .build()
+        );
+
+        for (Result<Item> result : results) {
+            Item item = result.get();
+            images.add(item.objectName());
+        }
+
+        return images;
+    }
+
+    public List<String> getOrUploadImages(int totalImages, int width, int height) throws Exception {
+        List<String> existing = listExistingImages();
+        int missing = totalImages - existing.size();
+        if (missing <= 0) {
+            log.info("There are enough images in MinIO. Using the existing {} images.", existing.size());
+            return existing;
+        }
+
+        log.info("{} images missing, uploading {} new images...", missing, missing);
+        List<String> newImages = uploadRandomImages(missing, width, height);
+        existing.addAll(newImages);
+        return existing;
+    }
+
     public List<String> uploadRandomImages(int totalImages, int width, int height) throws IOException, InterruptedException {
         if (!Files.exists(TEMP_DIR)) {
             Files.createDirectories(TEMP_DIR);
@@ -43,7 +82,6 @@ public class ImageUploadService {
         for (int i = 1; i <= totalImages; i++) {
             final int index = i;
             executor.submit(() -> {
-
                 try {
                     Thread.sleep(100);
                     String imageUrl = String.format("https://picsum.photos/%d/%d?random=%d", width, height, index);
@@ -80,5 +118,3 @@ public class ImageUploadService {
         return uploadedUrls;
     }
 }
-
-
