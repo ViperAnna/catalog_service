@@ -1,17 +1,20 @@
 package ru.klimovich.catalog_service.service;
 
 import org.springframework.web.multipart.MultipartFile;
+import ru.klimovich.catalog_service.model.Image;
 
 import java.util.List;
 
 public interface FileStorageService {
     void ensureBucketExists(String bucketName);
 
-    String uploadCategoryImage(MultipartFile file);
+    Image uploadCategoryImage(MultipartFile file);
 
-    List<String> uploadProductImage(List<MultipartFile> fileList);
+    List<Image> uploadProductImage(List<MultipartFile> fileList);
 
-    String uploadProductImage(MultipartFile files);
+    Image uploadProductImage(MultipartFile files);
+
+    String calculateHash(MultipartFile file);
 
     void deleteAllProductImages();
 

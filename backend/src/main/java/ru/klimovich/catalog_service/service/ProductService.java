@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface ProductService {
 
-    ProductResponse createProduct(ProductRequest productDetails);
+    void createProduct(ProductRequest productDetails);
 
     Page<ProductResponse> getAllProducts(Pageable pageable);
 
@@ -20,7 +20,7 @@ public interface ProductService {
 
     Page<ProductResponse> getProductsByCategory(Pageable pageable, String categoryId);
 
-    ProductResponse updateProductById(String id, ProductRequest productDetails);
+    void updateProductById(String id, ProductRequest productDetails);
 
     void deleteProductById(String id);
 }

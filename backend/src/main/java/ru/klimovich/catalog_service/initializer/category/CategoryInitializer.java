@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 import ru.klimovich.catalog_service.model.Category;
+import ru.klimovich.catalog_service.model.Image;
 import ru.klimovich.catalog_service.model.Status;
 import ru.klimovich.catalog_service.repository.CategoryRepository;
 import ru.klimovich.catalog_service.service.FileStorageService;
@@ -81,7 +82,7 @@ public class CategoryInitializer {
                         is
                 );
 
-                String imageUrl = fileStorageService.uploadCategoryImage(multipartFile);
+                Image imageUrl = fileStorageService.uploadCategoryImage(multipartFile);
                 log.info("Mongoinit:  imageUrl: {}", imageUrl);
                 Category category = new Category();
                 category.setName(dto.getName());

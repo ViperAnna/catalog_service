@@ -26,11 +26,3 @@ http://localhost:8080/swagger-ui/index.html
 # OpenAPI JSON:
 http://localhost:8080/v3/api-docs
 
-
-
-
- # (Запускаем ифнраструтуру &#40;монго минио сервис и фронт. создаем сеить и волюмы&#41;)
-docker compose up 
-
-# (запускаем генератор)
-docker compose -f docker-compose.generate.yml --profile generate run --rm data-generator

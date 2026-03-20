@@ -83,7 +83,8 @@ services:
 
   # ------------------ Catalog Service ------------------
   catalog-service:
-    build: ./backend
+#    build: ./backend
+    image: viperanna/catalog-service:latest
     container_name: catalog-service
     env_file:
       - .env.spring
@@ -103,7 +104,8 @@ services:
 
   # ------------------ Frontend ------------------
   front:
-    build: ./frontend
+#    build: ./frontend
+    image: viperanna/front:latest
     ports:
       - "3000:3000"
     depends_on:

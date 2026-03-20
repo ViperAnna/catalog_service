@@ -8,6 +8,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
@@ -60,9 +61,16 @@ public class LoggableAspect {
     }
 
     private void logArgument(ProceedingJoinPoint joinPoint) throws IOException {
-        for (Object arg : joinPoint.getArgs()) {
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        String[] parameterNames = signature.getParameterNames();
+        Object[] args = joinPoint.getArgs();
+
+        for (int i = 0; i < args.length; i++) {
+            Object arg = args[i];
+            String paramName = parameterNames[i];
+
             if (arg == null) {
-                log.info("Method without argument.");
+                log.info("Argument [{}] is null", paramName);
                 continue;
             }
             if (arg instanceof CategoryRequest request) {
@@ -71,8 +79,7 @@ public class LoggableAspect {
                 productRequest.getImages().forEach(this::logMultipartFile);
             }
             log.info(
-//                    название аргумента
-                    "Argument: [{}]]", safeToString(arg)
+                    "Argument [{}] ({}): [{}]]", paramName, arg.getClass().getSimpleName(), safeToString(arg)
             );
         }
     }

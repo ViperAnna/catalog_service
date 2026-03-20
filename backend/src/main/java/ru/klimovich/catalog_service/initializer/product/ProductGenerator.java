@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.klimovich.catalog_service.model.Characteristic;
+import ru.klimovich.catalog_service.model.Image;
 import ru.klimovich.catalog_service.model.Product;
 import ru.klimovich.catalog_service.model.Status;
 import ru.klimovich.catalog_service.repository.ProductRepository;
@@ -21,7 +22,7 @@ public class ProductGenerator {
 
     private final ProductRepository productRepo;
 
-    public void createProduct(int index, List<String> imageFiles, List<String> categoryIds) {
+    public void createProduct(int index, List<Image> imageFiles, List<String> categoryIds) {
 
         Product product = new Product();
         product.setName("Product " + index);
@@ -41,11 +42,11 @@ public class ProductGenerator {
         log.info("Created product: {}", product.getName());
     }
 
-    private List<String> pickRandomImages(List<String> urls, int count) {
-        if (urls == null || urls.isEmpty()) {
+    private List<Image> pickRandomImages(List<Image> images, int count) {
+        if (images == null || images.isEmpty()) {
             return Collections.emptyList();
         }
-        List<String> copy = new ArrayList<>(urls);
+        List<Image> copy = new ArrayList<>(images);
         Collections.shuffle(copy);
         return copy.subList(0, Math.min(count, copy.size()));
     }

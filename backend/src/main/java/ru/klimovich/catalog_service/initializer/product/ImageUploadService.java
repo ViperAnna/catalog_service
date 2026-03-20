@@ -6,9 +6,11 @@ import io.minio.Result;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import ru.klimovich.catalog_service.model.Image;
 import ru.klimovich.catalog_service.service.FileStorageService;
 
 import java.io.IOException;
@@ -37,9 +39,12 @@ public class ImageUploadService {
 
     private final MinioClient minioClient;
     private static final String BUCKET_NAME = "products";
+    @Value("${minio.endpoint}")
+    private String minioEndpoint;
 
-    public List<String> listExistingImages() throws Exception {
-        List<String> images = new ArrayList<>();
+
+    public List<Image> listExistingImages() throws Exception {
+        List<Image> images = new ArrayList<>();
 
         Iterable<Result<Item>> results = minioClient.listObjects(
                 ListObjectsArgs.builder()
@@ -50,14 +55,19 @@ public class ImageUploadService {
 
         for (Result<Item> result : results) {
             Item item = result.get();
-            images.add(item.objectName());
+            Image image = new Image();
+            image.setUrl(minioEndpoint +"/" + BUCKET_NAME + "/" + item.objectName());
+            image.setFileName(item.objectName());
+            image.setSize(item.size());
+
+            images.add(image);
         }
 
         return images;
     }
 
-    public List<String> getOrUploadImages(int totalImages, int width, int height) throws Exception {
-        List<String> existing = listExistingImages();
+    public List<Image> getOrUploadImages(int totalImages, int width, int height) throws Exception {
+        List<Image> existing = listExistingImages();
         int missing = totalImages - existing.size();
         if (missing <= 0) {
             log.info("There are enough images in MinIO. Using the existing {} images.", existing.size());
@@ -65,18 +75,18 @@ public class ImageUploadService {
         }
 
         log.info("{} images missing, uploading {} new images...", missing, missing);
-        List<String> newImages = uploadRandomImages(missing, width, height);
+        List<Image> newImages = uploadRandomImages(missing, width, height);
         existing.addAll(newImages);
         return existing;
     }
 
-    public List<String> uploadRandomImages(int totalImages, int width, int height) throws IOException, InterruptedException {
+    public List<Image> uploadRandomImages(int totalImages, int width, int height) throws IOException, InterruptedException {
         if (!Files.exists(TEMP_DIR)) {
             Files.createDirectories(TEMP_DIR);
             log.info("Created temp directory: [{}]", TEMP_DIR.toAbsolutePath());
         }
 
-        List<String> uploadedUrls = Collections.synchronizedList(new ArrayList<>());
+        List<Image> uploadedImages = Collections.synchronizedList(new ArrayList<>());
         ExecutorService executor = Executors.newFixedThreadPool(THREADS);
 
         for (int i = 1; i <= totalImages; i++) {
@@ -99,9 +109,9 @@ public class ImageUploadService {
                                 fileInput
                         );
 
-                        String uploadedUrl = fileStorageService.uploadProductImage(multipartFile);
-                        uploadedUrls.add(uploadedUrl);
-                        log.info("[{}] Uploaded to MinIO: {}", index, uploadedUrl);
+                        Image uploadedImage = fileStorageService.uploadProductImage(multipartFile);
+                        uploadedImages.add(uploadedImage);
+                        log.info("[{}] Uploaded to MinIO: {}", index, uploadedImage);
                     }
 
                     Files.deleteIfExists(localFile);
@@ -115,6 +125,6 @@ public class ImageUploadService {
         executor.shutdown();
         executor.awaitTermination(30, TimeUnit.MINUTES);
 
-        return uploadedUrls;
+        return uploadedImages;
     }
 }

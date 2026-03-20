@@ -3,6 +3,7 @@ package ru.klimovich.catalog_service.initializer.product;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.klimovich.catalog_service.model.Image;
 import ru.klimovich.catalog_service.repository.ProductRepository;
 
 import java.util.List;
@@ -34,7 +35,7 @@ public class ProductInitializer {
         log.info("Need to add {} products to reach {} total", productsToAdd, TOTAL_PRODUCTS);
 
         log.info("Getting or uploading images for products...");
-        List<String> uploadedImages = imageUploadService.getOrUploadImages(TOTAL_IMAGES, WIDTH, HEIGHT);
+        List<Image> uploadedImages = imageUploadService.getOrUploadImages(TOTAL_IMAGES, WIDTH, HEIGHT);
         log.info("Total images available for products: {}", uploadedImages.size());
 
         log.info("Generating {} new products...", productsToAdd);

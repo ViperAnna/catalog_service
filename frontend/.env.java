@@ -1,2 +1,3 @@
 VITE_USE_MOCK=false
-VITE_API_URL=http://localhost:8080
+#VITE_API_URL=http://localhost:8080
+VITE_API_URL=http://144.124.250.82:8080

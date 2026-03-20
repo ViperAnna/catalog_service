@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.klimovich.catalog_service.model.Category;
+import ru.klimovich.catalog_service.model.Image;
 import ru.klimovich.catalog_service.repository.CategoryRepository;
 
 import java.util.List;
@@ -21,7 +22,7 @@ public class ProductRunner {
     private final CategoryRepository categoryRepo;
     private static final int THREADS = 8;
 
-    public void generateProducts(int totalProducts, List<String> images) throws InterruptedException {
+    public void generateProducts(int totalProducts, List<Image> images) throws InterruptedException {
         List<String> categoryIds = categoryRepo.findAll()
                 .stream()
                 .map(Category::getId)
@@ -56,7 +57,6 @@ public class ProductRunner {
             log.error("Product generation did not finish in time.");
             executor.shutdownNow();
         }
-        ;
         log.info("All {} products created", totalProducts);
     }
 }

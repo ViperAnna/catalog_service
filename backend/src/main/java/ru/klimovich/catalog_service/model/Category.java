@@ -26,7 +26,7 @@ public class Category {
     private String description;
 
     @Field(value = "image")
-    private String image;
+    private Image image;
 
     @Field(value = "status")
     private Status status;

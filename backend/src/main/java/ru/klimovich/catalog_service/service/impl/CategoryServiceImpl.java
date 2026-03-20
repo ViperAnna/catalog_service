@@ -2,14 +2,15 @@ package ru.klimovich.catalog_service.service.impl;
 
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 import ru.klimovich.catalog_service.exception.ResourceConflictException;
 import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
 import ru.klimovich.catalog_service.mapper.CategoryMapper;
 import ru.klimovich.catalog_service.model.Category;
+import ru.klimovich.catalog_service.model.Image;
 import ru.klimovich.catalog_service.repository.CategoryRepository;
 import ru.klimovich.catalog_service.repository.ProductRepository;
 import ru.klimovich.catalog_service.service.CategoryService;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepo;
     private final CategoryMapper categoryMapper;
@@ -28,17 +30,17 @@ public class CategoryServiceImpl implements CategoryService {
     private final FileStorageServiceImpl fileStorageService;
 
     @Override
-    public CategoryResponse createCategory(CategoryRequest categoryDetails) {
+    public void createCategory(CategoryRequest categoryDetails) {
 
         if (categoryRepo.findByName(categoryDetails.getName()).isPresent()) {
             throw new ResourceConflictException(String
                     .format(MessageKeys.CATEGORY_ALREADY_EXIST, categoryDetails.getName()));
         }
 
-        String fileName = fileStorageService.uploadCategoryImage(categoryDetails.getImage());
         Category category = categoryMapper.toEntity(categoryDetails);
-        category.setImage(fileName);
-        return categoryMapper.toDTO(categoryRepo.save(category));
+        Image image = fileStorageService.uploadCategoryImage(categoryDetails.getImage());
+        category.setImage(image);
+        categoryMapper.toDTO(categoryRepo.save(category));
     }
 
     @Override
@@ -76,9 +78,16 @@ public class CategoryServiceImpl implements CategoryService {
                         new ResourceNotFoundException(String
                                 .format(MessageKeys.CATEGORY_NOT_FOUND_ID_KEY, id)));
 
-        MultipartFile newImage = categoryDetails.getImage();
-        String newImageUrl = fileStorageService.uploadCategoryImage(newImage);
-        category.setImage(newImageUrl);
+        String newHash = fileStorageService.calculateHash(categoryDetails.getImage());
+
+        if (!category.getImage().getHash().equals(newHash)) {
+            Image newImage = fileStorageService.uploadCategoryImage(categoryDetails.getImage());
+            category.setImage(newImage);
+        } else {
+
+            log.info("Image not changed (hash matches)");
+
+        }
 
         categoryMapper.updateCategoryFromDTO(categoryDetails, category);
         return categoryMapper.toDTO(categoryRepo.save(category));
@@ -96,6 +105,5 @@ public class CategoryServiceImpl implements CategoryService {
                         new ResourceNotFoundException(String
                                 .format(MessageKeys.CATEGORY_NOT_FOUND_ID_KEY, id)));
         categoryRepo.delete(category);
-
     }
 }

@@ -6,6 +6,7 @@ import ru.klimovich.catalog_service.dto.request.ProductRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryShortResponse;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
 import ru.klimovich.catalog_service.model.Characteristic;
+import ru.klimovich.catalog_service.model.Image;
 import ru.klimovich.catalog_service.model.Product;
 import ru.klimovich.catalog_service.model.Status;
 
@@ -24,10 +25,15 @@ public interface ProductMapper {
     Product toEntity(ProductRequest productDTO);
 
     @Mappings({
-            @Mapping(source = "images", target = "imagesUrl"),
+            @Mapping(source = "images", target = "imagesUrl", qualifiedByName = "mapImage"),
             @Mapping(target = "categories", qualifiedByName = "mapCategories")
     })
     ProductResponse toDTO(Product product, @Context Map<String, String> categoryNames);
+
+    @Named("mapImage")
+    default String map(Image image) {
+        return image != null ? image.getUrl() : null;
+    }
 
     @Named("mapCategories")
     default List<CategoryShortResponse> mapCategories(List<String> ids, @Context Map<String, String> categoryNames) {
@@ -55,6 +61,5 @@ public interface ProductMapper {
     @Mapping(target = "articleNumber", ignore = true)
     @Mapping(target = "images", ignore = true)
     void updateProductFromDTO(ProductRequest productDetails, @MappingTarget Product product);
-
 }
 

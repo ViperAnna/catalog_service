@@ -28,7 +28,7 @@ public class CategoryRequest {
     private String description;
 
     @NotNull(message = "Image is required.")
-    @ValidImage(allowedTypes = {"image/jpeg", "image/jpg","image/pjpeg", "application/octet-stream"})
+    @ValidImage(allowedTypes = {"image/jpeg", "image/jpg", "image/pjpeg", "application/octet-stream"})
     @Schema(description = "Картинка категории", example = "image/categories/digital_devices.jpg")
     private MultipartFile image;
 
