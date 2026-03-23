@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'develop', description: 'Branch for build')
+    }
+
     environment {
         DOCKER_USER = 'viperanna'
         BACKEND_IMAGE = "${DOCKER_USER}/catalog-service"
@@ -13,7 +17,11 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/ViperAnna/catalog_service.git'
+                checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "*/${params.BRANCH_NAME}"]],
+                        userRemoteConfigs: [[url: 'https://github.com/ViperAnna/catalog_service.git']]
+                ])
             }
         }
 
@@ -25,8 +33,33 @@ pipeline {
 
         stage('Build Docker Images') {
             steps {
-                sh "docker build -t $BACKEND_IMAGE:latest ./backend"
-                sh "docker build -t $FRONTEND_IMAGE:latest ./frontend"
+                script {
+                    sh "git fetch --all"
+
+                    def backendChanged = sh(
+                            script: "git diff --name-only origin/${params.BRANCH_NAME} HEAD | grep '^backend/' || true",
+                            returnStdout: true
+                    ).trim()
+
+                    def frontendChanged = sh(
+                            script: "git diff --name-only origin/${params.BRANCH_NAME} HEAD | grep '^frontend/' || true",
+                            returnStdout: true
+                    ).trim()
+
+                    if (backendChanged) {
+                        echo "Backend changes detected, building image..."
+                        sh "docker build -t $BACKEND_IMAGE:latest ./backend"
+                    } else {
+                        echo "Backend unchanged, skipping build"
+                    }
+
+                    if (frontendChanged) {
+                        echo "Frontend changes detected, building image..."
+                        sh "docker build -t $FRONTEND_IMAGE:latest ./frontend"
+                    } else {
+                        echo "Frontend unchanged, skipping build"
+                    }
+                }
             }
         }
         stage('Push Images') {
@@ -59,6 +92,7 @@ pipeline {
             }
         }
     }
+
     post {
         success {
             echo 'Build and deployment completed successfully!'
