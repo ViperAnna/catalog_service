@@ -18,8 +18,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: "*/${params.BRANCH_NAME}"]],
+                        $class           : 'GitSCM',
+                        branches         : [[name: "*/${params.BRANCH_NAME}"]],
                         userRemoteConfigs: [[url: 'https://github.com/ViperAnna/catalog_service.git']]
                 ])
             }
@@ -27,7 +27,10 @@ pipeline {
 
         stage('Build Maven Project') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh '''
+                docker run --rm -v $PWD:/app -w /app maven:3.9-openjdk-17 \
+                mvn clean package -DskipTests
+                '''
             }
         }
 
