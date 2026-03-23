@@ -1,11 +1,14 @@
 package ru.klimovich.catalog_service.model;
 
-public enum CategoryStatus {
+import lombok.ToString;
+
+@ToString
+public enum Status {
     ACTIVE("active"),
     INACTIVE("inactive"),
     ARCHIVED("archived"),
     DRAFT("draft");
 
-    CategoryStatus(String description) {
+    Status(String description) {
     }
 }

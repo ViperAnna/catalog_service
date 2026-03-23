@@ -10,16 +10,17 @@ import java.util.List;
 
 public interface ProductService {
 
-    ProductResponse createProduct(ProductRequest productDetails);
+    void createProduct(ProductRequest productDetails);
 
     Page<ProductResponse> getAllProducts(Pageable pageable);
 
     ProductResponse getProductById(String id);
 
     List<ProductResponse> getProductByName(String productName);
-     List<ProductResponse> getProductsByCategory(String nameCategory);
 
-    ProductResponse updateProductById(String id, ProductRequest productDetails);
+    Page<ProductResponse> getProductsByCategory(Pageable pageable, String categoryId);
+
+    void updateProductById(String id, ProductRequest productDetails);
 
     void deleteProductById(String id);
 }

@@ -1,13 +1,17 @@
 package ru.klimovich.catalog_service.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import ru.klimovich.catalog_service.aop.Loggable;
+import ru.klimovich.catalog_service.dto.Response;
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
-import ru.klimovich.catalog_service.dto.Response;
 import ru.klimovich.catalog_service.service.impl.CategoryServiceImpl;
 
 import java.time.LocalDateTime;
@@ -18,14 +22,17 @@ import static ru.klimovich.catalog_service.util.MessageKeys.*;
 @RestController
 @RequestMapping("/categories")
 @RequiredArgsConstructor
+@Tag(name = "Category Controller", description = "API для управления категориями")
 public class CategoryController {
 
     private final CategoryServiceImpl categoryService;
 
+    @Operation(summary = "Создание новой категории",
+            description = "Создает новую категорию с предоставленными данными")
+    @ApiResponse(responseCode = "201", description = "Категория успешно создана")
     @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    @Loggable
-    public Response createCategory(@ModelAttribute CategoryRequest categoryRequest) {
+    public Response createCategory(@Valid @ModelAttribute CategoryRequest categoryRequest) {
         categoryService.createCategory(categoryRequest);
         return new Response(
                 CATEGORY_CREATED_SUCCESSFULLY,
@@ -33,21 +40,33 @@ public class CategoryController {
         );
     }
 
+    @Operation(summary = "Получение всех категорий",
+            description = "Возвращает список всех категорий")
+    @ApiResponse(responseCode = "200", description = "Спосок категорий успешно возвращен")
     @GetMapping
-    @Loggable
     public List<CategoryResponse> getAllCategories() {
         return categoryService.getAllCategories();
     }
 
+    @Operation(summary = "Получение категории по ID",
+            description = "Возвращает категорию по его уникальному идентификатору")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Категория найдена"),
+            @ApiResponse(responseCode = "404", description = "Категория не найдена")
+    })
     @GetMapping("/{id}")
-    @Loggable
     public CategoryResponse getCategoryById(@PathVariable String id) {
         return categoryService.getCategoryById(id);
     }
 
+    @Operation(summary = "Обновление категории",
+            description = "Обновляет категорию с уникальным идентификатором по предоставленным данным")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Категория успешно изменена"),
+            @ApiResponse(responseCode = "404", description = "Категория не найдена")
+    })
     @PutMapping("/{id}")
-    @Loggable
-    public Response updateCategory(@PathVariable String id, @ModelAttribute CategoryRequest categoryDetails) {
+    public Response updateCategory(@PathVariable String id, @Valid @ModelAttribute CategoryRequest categoryDetails) {
         categoryService.updateCategoryById(id, categoryDetails);
         return new Response(
                 CATEGORY_UPDATE_SUCCESSFULLY,
@@ -55,9 +74,14 @@ public class CategoryController {
         );
     }
 
+    @Operation(summary = "Удаление категории",
+            description = "Удаление категории по уникальному идентификатору")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Категория успешно удалена"),
+            @ApiResponse(responseCode = "404", description = "Категория не найдена")
+    })
+
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Loggable
     public Response deleteCategory(@PathVariable String id) {
         categoryService.deleteCategoryById(id);
         return new Response(

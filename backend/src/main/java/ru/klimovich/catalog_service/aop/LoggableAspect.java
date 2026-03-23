@@ -3,15 +3,18 @@ package ru.klimovich.catalog_service.aop;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import ru.klimovich.catalog_service.dto.request.CategoryRequest;
+import ru.klimovich.catalog_service.dto.request.ProductRequest;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
+import java.io.IOException;
 
 @Aspect
 @Component
@@ -19,64 +22,112 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LoggableAspect {
     private final ObjectMapper objectMapper;
+    private static final int MAX_LOG_SIZE = 500;
 
-    @Pointcut("@annotation(loggable)")
-    public void loggableMethods(Loggable loggable) {
+    @Pointcut("within(@org.springframework.web.bind.annotation.RestController *)")
+    public void allRestControllerMethods() {
     }
 
-    @Around(value = "loggableMethods(loggable)", argNames = "joinPoint,loggable")
-    public Object collectLogs(ProceedingJoinPoint joinPoint, Loggable loggable) throws Throwable {
+    @Around("allRestControllerMethods()")
+    public Object logControllerMethods(ProceedingJoinPoint joinPoint) throws Throwable {
+
         long start = System.currentTimeMillis();
         String methodName = joinPoint.getSignature().toShortString();
-        if (loggable.logArgs()) {
-            log.info("Entering method: {} with arguments: {}",
-                    methodName, formatArguments(joinPoint.getArgs()));
-        }
+
+        log.info("--->Entering method: [{}]", methodName);
+
+        logArgument(joinPoint);
+
         try {
             Object result = joinPoint.proceed();
-            log.info("Exiting method: {} | Status: SUCCESS | Time: {}ms | Result: {}",
+            log.info(
+                    "<--- Exiting method: [{}] | [{}] ms | resultType=[{}] | result={}",
                     methodName,
                     System.currentTimeMillis() - start,
-                    loggable.logResult() ? " result= " + formatResult(result) : "");
+                    result != null ? result.getClass().getSimpleName() : "null",
+                    safeToString(result)
+            );
             return result;
 
-        } catch (Throwable ex) {
-
-            log.error("Exiting method: {} | Status: FAILED | Time: {}ms | Exception: {}",
+        } catch (Throwable e) {
+            log.error(
+                    " <--- FAILED| Exiting method: {} | {} ms | exception={}",
                     methodName,
                     System.currentTimeMillis() - start,
-                    ex.getMessage(),
-                    ex);
-            throw ex;
+                    e.getMessage(),
+                    e);
+            throw e;
         }
     }
 
-    private String formatArguments(Object[] args) {
-        if (args == null || args.length == 0) {
-            return "[]";
+    private void logArgument(ProceedingJoinPoint joinPoint) throws IOException {
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        String[] parameterNames = signature.getParameterNames();
+        Object[] args = joinPoint.getArgs();
+
+        for (int i = 0; i < args.length; i++) {
+            Object arg = args[i];
+            String paramName = parameterNames[i];
+
+            if (arg == null) {
+                log.info("Argument [{}] is null", paramName);
+                continue;
+            }
+            if (arg instanceof CategoryRequest request) {
+                logMultipartFile(request.getImage());
+            } else if (arg instanceof ProductRequest productRequest) {
+                productRequest.getImages().forEach(this::logMultipartFile);
+            }
+            log.info(
+                    "Argument [{}] ({}): [{}]]", paramName, arg.getClass().getSimpleName(), safeToString(arg)
+            );
         }
-        return Arrays.stream(args)
-                .map(this::safeToString)
-                .collect(Collectors.joining(", "));
     }
 
-    private String formatResult(Object result) {
-        if (result == null) return "null";
-        return safeToString(result);
+    private void logMultipartFile(MultipartFile file) {
+        try {
+
+            long sizeInBytes = file.getSize();
+            double sizeInKB = sizeInBytes / 1024.0;
+            log.info("File info: name= [{}]," +
+                            "size= [{}] KB," +
+                            "sha-256= [{}]",
+                    file.getOriginalFilename(),
+                    String.format("%.2f", sizeInKB),
+                    DigestUtils.sha256Hex(file.getInputStream()));
+        } catch (IOException e) {
+            log.warn("Failed to log multipart file [{}]: {}", file.getOriginalFilename(), e.getMessage());
+        }
     }
 
     private String safeToString(Object value) {
         try {
-            if (value instanceof MultipartFile file) {
-                return "MultipartFile{name=" + file.getOriginalFilename() + "}";
-            }
             String json = objectMapper.writeValueAsString(value);
-            return json.length() > 500
-                    ? json.substring(0, 500) + "...[TRUNCATED]"
-                    : json;
-
+            if (json.length() > MAX_LOG_SIZE) {
+                json = json.substring(0, MAX_LOG_SIZE) + "...[TRUNCATED]";
+            }
+            json = json.replace("{", "\\{")
+                    .replace("}", "\\}")
+                    .replace("[", "\\[")
+                    .replace("]", "\\]");
+            return json;
         } catch (Exception e) {
             return value.toString();
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

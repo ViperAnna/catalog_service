@@ -2,7 +2,8 @@ import {create} from 'zustand';
 import {api} from '../services/api';
 
 const MINIO_INTERNAL_URL = 'http://minio:9000';
-const MINIO_EXTERNAL_URL = 'http://localhost:9000';
+// const MINIO_EXTERNAL_URL = 'http://localhost:9000';
+const MINIO_EXTERNAL_URL = `http://${window.location.hostname}:9000`;
 
 const convertPictureUrl = (url) => {
     if (!url) return null;
@@ -30,7 +31,7 @@ export const useStore = create((set, get) => ({
             const response = await api.get('/categories');
             const categoriesWithConvertedUrls = response.data.map(category => ({
                 ...category,
-                pictureUrl: convertPictureUrl(category.pictureUrl)
+                imageUrl: convertPictureUrl(category.imageUrl)
             }));
             set({categories: categoriesWithConvertedUrls, loading: false});
         } catch (e) {
@@ -49,7 +50,7 @@ export const useStore = create((set, get) => ({
             const category = response.data
             const convertedCategory = {
                 ...category,
-                pictureUrl: convertPictureUrl(category.pictureUrl)
+                imageUrl: convertPictureUrl(category.imageUrl)
             };
             set({currentCategory: convertedCategory, loading: false});
         } catch (e) {

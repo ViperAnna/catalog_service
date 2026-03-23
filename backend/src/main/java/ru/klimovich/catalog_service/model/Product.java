@@ -37,8 +37,11 @@ public class Product {
     @Field(value = "article_number")
     private String articleNumber;
 
-    @Field(value = "picture")
-    private List<String> picture;
+    @Field(value = "images")
+    private List<Image> images;
+
+    @Field(value = "categories")
+    private List<String> categories;
 
     @Field(value = "characteristic")
     private Characteristic characteristic;
@@ -46,11 +49,8 @@ public class Product {
     @Field(value = "tags")
     private List<String> tag;
 
-    @Field(value = "categories")
-    private List<String> categories;
-
     @Field(value = "status")
-    private ProductStatus status;
+    private Status status;
 
     @Field(value = "date_create")
     private LocalDateTime dateCreate;

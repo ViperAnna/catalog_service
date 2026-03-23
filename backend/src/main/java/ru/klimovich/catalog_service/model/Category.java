@@ -25,11 +25,11 @@ public class Category {
     @Field(value = "description")
     private String description;
 
-    @Field(value = "picture")
-    private String picture;
+    @Field(value = "image")
+    private Image image;
 
     @Field(value = "status")
-    private CategoryStatus status;
+    private Status status;
 
     @CreatedDate
     @Field(value = "date_create")

@@ -1,7 +1,5 @@
 package ru.klimovich.catalog_service.service;
 
-
-import org.springframework.web.multipart.MultipartFile;
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 
@@ -9,7 +7,7 @@ import java.util.List;
 
 public interface CategoryService {
 
-    CategoryResponse createCategory(CategoryRequest categoryDTO);
+    void createCategory(CategoryRequest categoryDTO);
 
     List<CategoryResponse> getAllCategories();
 

@@ -2,43 +2,43 @@ package ru.klimovich.catalog_service.service.impl;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
+import org.springframework.web.multipart.MultipartFile;
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
-import ru.klimovich.catalog_service.model.Category;
-import ru.klimovich.catalog_service.repository.CategoryRepository;
-import ru.klimovich.catalog_service.service.ProductService;
-import ru.klimovich.catalog_service.util.MessageKeys;
 import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
-import ru.klimovich.catalog_service.model.Product;
 import ru.klimovich.catalog_service.mapper.ProductMapper;
+import ru.klimovich.catalog_service.model.Category;
+import ru.klimovich.catalog_service.model.Image;
+import ru.klimovich.catalog_service.model.Product;
+import ru.klimovich.catalog_service.repository.CategoryRepository;
 import ru.klimovich.catalog_service.repository.ProductRepository;
 import ru.klimovich.catalog_service.service.CategoryService;
+import ru.klimovich.catalog_service.service.FileStorageService;
+import ru.klimovich.catalog_service.service.ProductService;
+import ru.klimovich.catalog_service.util.MessageKeys;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepo;
     private final CategoryService categoryService;
     private final CategoryRepository categoryRepo;
     private final ProductMapper productMapper;
+    private final FileStorageService fileStorageService;
 
-    @Override
-    public ProductResponse createProduct(@NotNull ProductRequest productDetails) {
-        List<String> categoriesIdList = productDetails.getCategories();
-        for (String categoryId : categoriesIdList) {
-            categoryService.getCategoryById(categoryId);
-        }
-        Product product = productMapper.toEntity(productDetails);
-        productRepo.save(product);
+    private ProductResponse buildProductResponse(Product product) {
         Map<String, String> categoryNames = categoryRepo.findAllById(product.getCategories())
                 .stream()
                 .collect(Collectors.toMap(Category::getId, Category::getName));
@@ -46,21 +46,32 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public void createProduct(@NotNull ProductRequest productDetails) {
+        productDetails.getCategories().forEach(categoryService::getCategoryById);
+
+        List<Image> fileNameList = fileStorageService.uploadProductImage(productDetails.getImages());
+
+        Product product = productMapper.toEntity(productDetails);
+        product.setImages(fileNameList);
+        productRepo.save(product);
+        buildProductResponse(product);
+    }
+
+    @Override
     public Page<ProductResponse> getAllProducts(Pageable pageable) {
         Page<Product> productPage = productRepo.findAll(pageable);
 
-        Map<String,String> categoryInfo = categoryRepo.findAllById(
-                productPage.getContent()
-                        .stream()
-                        .flatMap(p -> p.getCategories().stream())
-                        .distinct()
-                        .toList()
-        ).stream()
+        Map<String, String> categoryInfo = categoryRepo.findAllById(
+                        productPage.getContent()
+                                .stream()
+                                .flatMap(p -> p.getCategories().stream())
+                                .distinct()
+                                .toList()
+                ).stream()
                 .collect(Collectors.toMap(Category::getId, Category::getName));
 
-
         return productPage
-                .map(p->productMapper.toDTO(p,categoryInfo));
+                .map(p -> productMapper.toDTO(p, categoryInfo));
     }
 
     @Override
@@ -68,10 +79,7 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(String
                         .format(MessageKeys.PRODUCT_NOT_FOUND_ID_KEY, id)));
-        Map<String, String> categoriesNames = categoryRepo.findAllById(product.getCategories())
-                .stream()
-                .collect(Collectors.toMap(Category::getId,Category::getName));
-        return productMapper.toDTO(product, categoriesNames);
+        return buildProductResponse(product);
     }
 
     @Override
@@ -81,50 +89,52 @@ public class ProductServiceImpl implements ProductService {
             throw new ResourceNotFoundException(String
                     .format(MessageKeys.PRODUCT_NOT_FOUND_NAME_KEY, productName));
         }
-        List<String> categoryId = products.stream()
-                .flatMap(p-> p.getCategories().stream())
-                .distinct()
-                .toList();
-        Map<String, String> categoriesNames = categoryRepo.findAllById(categoryId)
-                .stream()
-                .collect(Collectors.toMap(Category::getId,Category::getName));
-
         return products.stream()
-                .map(p -> productMapper.toDTO(p, categoriesNames))
+                .map(this::buildProductResponse)
                 .toList();
     }
+
     @Override
-    public List<ProductResponse> getProductsByCategory(String categoryName){
-        Category category = categoryRepo.findByName(categoryName)
+    public Page<ProductResponse> getProductsByCategory(Pageable pageable, String categoryId) {
+        categoryRepo.findById(categoryId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(String
-                                .format(MessageKeys.CATEGORY_NOT_FOUND_NAME_KEY, categoryName)));
-        List<Product> categoryList = productRepo.findByCategoriesContaining(category.getId());
-        List<String> categoryIds = categoryList.stream()
-                .flatMap(p -> p.getCategories().stream())
-                .distinct()
-                .toList();
+                                .format(MessageKeys.CATEGORY_NOT_FOUND_ID_KEY, categoryId)));
+        Page<Product> categoryList = productRepo.findByCategoriesContaining(pageable, categoryId);
 
-        Map<String, String> categoryNames = categoryRepo.findAllById(categoryIds)
-                .stream()
-                .collect(Collectors.toMap(Category::getId, Category::getName));
-        return categoryList.stream()
-                .map(p -> productMapper.toDTO(p, categoryNames))
-                .toList();
+        return categoryList
+                .map(this::buildProductResponse);
     }
 
     @Override
-    public ProductResponse updateProductById(String id, ProductRequest productDetails) {
+    public void updateProductById(String id, ProductRequest productDetails) {
         Product product = productRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(String
                         .format(MessageKeys.PRODUCT_NOT_FOUND_ID_KEY, id)));
+        List<MultipartFile> newImages = productDetails.getImages();
+        List<Image> existingImages = product.getImages();
+        List<Image> updatedImages = new ArrayList<>();
+
+        for (MultipartFile file : newImages) {
+            String newHash = fileStorageService.calculateHash(file);
+            Optional<Image> existingImage = existingImages.stream()
+                    .filter(img -> img.getHash().equals(newHash))
+                    .findFirst();
+            if (existingImage.isPresent()) {
+                log.info("Image not changed (hash matches)");
+                updatedImages.add(existingImage.get());
+            } else {
+                Image newImage = fileStorageService.uploadProductImage(file);
+                updatedImages.add(newImage);
+            }
+        }
+
+        product.setImages(updatedImages);
+
         productMapper.updateProductFromDTO(productDetails, product);
         productRepo.save(product);
-        List<String> categoryIds = product.getCategories();
-        Map<String, String> categoryNames = categoryRepo.findAllById(categoryIds)
-                .stream()
-                .collect(Collectors.toMap(Category::getId, Category::getName));
-        return productMapper.toDTO(product, categoryNames);
+
+        buildProductResponse(product);
     }
 
     @Override
