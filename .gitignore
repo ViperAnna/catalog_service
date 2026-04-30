@@ -37,3 +37,7 @@ target/
 hs_err_pid*
 replay_pid*
 /minio/
+
+# env files
+.env*
+!.env.example
