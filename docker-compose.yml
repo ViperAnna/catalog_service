@@ -84,7 +84,7 @@ services:
   # ------------------ Catalog Service ------------------
   catalog-service:
 #    build: ./backend
-    image: viperanna/catalog-service:latest
+    image: viperanna/catalog-service:${IMAGE_TAG}
     container_name: catalog-service
     env_file:
       - .env.spring
@@ -105,7 +105,7 @@ services:
   # ------------------ Frontend ------------------
   front:
 #    build: ./frontend
-    image: viperanna/front:latest
+    image: viperanna/front:${IMAGE_TAG}
     ports:
       - "3000:3000"
     depends_on:
