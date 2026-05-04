@@ -3,7 +3,7 @@ pipeline {
 
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'develop', description: 'Branch for build')
-        choice(name: 'DEPLOY_TARGET', choices: ['all', 'backend', 'frontend'], description: 'What do I want to deploy?')
+        choice(name: 'DEPLOY_TARGET', choices: ['all', 'backend', 'frontend'], description: 'What to deploy?')
     }
 
     environment {
@@ -16,6 +16,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout([
@@ -26,17 +27,47 @@ pipeline {
             }
         }
 
-        stage('Build Docker Images') {
+        stage('Prepare Version') {
             steps {
                 script {
-                    if (params.DEPLOY_TARGET == 'all' || params.DEPLOY_TARGET == 'backend') {
-                        echo "Building backend image..."
-                        sh "docker build -t $BACKEND_IMAGE:latest ./backend"
+                    def mvnHome = tool 'MAVEN_3'
+                    env.PATH = "${mvnHome}/bin:${env.PATH}"
+
+                    sh "${mvnHome}/bin/mvn -v"
+                    sh "${mvnHome}/bin/mvn -q -DskipTests clean compile"
+
+                    def mavenVersion = sh(
+                            script: "mvn help:evaluate -Dexpression=project.version -q -DforceStdout",
+                            returnStdout: true
+                    ).trim()
+
+                    def shortCommit = sh(
+                            script: "git rev-parse --short HEAD",
+                            returnStdout: true
+                    ).trim()
+
+                    env.IMAGE_TAG = "${mavenVersion}-${shortCommit}"
+
+                    echo "Version from Maven: ${mavenVersion}"
+                    echo "Version: ${env.IMAGE_TAG}"
+                }
+            }
+        }
+
+        stage('Build Images') {
+            steps {
+                script {
+
+                    if (params.DEPLOY_TARGET in ['all', 'backend']) {
+                        sh """
+                            docker build -t $BACKEND_IMAGE:${IMAGE_TAG} ./backend
+                        """
                     }
 
-                    if (params.DEPLOY_TARGET == 'all' || params.DEPLOY_TARGET == 'frontend') {
-                        echo "Building frontend image..."
-                        sh "docker build -t $FRONTEND_IMAGE:latest ./frontend"
+                    if (params.DEPLOY_TARGET in ['all', 'frontend']) {
+                        sh """
+                            docker build -t $FRONTEND_IMAGE:${IMAGE_TAG} ./frontend
+                        """
                     }
                 }
             }
@@ -49,62 +80,137 @@ pipeline {
                         usernameVariable: 'USER',
                         passwordVariable: 'PASS'
                 )]) {
+
+                    sh """
+                        echo $PASS | docker login -u $USER --password-stdin
+                    """
+
                     script {
-                        if (params.DEPLOY_TARGET == 'all' || params.DEPLOY_TARGET == 'backend') {
-                            sh '''
-                                echo $PASS | docker login -u $USER --password-stdin
-                                docker push $BACKEND_IMAGE:latest
-                            '''
+
+                        if (params.DEPLOY_TARGET in ['all', 'backend']) {
+                            sh """
+                                docker push $BACKEND_IMAGE:${IMAGE_TAG}
+                            """
                         }
-                        if (params.DEPLOY_TARGET == 'all' || params.DEPLOY_TARGET == 'frontend') {
-                            sh '''
-                                echo $PASS | docker login -u $USER --password-stdin
-                                docker push $FRONTEND_IMAGE:latest
-                            '''
+
+                        if (params.DEPLOY_TARGET in ['all', 'frontend']) {
+                            sh """
+                                docker push $FRONTEND_IMAGE:${IMAGE_TAG}
+                            """
                         }
                     }
                 }
             }
         }
 
-        stage('Deploy Application') {
+        stage('Prepare Server') {
             steps {
                 sshagent(['server-ssh']) {
-                    script {
-                        def cleanCmd = ""
-                        if (params.DEPLOY_TARGET == "all") {
-                            cleanCmd = "docker compose down && docker system prune -af --volumes"
-                        } else if (params.DEPLOY_TARGET == "backend") {
-                            cleanCmd = "docker compose down catalog-service mongodb && docker image prune -af"
-                        } else if (params.DEPLOY_TARGET == "frontend") {
-                            cleanCmd = "docker compose down front && docker image prune -af"
-                        }
+                    sh """
+                        ssh root@${SERVER_IP} "mkdir -p ${SERVER_PATH}"
+                    """
+                }
+            }
+        }
 
-                        def deployCmd = ""
-                        if (params.DEPLOY_TARGET == "all") {
-                            deployCmd = "docker compose pull && docker compose up -d"
-                        } else if (params.DEPLOY_TARGET == "backend") {
-                            deployCmd = "docker compose pull catalog-service && docker compose up -d catalog-service mongodb"
-                        } else if (params.DEPLOY_TARGET == "frontend") {
-                            deployCmd = "docker compose pull front && docker compose up -d front"
-                        }
-
+        stage('Upload Config') {
+            when {
+                expression { params.DEPLOY_TARGET == 'all' }
+            }
+            steps {
+                sshagent(['server-ssh']) {
+                    withCredentials([
+                            file(credentialsId: 'env-minio', variable: 'MINIO_ENV'),
+                            file(credentialsId: 'env-mongodb', variable: 'MONGO_ENV'),
+                            file(credentialsId: 'env-spring', variable: 'SPRING_ENV')
+                    ]) {
                         sh """
-                            ssh root@${SERVER_IP} "cd ${SERVER_PATH} && ${cleanCmd}"
-                            ssh root@${SERVER_IP} "cd ${SERVER_PATH} && ${deployCmd}"
+                            scp $MINIO_ENV root@${SERVER_IP}:${SERVER_PATH}/.env.minio
+                            scp $MONGO_ENV root@${SERVER_IP}:${SERVER_PATH}/.env.mongodb
+                            scp $SPRING_ENV root@${SERVER_IP}:${SERVER_PATH}/.env.spring
+                            scp docker-compose.yml root@${SERVER_IP}:${SERVER_PATH}/
                         """
                     }
                 }
             }
         }
+
+        stage('Deploy') {
+            steps {
+                sshagent(['server-ssh']) {
+                    script {
+
+                        def deployCmd = ""
+
+                        if (params.DEPLOY_TARGET == "all") {
+                            deployCmd = """
+                                cd ${SERVER_PATH} &&
+                                IMAGE_TAG=${IMAGE_TAG} docker compose pull &&
+                                IMAGE_TAG=${IMAGE_TAG} docker compose up -d
+                            """
+                        } else if (params.DEPLOY_TARGET == "backend") {
+                            deployCmd = """
+                                cd ${SERVER_PATH} &&
+                                IMAGE_TAG=${IMAGE_TAG} docker compose pull catalog-service &&
+                                IMAGE_TAG=${IMAGE_TAG} docker compose up -d catalog-service
+                            """
+                        } else if (params.DEPLOY_TARGET == "frontend") {
+                            deployCmd = """
+                                cd ${SERVER_PATH} &&
+                                IMAGE_TAG=${IMAGE_TAG} docker compose pull front &&
+                                IMAGE_TAG=${IMAGE_TAG} docker compose up -d front
+                            """
+                        }
+
+                        sh """
+                            ssh root@${SERVER_IP} '${deployCmd}'
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Cleanup Old Images') {
+            steps {
+                sshagent(['server-ssh']) {
+                    sh '''
+                    ssh root@${SERVER_IP} "cat > /tmp/cleanup.sh << 'SCRIPT'
+                    #!/bin/bash
+                    set -e
+                    
+                    echo 'Cleaning old Docker images...'
+                    
+                    docker images ${DOCKER_USER}/catalog-service --format '{{.ID}} {{.Tag}}' |
+                    sort -k2 -V -r | 
+                    tail -n +4 |     
+                    awk '{print \$1}' |
+                    xargs -r docker rmi -f || true
+
+                    docker images ${DOCKER_USER}/front --format '{{.ID}} {{.Tag}}' |
+                    sort -k2 -V -r |
+                    tail -n +4 |
+                    awk '{print \$1}' |
+                    xargs -r docker rmi -f || true
+
+                    docker image prune -f
+                    SCRIPT
+            
+                    chmod +x /tmp/cleanup.sh
+                    /tmp/cleanup.sh
+                    "
+                    '''
+                }
+            }
+        }
     }
+
 
     post {
         success {
-            echo 'Build and deployment completed successfully!'
+            echo "Deployed version: ${env.IMAGE_TAG}"
         }
         failure {
-            echo 'Something went wrong. Check the logs.'
+            echo "Deployment failed"
         }
     }
 }
