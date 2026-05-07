@@ -226,9 +226,12 @@ pipeline {
 
             when {
                 expression {
-                    env.BUILD_BACKEND == 'true' ||
-                            env.BUILD_FRONTEND == 'true' ||
-                            env.UPLOAD_CONFIG == 'true'
+                    env.BRANCH_NAME == 'develop' &&
+                            (
+                                    env.BUILD_BACKEND == 'true' ||
+                                            env.BUILD_FRONTEND == 'true' ||
+                                            env.UPLOAD_CONFIG == 'true'
+                            )
                 }
             }
 
