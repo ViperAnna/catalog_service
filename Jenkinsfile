@@ -291,34 +291,22 @@ pipeline {
 
         stage('Cleanup Old Images') {
             steps {
-
                 sshagent(['server-ssh']) {
+                    sh """
+                ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '
+                    for IMAGE in ${DOCKER_USER}/catalog-service ${DOCKER_USER}/front; do
+                        echo "Cleaning old images for \$IMAGE..."
 
-                    sh '''
-                ssh -o StrictHostKeyChecking=no root@${SERVER_IP} "
-                cat > /tmp/cleanup.sh << 'SCRIPT'
-                #!/bin/bash
+                        docker images "\$IMAGE" --format "{{.ID}} {{.Tag}}" |
+                        sort -k2 -V -r |
+                        tail -n +4 |
+                        awk "{print \$1}" |
+                        xargs -r docker rmi -f || true
+                    done
 
-                for IMAGE in ${DOCKER_USER}/catalog-service ${DOCKER_USER}/front; do
-
-                    echo \\"Cleaning old images for \$IMAGE...\\" 
-
-                    docker images \\"\$IMAGE\\" --format '{{.ID}} {{.Tag}}' |
-                    sort -k2 -V -r |
-                    tail -n +4 |
-                    awk '{print \$1}' |
-                    xargs -r docker rmi -f || true
-
-                done
-
-                docker system prune -f --volumes || true
-
-                SCRIPT
-
-                chmod +x /tmp/cleanup.sh
-                /tmp/cleanup.sh
-                "
-            '''
+                    docker system prune -f --volumes || true
+                '
+            """
                 }
             }
         }
