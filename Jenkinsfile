@@ -294,18 +294,23 @@ pipeline {
                 sshagent(['server-ssh']) {
                     sh """
                 ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '
-                    for IMAGE in ${DOCKER_USER}/catalog-service ${DOCKER_USER}/front; do
+                    set -e
+
+                    IMAGES="${DOCKER_USER}/catalog-service ${DOCKER_USER}/front"
+
+                    for IMAGE in \$IMAGES; do
 
                         echo "Cleaning old images for \$IMAGE..."
 
                         docker ps -q --filter ancestor=\$IMAGE | xargs -r docker stop || true
                         docker ps -a -q --filter ancestor=\$IMAGE | xargs -r docker rm -f || true
 
-                        docker images "\$IMAGE" --format "{{.ID}} {{.Tag}}" |
-                        sort -k2 -V -r |
-                        tail -n +4 |
-                        awk "{print \$1}" |
-                        xargs -r docker rmi -f || true
+                        docker images \$IMAGE --format "{{.ID}} {{.Tag}}" \
+                        | grep -v "<none>" \
+                        | sort -k2 -V -r \
+                        | tail -n +4 \
+                        | awk "{print \$1}" \
+                        | xargs -r docker rmi -f || true
 
                     done
 
