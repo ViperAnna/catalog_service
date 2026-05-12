@@ -235,7 +235,6 @@ pipeline {
             when {
                 allOf {
                     expression { env.BUILD_BACKEND == 'true' }
-                    stage("Docker Login").result == 'SUCCESS'
                 }
             }
 
@@ -253,7 +252,6 @@ pipeline {
             when {
                 allOf {
                     expression { env.BUILD_FRONTEND == 'true' }
-                    stage("Docker Login").result == 'SUCCESS'
                 }
             }
 
