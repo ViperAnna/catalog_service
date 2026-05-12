@@ -174,7 +174,7 @@ pipeline {
             steps {
 
                 sh """
-                    $(echo ls) && \
+                    ${echo ls} && \
                     docker build \
                       -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
                       ./backend
