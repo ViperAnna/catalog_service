@@ -19,6 +19,7 @@ const EmptyImage = ({
             </div>
         </div>
     );
+    
 };
 
 export default EmptyImage;
