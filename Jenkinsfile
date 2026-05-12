@@ -7,34 +7,38 @@ pipeline {
     }
 
     environment {
+        DOCKERHUB_USER = 'viperanna'
 
-        DOCKER_USER = 'viperanna'
-
-        BACKEND_IMAGE = "${DOCKER_USER}/catalog-service"
-        FRONTEND_IMAGE = "${DOCKER_USER}/front"
+        BACKEND_IMAGE = "${DOCKERHUB_USER}/catalog-service"
+        FRONTEND_IMAGE = "${DOCKERHUB_USER}/front"
 
         SERVER_IP = '144.124.250.82'
         SERVER_PATH = '/home/user/catalog_service'
     }
 
     stages {
-
+        // =========================================================
+        // Detect changes
+        // =========================================================
         stage('Detect changes') {
             steps {
-
                 script {
 
-                    def changes = sh(
-                            script: """
-                                git diff --name-only \
-                                \$GIT_PREVIOUS_SUCCESSFUL_COMMIT \
-                                \$GIT_COMMIT || true
-                            """,
+                    def previousCommit = sh(
+                            script: "git rev-parse HEAD~1 || echo ''",
                             returnStdout: true
                     ).trim()
 
-                    echo "Changed files:"
-                    echo "${changes}"
+                    def firstDeploy = (previousCommit == '')
+
+                    echo "PREVIOUS COMMIT: ${previousCommit}"
+                    echo "CURRENT COMMIT : ${env.GIT_COMMIT}"
+
+                    def changes = previousCommit
+                            ? sh(script: "git diff --name-only ${previousCommit} ${env.GIT_COMMIT}", returnStdout: true).trim()
+                            : sh(script: "git ls-files", returnStdout: true).trim()
+
+                    echo "Changed files:\n${changes}"
 
                     env.BUILD_BACKEND = (
                             changes.contains("backend/") ||
@@ -43,11 +47,11 @@ pipeline {
 
                     env.BUILD_FRONTEND = (
                             changes.contains("frontend/") ||
-                                    changes.contains("docker-compose.yml")
+                                    changes.contains("package.json")
                     ).toString()
 
                     env.UPLOAD_CONFIG = (
-                            changes.contains("docker-compose.yml")
+                            changes.contains("docker-compose.yml") || firstDeploy
                     ).toString()
 
                     echo "BUILD_BACKEND = ${env.BUILD_BACKEND}"
@@ -57,143 +61,251 @@ pipeline {
             }
         }
 
+        // =========================================================
+        // Prepare version
+        // =========================================================
         stage('Prepare Version') {
             steps {
-
                 script {
 
                     def mvnHome = tool 'MAVEN_3'
 
-                    env.PATH = "${mvnHome}/bin:${env.PATH}"
-
                     sh "${mvnHome}/bin/mvn -q -DskipTests clean compile"
 
-                    def mavenVersion = sh(
+                    env.APP_VERSION = sh(
                             script: """
-                                ${mvnHome}/bin/mvn \
-                                help:evaluate \
-                                -Dexpression=project.version \
-                                -q \
-                                -DforceStdout
-                            """,
+                            ${mvnHome}/bin/mvn help:evaluate \
+                            -Dexpression=project.version \
+                            -q -DforceStdout
+                        """,
                             returnStdout: true
                     ).trim()
 
-                    def shortCommit = sh(
-                            script: "git rev-parse --short HEAD",
+                    env.GIT_SHORT = sh(
+                            script: 'git rev-parse --short HEAD',
                             returnStdout: true
                     ).trim()
 
-                    env.IMAGE_TAG = "${mavenVersion}-${shortCommit}"
+                    env.IMAGE_TAG =
+                            "${env.APP_VERSION}-${env.GIT_SHORT}"
 
-                    echo "Maven Version: ${mavenVersion}"
-                    echo "Image Tag: ${env.IMAGE_TAG}"
+                    echo "IMAGE_TAG = ${env.IMAGE_TAG}"
                 }
             }
         }
 
-        stage('Build Images') {
+        // =========================================================
+        // Resolve deploy tags
+        // =========================================================
+        stage('Resolve Deploy Tags') {
 
             when {
-                expression {
-                    env.BUILD_BACKEND == 'true' ||
-                            env.BUILD_FRONTEND == 'true'
-                }
+                branch 'develop'
             }
 
             steps {
-
-                script {
-
-                    if (env.BUILD_BACKEND == 'true') {
-
-                        sh """
-                            docker build \
-                            -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
-                            ./backend
-                        """
-                    }
-
-                    if (env.BUILD_FRONTEND == 'true') {
-
-                        sh """
-                            docker build \
-                            -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
-                            ./frontend
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Push Images') {
-
-            when {
-                expression {
-                    env.BUILD_BACKEND == 'true' ||
-                            env.BUILD_FRONTEND == 'true'
-                }
-            }
-
-            steps {
-
-                withCredentials([
-                        usernamePassword(
-                                credentialsId: 'dockerhub-creds',
-                                usernameVariable: 'USER',
-                                passwordVariable: 'PASS'
-                        )
-                ]) {
-
-                    sh "echo $PASS | docker login -u $USER --password-stdin"
-
+                sshagent(['server-ssh']) {
                     script {
+
+                        //
+                        // BACKEND TAG
+                        //
+
+                        def backendTagFromServer = sh(
+                                script: """
+                        ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \
+                        "cat ${SERVER_PATH}/current_backend_tag 2>/dev/null || true"
+                    """,
+                                returnStdout: true
+                        ).trim()
 
                         if (env.BUILD_BACKEND == 'true') {
 
-                            sh """
-                                docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
-                            """
+                            env.DEPLOY_BACKEND_TAG =
+                                    env.IMAGE_TAG
+
+                        } else {
+
+                            env.DEPLOY_BACKEND_TAG =
+                                    backendTagFromServer ?: env.IMAGE_TAG
                         }
+
+                        //
+                        // FRONTEND TAG
+                        //
+
+                        def frontendTagFromServer = sh(
+                                script: """
+                        ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \
+                        "cat ${SERVER_PATH}/current_frontend_tag 2>/dev/null || true"
+                    """,
+                                returnStdout: true
+                        ).trim()
 
                         if (env.BUILD_FRONTEND == 'true') {
 
-                            sh """
-                                docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
-                            """
+                            env.DEPLOY_FRONTEND_TAG =
+                                    env.IMAGE_TAG
+
+                        } else {
+
+                            env.DEPLOY_FRONTEND_TAG =
+                                    frontendTagFromServer ?: env.IMAGE_TAG
                         }
+
+                        echo "DEPLOY_BACKEND_TAG = ${env.DEPLOY_BACKEND_TAG}"
+                        echo "DEPLOY_FRONTEND_TAG = ${env.DEPLOY_FRONTEND_TAG}"
                     }
                 }
             }
         }
 
-        stage('Prepare Server') {
-            steps {
+        // =========================================================
+        // Build backend
+        // =========================================================
+        stage('Build Backend Image') {
 
-                sshagent(['server-ssh']) {
+            when {
+                expression {
+                    env.BUILD_BACKEND == 'true'
+                }
+            }
+
+            steps {
+                sh """
+                    docker build \
+                      -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
+                      ./backend
+                """
+            }
+        }
+
+        // =========================================================
+        // Build frontend
+        // =========================================================
+        stage('Build Frontend Image') {
+
+            when {
+                expression {
+                    env.BUILD_FRONTEND == 'true'
+                }
+            }
+
+            steps {
+                sh """
+                    docker build \
+                      -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
+                      ./frontend
+                """
+            }
+        }
+
+        //=========================================================
+        //Docker Login
+        //=========================================================
+        stage('Docker Login') {
+            when {
+                expression {
+                    env.BUILD_BACKEND == 'true' || env.BUILD_FRONTEND == 'true'
+                }
+            }
+            steps {
+                withCredentials([
+                        usernamePassword(
+                                credentialsId: 'dockerhub-creds',
+                                usernameVariable: 'DOCKER_LOGIN_USER',
+                                passwordVariable: 'DOCKER_PASS'
+                        )
+                ]) {
 
                     sh """
-                        ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '
-                            mkdir -p ${SERVER_PATH} &&
-                            chmod 755 ${SERVER_PATH}
+                        echo "$DOCKER_PASS" | docker login \
+                          -u "$DOCKER_LOGIN_USER" \
+                          --password-stdin
+                    """
+                }
+            }
+        }
+
+        // =========================================================
+        // Push backend
+        // =========================================================
+        stage('Push Backend Image') {
+
+            when {
+                allOf {
+                    expression { env.BUILD_BACKEND == 'true' }
+                }
+            }
+
+            steps {
+                sh """
+                        docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
+                    """
+            }
+        }
+
+        // =========================================================
+        // Push frontend
+        // =========================================================
+        stage('Push Frontend Image') {
+            when {
+                allOf {
+                    expression { env.BUILD_FRONTEND == 'true' }
+                }
+            }
+
+            steps {
+                sh """
+                        docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                    """
+            }
+        }
+
+        // =========================================================
+        // Save deployed tags
+        // =========================================================
+        stage('Save Deploy Tags') {
+
+            when {
+                branch 'develop'
+            }
+
+            steps {
+                sshagent(['server-ssh']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no \
+                        root@${SERVER_IP} '
+
+                            mkdir -p ${SERVER_PATH}
+
+                            echo "${DEPLOY_BACKEND_TAG}" \
+                                > ${SERVER_PATH}/current_backend_tag
+
+                            echo "${DEPLOY_FRONTEND_TAG}" \
+                                > ${SERVER_PATH}/current_frontend_tag
                         '
                     """
                 }
             }
         }
 
+        // =========================================================
+        // Upload Config
+        // =========================================================
         stage('Upload Config') {
 
             when {
-                expression {
-                    env.UPLOAD_CONFIG == 'true'
+                allOf {
+                    branch 'develop'
+                    expression {
+                        env.UPLOAD_CONFIG == 'true'
+                    }
                 }
             }
 
             steps {
-
                 sshagent(['server-ssh']) {
-
                     withCredentials([
                             file(credentialsId: 'env-minio', variable: 'MINIO_ENV'),
                             file(credentialsId: 'env-mongodb', variable: 'MONGO_ENV'),
@@ -201,120 +313,44 @@ pipeline {
                     ]) {
 
                         sh """
-                            scp -o StrictHostKeyChecking=no \
-                            \$MINIO_ENV \
-                            root@${SERVER_IP}:${SERVER_PATH}/.env.minio
+                    scp -o StrictHostKeyChecking=no \$MINIO_ENV \
+                        root@${SERVER_IP}:${SERVER_PATH}/.env.minio
 
-                            scp -o StrictHostKeyChecking=no \
-                            \$MONGO_ENV \
-                            root@${SERVER_IP}:${SERVER_PATH}/.env.mongodb
+                    scp -o StrictHostKeyChecking=no \$MONGO_ENV \
+                        root@${SERVER_IP}:${SERVER_PATH}/.env.mongodb
 
-                            scp -o StrictHostKeyChecking=no \
-                            \$SPRING_ENV \
-                            root@${SERVER_IP}:${SERVER_PATH}/.env.spring
+                    scp -o StrictHostKeyChecking=no \$SPRING_ENV \
+                        root@${SERVER_IP}:${SERVER_PATH}/.env.spring
 
-                            scp -o StrictHostKeyChecking=no \
-                            docker-compose.yml \
-                            root@${SERVER_IP}:${SERVER_PATH}/
-                        """
+                    scp -o StrictHostKeyChecking=no \
+                        docker-compose.yml \
+                        root@${SERVER_IP}:${SERVER_PATH}/
+                """
                     }
                 }
             }
         }
 
+        // =========================================================
+        // Deploy
+        // =========================================================
         stage('Deploy') {
 
             when {
-                expression {
-                    env.BRANCH_NAME == 'develop' &&
-                            (
-                                    env.BUILD_BACKEND == 'true' ||
-                                            env.BUILD_FRONTEND == 'true' ||
-                                            env.UPLOAD_CONFIG == 'true'
-                            )
-                }
+                branch 'develop'
             }
 
-            steps {
-
-                sshagent(['server-ssh']) {
-
-                    script {
-
-                        def deployCmd = ""
-
-                        if (
-                                env.BUILD_BACKEND == 'true' &&
-                                        env.BUILD_FRONTEND == 'true'
-                        ) {
-
-                            deployCmd = """
-                                cd ${SERVER_PATH} &&
-                                IMAGE_TAG=${IMAGE_TAG} docker compose pull &&
-                                IMAGE_TAG=${IMAGE_TAG} docker compose up -d --remove-orphans
-                            """
-
-                        } else if (env.BUILD_BACKEND == 'true') {
-
-                            deployCmd = """
-                                cd ${SERVER_PATH} &&
-                                IMAGE_TAG=${IMAGE_TAG} docker compose pull catalog-service &&
-                                IMAGE_TAG=${IMAGE_TAG} docker compose up -d catalog-service --remove-orphans
-                            """
-
-                        } else if (env.BUILD_FRONTEND == 'true') {
-
-                            deployCmd = """
-                                cd ${SERVER_PATH} &&
-                                IMAGE_TAG=${IMAGE_TAG} docker compose pull front &&
-                                IMAGE_TAG=${IMAGE_TAG} docker compose up -d front --remove-orphans
-                            """
-
-                        } else if (env.UPLOAD_CONFIG == 'true') {
-
-                            deployCmd = """
-                                cd ${SERVER_PATH} &&
-                                IMAGE_TAG=${IMAGE_TAG} docker compose up -d --remove-orphans
-                            """
-                        }
-
-                        sh """
-                            ssh -o StrictHostKeyChecking=no \
-                            root@${SERVER_IP} '
-                                ${deployCmd}
-                            '
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Cleanup Old Images') {
             steps {
                 sshagent(['server-ssh']) {
                     sh """
-                ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '
-                    set -e
+                    ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '
+                    cd ${SERVER_PATH}
 
-                    IMAGES="${DOCKER_USER}/catalog-service ${DOCKER_USER}/front"
+                    export BACKEND_TAG=${DEPLOY_BACKEND_TAG}
+                    export FRONTEND_TAG=${DEPLOY_FRONTEND_TAG}
 
-                    for IMAGE in \$IMAGES; do
-
-                        echo "Cleaning old images for \$IMAGE..."
-
-                        docker ps -q --filter ancestor=\$IMAGE | xargs -r docker stop || true
-                        docker ps -a -q --filter ancestor=\$IMAGE | xargs -r docker rm -f || true
-
-                        docker images \$IMAGE --format "{{.ID}} {{.Tag}}" \
-                        | grep -v "<none>" \
-                        | sort -k2 -V -r \
-                        | tail -n +4 \
-                        | awk "{print \$1}" \
-                        | xargs -r docker rmi -f || true
-
-                    done
-
-                    docker system prune -f --volumes || true
+                    docker compose pull
+                    docker compose up -d
                 '
             """
                 }
@@ -323,13 +359,10 @@ pipeline {
     }
 
     post {
+        always {
 
-        success {
-            echo "Deployed version: ${env.IMAGE_TAG} to branch ${env.BRANCH_NAME}"
-        }
-
-        failure {
-            echo "Deployment failed! Check the console output."
+            echo "Backend tag: ${env.DEPLOY_BACKEND_TAG}"
+            echo "Frontend tag: ${env.DEPLOY_FRONTEND_TAG}"
         }
     }
 }
