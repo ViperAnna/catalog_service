@@ -7,7 +7,7 @@
     
     <groupId>ru.klimovich</groupId>
     <artifactId>catalog_service_parent</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.4</version>
     <packaging>pom</packaging>
     
     <name>Catalog Service</name>

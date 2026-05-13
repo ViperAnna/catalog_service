@@ -20,6 +20,7 @@ const EmptyImage = ({
         </div>
     );
 
+
 };
 
 export default EmptyImage;
