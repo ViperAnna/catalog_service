@@ -47,7 +47,8 @@ pipeline {
 
                     env.BUILD_FRONTEND = (
                             changes.contains("frontend/") ||
-                                    changes.contains("package.json")
+                                    changes.contains("package.json") ||
+                                    changes.contains("pom.xml")
                     ).toString()
 
                     env.UPLOAD_CONFIG = (
@@ -276,18 +277,41 @@ pipeline {
             steps {
                 sshagent(['server-ssh']) {
                     sh """
-                        ssh -o StrictHostKeyChecking=no \
-                        root@${SERVER_IP} '
+                ssh -o StrictHostKeyChecking=no \
+                root@${SERVER_IP} '
 
-                            mkdir -p ${SERVER_PATH}
+                mkdir -p ${SERVER_PATH}
+                cd ${SERVER_PATH}
 
-                            echo "${DEPLOY_BACKEND_TAG}" \
-                                > ${SERVER_PATH}/current_backend_tag
+                echo "== BEFORE UPDATE =="
 
-                            echo "${DEPLOY_FRONTEND_TAG}" \
-                                > ${SERVER_PATH}/current_frontend_tag
-                        '
-                    """
+                echo "current backend:"
+                cat current_backend_tag 2>/dev/null || true
+
+                echo "current frontend:"
+                cat current_frontend_tag 2>/dev/null || true
+
+                echo "== SHIFT CURRENT -> PREVIOUS =="
+
+                if [ -f current_backend_tag ]; then
+                    cp current_backend_tag previous_backend_tag
+                fi
+
+                if [ -f current_frontend_tag ]; then
+                    cp current_frontend_tag previous_frontend_tag
+                fi
+
+                echo "== WRITE NEW CURRENT =="
+
+                echo "${DEPLOY_BACKEND_TAG}" > current_backend_tag
+                echo "${DEPLOY_FRONTEND_TAG}" > current_frontend_tag
+
+                echo "== AFTER UPDATE =="
+
+                cat current_backend_tag
+                cat current_frontend_tag
+            '
+            """
                 }
             }
         }
@@ -343,18 +367,29 @@ pipeline {
             }
 
             steps {
-                sshagent(['server-ssh']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '
-                    cd ${SERVER_PATH}
+                script {
+                    def pullNeeded = (env.BUILD_BACKEND == 'true' || env.BUILD_FRONTEND == 'true') ? "true" : "false"
 
-                    export BACKEND_TAG=${DEPLOY_BACKEND_TAG}
-                    export FRONTEND_TAG=${DEPLOY_FRONTEND_TAG}
+                    sshagent(['server-ssh']) {
+                        sh """
+                        ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '
+                        cd ${SERVER_PATH}
 
-                    docker compose pull
+                        export BACKEND_TAG=${DEPLOY_BACKEND_TAG}
+                        export FRONTEND_TAG=${DEPLOY_FRONTEND_TAG}
+                        
+                        PULL_NEEDED="${pullNeeded}"
+                   
+                        if [ "\$PULL_NEEDED" = "true" ]; then
+                        echo "Pulling images..."
+                        docker compose pull
+                          else
+                        echo "Skipping pull (images unchanged)"
+                        fi
+
                     docker compose up -d
-                '
             """
+                    }
                 }
             }
         }
