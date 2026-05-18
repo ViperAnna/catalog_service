@@ -373,20 +373,20 @@ pipeline {
                         ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '
                         cd ${SERVER_PATH}
 
-                        export BACKEND_TAG=${DEPLOY_BACKEND_TAG}
-                        export FRONTEND_TAG=${DEPLOY_FRONTEND_TAG}
-                        
-                        PULL_NEEDED="${pullNeeded}"
+                        export BACKEND_TAG="${DEPLOY_BACKEND_TAG}"
+                        export FRONTEND_TAG="${DEPLOY_FRONTEND_TAG}"
+                        export PULL_NEEDED="${pullNeeded}"
                    
                         if [ "\$PULL_NEEDED" = "true" ]; then
-                        echo "Pulling images..."
-                        docker compose pull
-                          else
-                        echo "Skipping pull (images unchanged)"
+                            echo "Pulling images..."
+                            docker compose pull
+                        else
+                            echo "Skipping pull (images unchanged)"
                         fi
 
-                    docker compose up -d
-            """
+                        docker compose up -d
+                        '
+                        """
                     }
                 }
             }
@@ -395,7 +395,6 @@ pipeline {
 
     post {
         always {
-
             echo "Backend tag: ${env.DEPLOY_BACKEND_TAG}"
             echo "Frontend tag: ${env.DEPLOY_FRONTEND_TAG}"
         }
