@@ -279,9 +279,12 @@ pipeline {
                     sh """
                 ssh -o StrictHostKeyChecking=no \
                 root@${SERVER_IP} '
-
+                
+                set -e
                 mkdir -p ${SERVER_PATH}
                 cd ${SERVER_PATH}
+
+                TIMESTAMP=\$(date +%F_%T)
 
                 echo "== BEFORE UPDATE =="
 
@@ -291,27 +294,30 @@ pipeline {
                 echo "current frontend:"
                 cat current_frontend_tag 2>/dev/null || true
 
-                echo "== SHIFT CURRENT -> PREVIOUS =="
+                echo "== INIT HISTORY FILES =="
 
-                if [ -f current_backend_tag ]; then
-                    cp current_backend_tag previous_backend_tag
-                fi
+                touch deploy_history_backend.log
+                touch deploy_history_frontend.log
 
-                if [ -f current_frontend_tag ]; then
-                    cp current_frontend_tag previous_frontend_tag
-                fi
+                echo "== SAVE HISTORY =="
 
-                echo "== WRITE NEW CURRENT =="
+                echo "\$TIMESTAMP ${DEPLOY_BACKEND_TAG}" >> deploy_history_backend.log
+                echo "\$TIMESTAMP ${DEPLOY_FRONTEND_TAG}" >> deploy_history_frontend.log
 
-                echo "${DEPLOY_BACKEND_TAG}" > current_backend_tag
-                echo "${DEPLOY_FRONTEND_TAG}" > current_frontend_tag
+                echo "== UPDATE CURRENT =="
+
+                echo "${DEPLOY_BACKEND_TAG}" > current_backend_tag.tmp
+                mv current_backend_tag.tmp current_backend_tag
+
+                echo "${DEPLOY_FRONTEND_TAG}" > current_frontend_tag.tmp
+                mv current_frontend_tag.tmp current_frontend_tag
 
                 echo "== AFTER UPDATE =="
 
                 cat current_backend_tag
                 cat current_frontend_tag
-            '
-            """
+                '
+                """
                 }
             }
         }
