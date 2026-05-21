@@ -19,7 +19,8 @@ export default defineConfig({
             overlay: false,
             clientPort: 3000,
             // host: 'localhost'
-            host: SERVER_IP || 'localhost'
+            // host: SERVER_IP || 'localhost'
+            host: 'v693663.hosted-by-vdsina.com'
         },
 
         watch: {
@@ -30,7 +31,7 @@ export default defineConfig({
         cors: true,
         historyApiFallback: true,
 
-        allowedHosts: ['localhost', '127.0.0.1', '0.0.0.0', SERVER_IP]
+        allowedHosts: ['localhost', '127.0.0.1', '0.0.0.0', 'v693663.hosted-by-vdsina.com']
     },
 
     build: {
