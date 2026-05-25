@@ -114,6 +114,8 @@ services:
     #        condition: service_started
     #    command: npm run dev:java
     restart: unless-stopped
+    networks:
+      - default
 
   # ------------------ Nginx ------------------
   nginx:
@@ -124,12 +126,14 @@ services:
       - "443:443"
     volumes:
       - ./nginx/conf:/etc/nginx/conf.d
+      -  /etc/letsencrypt:/etc/letsencrypt:ro
       - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
     depends_on:
       - front
       - catalog-service
     restart: unless-stopped
+    networks:
+      - default
 
 volumes:
   mongodb_data:
