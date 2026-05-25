@@ -109,9 +109,9 @@ services:
     container_name: front
     #    ports:
     #      - "3000:3000"
-#    depends_on:
-#      catalog-service:
-#        condition: service_started
+    #    depends_on:
+    #      catalog-service:
+    #        condition: service_started
     #    command: npm run dev:java
     restart: unless-stopped
 
@@ -131,11 +131,8 @@ services:
       - catalog-service
     restart: unless-stopped
 
-
-
 volumes:
   mongodb_data:
-
 
 networks:
   default:
