@@ -107,33 +107,36 @@ services:
     #    build: ./frontend
     image: viperanna/front:${FRONTEND_TAG}
     container_name: front
-    #    ports:
-    #      - "3000:3000"
-    #    depends_on:
-    #      catalog-service:
-    #        condition: service_started
-    #    command: npm run dev:java
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      -  /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot
+
     restart: unless-stopped
     networks:
       - default
 
-  # ------------------ Nginx ------------------
-  nginx:
-    image: nginx:alpine
-    container_name: nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf:/etc/nginx/conf.d
-      -  /etc/letsencrypt:/etc/letsencrypt:ro
-      - ./certbot/www:/var/www/certbot
-    depends_on:
-      - front
-      - catalog-service
-    restart: unless-stopped
-    networks:
-      - default
+#  # ------------------ Nginx ------------------
+#  nginx:
+#    image: nginx:alpine
+#    container_name: nginx
+#    ports:
+#      - "80:80"
+#      - "443:443"
+#    volumes:
+#      - ./nginx/conf:/etc/nginx/conf.d
+#      -  /etc/letsencrypt:/etc/letsencrypt:ro
+#      - ./certbot/www:/var/www/certbot
+#    depends_on:
+#      - front
+#      - catalog-service
+#    restart: unless-stopped
+#    networks:
+#      - default
 
 volumes:
   mongodb_data:
