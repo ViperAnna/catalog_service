@@ -86,8 +86,10 @@ services:
     #    build: ./backend
     image: viperanna/catalog-service:${BACKEND_TAG}
     container_name: catalog-service
-    ports:
-      - "8080:8080"
+#    ports:
+#      - "8080:8080"
+    expose:
+      - "8080"
     env_file:
       - .env.spring
     #      - .env.spring.service
