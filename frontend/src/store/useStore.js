@@ -60,21 +60,19 @@ export const useStore = create((set, get) => ({
 
     createCategory: async (categoryData, options = {}) => {
         return await api.post('/categories', categoryData, {
-            // headers: {
-            //     'Content-Type': 'multipart/form-data',
-            // },
-            ...options
-            // ,
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+            ...options,
         });
     },
 
     updateCategory: async (id, categoryData, options = {}) => {
         return await api.put(`/categories/${id}`, categoryData, {
-            // headers: {
-            //     'Content-Type': 'multipart/form-data',
-            // },
-            ...options
-            // ,
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+            ...options,
         });
     },
 
