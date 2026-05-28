@@ -24,11 +24,14 @@ import java.util.Optional;
 public class FileStorageServiceImpl implements FileStorageService {
     private final MinioClient minioClient;
     private final String minioEndpoint;
+    private final String minioPublicEndpoint;
 
     public FileStorageServiceImpl(MinioClient minioClient,
-                                  @Value("${minio.endpoint}") String minioEndpoint) {
+                                  @Value("${minio.endpoint}") String minioEndpoint,
+                                  @Value("${minio.public-endpoint}") String minioPublicEndpoint) {
         this.minioClient = minioClient;
         this.minioEndpoint = minioEndpoint;
+        this.minioPublicEndpoint = minioPublicEndpoint;
     }
 
     @Override
@@ -58,7 +61,7 @@ public class FileStorageServiceImpl implements FileStorageService {
                 .orElse("unknown.jpg");
         String objectKey = hash + "_" + originalFileName;
 
-        String url = minioEndpoint + "/" + bucket.getName() + "/" + objectKey;
+        String url = minioPublicEndpoint + "/" + bucket.getName() + "/" + objectKey;
 
         if (!objectExists(bucket.getName(), objectKey)) {
             uploadSingleFile(file, bucket, objectKey);
