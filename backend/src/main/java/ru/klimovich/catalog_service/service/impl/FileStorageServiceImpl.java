@@ -34,6 +34,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         this.minioPublicEndpoint = minioPublicEndpoint;
     }
 
+
     @Override
     public Image uploadCategoryImage(MultipartFile file) {
         return uploadImage(file, ImageBucket.CATEGORIES);
