@@ -3,7 +3,7 @@ import {api} from '../services/api';
 
 const MINIO_INTERNAL_URL = 'http://minio:9000';
 // const MINIO_EXTERNAL_URL = 'http://localhost:9000';
-const MINIO_EXTERNAL_URL = `http://${window.location.hostname}:9000`;
+const MINIO_EXTERNAL_URL = `${window.location.protocol}//${window.location.hostname}/minio`;
 
 const convertPictureUrl = (url) => {
     if (!url) return null;
