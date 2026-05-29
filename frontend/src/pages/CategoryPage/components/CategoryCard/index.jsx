@@ -254,7 +254,7 @@ const CategoryCard = ({category, onSuccess}) => {
                     />
 
                     <CategoryStats category={category}/>
-                    <EmptyCategory/>
+                    <EmptyCategory categoryId={category.id}/>
                 </div>
             </div>
 

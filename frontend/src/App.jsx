@@ -2,6 +2,8 @@ import React from 'react';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import CategoryPage from './pages/CategoryPage/index.jsx';
+import ProductsPage from './pages/ProductsPage/index.jsx';
+import ProductPage from './pages/ProductPage/index.jsx';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import ToasterConfig from './components/ui/ToasterConfig';
@@ -15,6 +17,8 @@ const App = () => {
                     <Routes>
                         <Route path="/" element={<HomePage/>}/>
                         <Route path="/categories/:id" element={<CategoryPage/>}/>
+                        <Route path="/products" element={<ProductsPage/>}/>
+                        <Route path="/products/:id" element={<ProductPage/>}/>
                     </Routes>
                 </main>
                 <Footer/>

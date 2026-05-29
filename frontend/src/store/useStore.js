@@ -82,109 +82,77 @@ export const useStore = create((set, get) => ({
         return await api.delete(`/categories/${id}`);
     },
 
-    // // ========== ТОВАРЫ ==========
-    //
-    // // Получить все товары или поиск
-    // fetchProducts: async (search = '') => {
-    //     set({loading: true, error: null, searchQuery: search});
-    //     try {
-    //         const url = search
-    //             ? `/products/search?q=${encodeURIComponent(search)}`
-    //             : '/products';
-    //         const response = await api.get(url);
-    //         set({products: response.data, loading: false});
-    //     } catch (error) {
-    //         set({error: error.message, loading: false});
-    //     }
-    // },
-    //
-    // // Получить товар по ID
-    // fetchProductById: async (id) => {
-    //     set({loading: true, error: null});
-    //     try {
-    //         const response = await api.get(`/products/${id}`);
-    //         set({currentProduct: response.data, loading: false});
-    //         return response.data;
-    //     } catch (error) {
-    //         set({error: error.message, loading: false});
-    //         throw error;
-    //     }
-    // },
-    //
-    // // Получить товары категории
-    // fetchProductsByCategory: async (categoryId) => {
-    //     set({loading: true, error: null});
-    //     try {
-    //         const response = await api.get(`/categories/${categoryId}/products`);
-    //         set({products: response.data, loading: false});
-    //     } catch (error) {
-    //         set({error: error.message, loading: false});
-    //     }
-    // },
-    //
-    // // Создать товар
-    // createProduct: async (productData) => {
-    //     set({loading: true, error: null});
-    //     try {
-    //         const response = await api.post('/products', productData);
-    //         const newProduct = response.data;
-    //         set(state => ({
-    //             products: [...state.products, newProduct],
-    //             loading: false
-    //         }));
-    //         return newProduct;
-    //     } catch (error) {
-    //         set({error: error.message, loading: false});
-    //         throw error;
-    //     }
-    // },
-    //
-    // // Обновить товар
-    // updateProduct: async (id, productData) => {
-    //     set({loading: true, error: null});
-    //     try {
-    //         const response = await api.put(`/products/${id}`, productData);
-    //         const updatedProduct = response.data;
-    //         set(state => ({
-    //             products: state.products.map(prod =>
-    //                 prod.id === id ? updatedProduct : prod
-    //             ),
-    //             currentProduct: state.currentProduct?.id === id
-    //                 ? updatedProduct
-    //                 : state.currentProduct,
-    //             loading: false
-    //         }));
-    //         return updatedProduct;
-    //     } catch (error) {
-    //         set({error: error.message, loading: false});
-    //         throw error;
-    //     }
-    // },
-    //
-    // // Удалить товар
-    // deleteProduct: async (id) => {
-    //     set({loading: true, error: null});
-    //     try {
-    //         await api.delete(`/products/${id}`);
-    //         set(state => ({
-    //             products: state.products.filter(prod => prod.id !== id),
-    //             currentProduct: state.currentProduct?.id === id
-    //                 ? null
-    //                 : state.currentProduct,
-    //             loading: false
-    //         }));
-    //     } catch (error) {
-    //         set({error: error.message, loading: false});
-    //         throw error;
-    //     }
-    // },
-    //
-    // // Очистить текущий товар
-    // clearCurrentProduct: () => set({currentProduct: null}),
-    //
-    // // Очистить текущую категорию
-    // clearCurrentCategory: () => set({currentCategory: null}),
-    //
-    // // Очистить ошибку
-    // clearError: () => set({error: null})
+    // ========== ТОВАРЫ ==========
+
+    pagination: {page: 0, size: 8, totalPages: 0, totalElements: 0},
+
+    fetchProducts: async (params = {}) => {
+        const {page = 0, size = 8, categoryId} = params;
+        set({loading: true, error: null});
+        try {
+            const query = new URLSearchParams({page, size});
+            if (categoryId) query.append('categoryId', categoryId);
+            const response = await api.get(`/products?${query}`);
+            const data = response.data;
+            const productsWithUrls = data.content.map(product => ({
+                ...product,
+                imagesUrl: product.imagesUrl?.map(url => convertPictureUrl(url)) || []
+            }));
+            set({
+                products: productsWithUrls,
+                pagination: {
+                    page: data.number,
+                    size: data.size,
+                    totalPages: data.totalPages,
+                    totalElements: data.totalElements
+                },
+                loading: false
+            });
+        } catch (e) {
+            set({error: e.message, loading: false});
+        }
+    },
+
+    fetchProductsByName: async (name) => {
+        set({loading: true, error: null});
+        try {
+            const response = await api.get(`/products/productByName/${encodeURIComponent(name)}`);
+            const productsWithUrls = response.data.map(product => ({
+                ...product,
+                imagesUrl: product.imagesUrl?.map(url => convertPictureUrl(url)) || []
+            }));
+            set({products: productsWithUrls, loading: false});
+        } catch (e) {
+            set({error: e.message, loading: false});
+        }
+    },
+
+    fetchProductById: async (id) => {
+        set({loading: true, error: null});
+        try {
+            const response = await api.get(`/products/${id}`);
+            const product = response.data;
+            const convertedProduct = {
+                ...product,
+                imagesUrl: product.imagesUrl?.map(url => convertPictureUrl(url)) || []
+            };
+            set({currentProduct: convertedProduct, loading: false});
+        } catch (e) {
+            set({error: e.message, loading: false});
+        }
+    },
+
+    createProduct: async (productData, options = {}) => {
+        return await api.post('/products', productData, options);
+    },
+
+    updateProduct: async (id, productData, options = {}) => {
+        return await api.put(`/products/${id}`, productData, options);
+    },
+
+    deleteProduct: async (id) => {
+        return await api.delete(`/products/${id}`);
+    },
+
+    clearCurrentProduct: () => set({currentProduct: null}),
 }));
