@@ -4,16 +4,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.klimovich.catalog_service.dto.Response;
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
-import ru.klimovich.catalog_service.dto.validation.OnCreate;
-import ru.klimovich.catalog_service.dto.validation.OnUpdate;
 import ru.klimovich.catalog_service.service.impl.CategoryServiceImpl;
 
 import java.time.LocalDateTime;
@@ -34,7 +32,7 @@ public class CategoryController {
     @ApiResponse(responseCode = "201", description = "Категория успешно создана")
     @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Response createCategory(@Validated(OnCreate.class) @ModelAttribute CategoryRequest categoryRequest) {
+    public Response createCategory(@Valid @ModelAttribute CategoryRequest categoryRequest) {
         categoryService.createCategory(categoryRequest);
         return new Response(
                 CATEGORY_CREATED_SUCCESSFULLY,
@@ -68,7 +66,7 @@ public class CategoryController {
             @ApiResponse(responseCode = "404", description = "Категория не найдена")
     })
     @PutMapping("/{id}")
-    public Response updateCategory(@PathVariable String id, @Validated(OnUpdate.class) @ModelAttribute CategoryRequest categoryDetails) {
+    public Response updateCategory(@PathVariable String id, @Valid @ModelAttribute CategoryRequest categoryDetails) {
         categoryService.updateCategoryById(id, categoryDetails);
         return new Response(
                 CATEGORY_UPDATE_SUCCESSFULLY,
