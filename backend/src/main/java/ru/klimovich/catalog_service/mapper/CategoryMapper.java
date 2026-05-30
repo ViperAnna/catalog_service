@@ -2,6 +2,7 @@ package ru.klimovich.catalog_service.mapper;
 
 import org.mapstruct.*;
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
+import ru.klimovich.catalog_service.dto.request.CategoryUpdateRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 import ru.klimovich.catalog_service.model.Category;
 import ru.klimovich.catalog_service.model.Image;
@@ -25,5 +26,5 @@ public interface CategoryMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "image", ignore = true)
-    void updateCategoryFromDTO(CategoryRequest categoryDetails, @MappingTarget Category category);
+    void updateCategoryFromDTO(CategoryUpdateRequest categoryDetails, @MappingTarget Category category);
 }

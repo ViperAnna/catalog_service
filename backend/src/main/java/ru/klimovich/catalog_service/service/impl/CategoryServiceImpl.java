@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
+import ru.klimovich.catalog_service.dto.request.CategoryUpdateRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
 import ru.klimovich.catalog_service.exception.ResourceConflictException;
 import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
@@ -72,21 +73,21 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryResponse updateCategoryById(String id, CategoryRequest categoryDetails) {
+    public CategoryResponse updateCategoryById(String id, CategoryUpdateRequest categoryDetails) {
         Category category = categoryRepo.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(String
                                 .format(MessageKeys.CATEGORY_NOT_FOUND_ID_KEY, id)));
 
-        String newHash = fileStorageService.calculateHash(categoryDetails.getImage());
+        if (categoryDetails.getImage() != null && !categoryDetails.getImage().isEmpty()) {
+            String newHash = fileStorageService.calculateHash(categoryDetails.getImage());
 
-        if (!category.getImage().getHash().equals(newHash)) {
-            Image newImage = fileStorageService.uploadCategoryImage(categoryDetails.getImage());
-            category.setImage(newImage);
-        } else {
-
-            log.info("Image not changed (hash matches)");
-
+            if (!category.getImage().getHash().equals(newHash)) {
+                Image newImage = fileStorageService.uploadCategoryImage(categoryDetails.getImage());
+                category.setImage(newImage);
+            } else {
+                log.info("Image not changed (hash matches)");
+            }
         }
 
         categoryMapper.updateCategoryFromDTO(categoryDetails, category);
