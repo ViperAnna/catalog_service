@@ -21,6 +21,7 @@ import java.util.List;
 
 import static ru.klimovich.catalog_service.util.MessageKeys.*;
 
+
 @RestController
 @RequestMapping("/categories")
 @RequiredArgsConstructor
