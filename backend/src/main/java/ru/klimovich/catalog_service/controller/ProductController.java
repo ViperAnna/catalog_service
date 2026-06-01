@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.klimovich.catalog_service.dto.Response;
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
-import ru.klimovich.catalog_service.service.impl.ProductServiceImpl;
+import ru.klimovich.catalog_service.service.ProductService;
 import ru.klimovich.catalog_service.util.MessageKeys;
 
 import java.time.LocalDateTime;
@@ -29,17 +29,14 @@ import java.util.List;
 @Tag(name = "Product Controller", description = "API для упреавления продуктами")
 public class ProductController {
 
-    private final ProductServiceImpl productService;
+    private final ProductService productService;
 
-    @Operation(
-            summary = "Создание нового продукта",
-            description = "Создает новый продукт с предоставленными данными"
-    )
+    @Operation(summary = "Создание нового продукта",
+            description = "Создает новый продукт с предоставленными данными")
     @ApiResponse(responseCode = "201", description = "Продукт успешно создан")
-
     @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Response creatProduct(@Valid @ModelAttribute ProductRequest productRequest) {
+    public Response createProduct(@Valid @ModelAttribute ProductRequest productRequest) {
         productService.createProduct(productRequest);
         return new Response(
                 MessageKeys.PRODUCT_CREATED_SUCCESSFULLY,
