@@ -32,12 +32,13 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public void createCategory(CategoryRequest categoryDetails) {
+        String normalizedName = categoryDetails.getName().trim().replaceAll("\\s+", " ");
+        categoryDetails.setName(normalizedName);
 
-        if (categoryRepo.findByName(categoryDetails.getName()).isPresent()) {
+        if (categoryRepo.findByNameIgnoreCase(normalizedName).isPresent()) {
             throw new ResourceConflictException(String
                     .format(MessageKeys.CATEGORY_ALREADY_EXIST, categoryDetails.getName()));
         }
-
         Category category = categoryMapper.toEntity(categoryDetails);
         Image image = fileStorageService.uploadCategoryImage(categoryDetails.getImage());
         category.setImage(image);
