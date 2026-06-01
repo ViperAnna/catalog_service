@@ -32,16 +32,18 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public void createCategory(CategoryRequest categoryDetails) {
-        String normalizedName = categoryDetails.getName().trim().replaceAll("\\s+", " ");
-        categoryDetails.setName(normalizedName);
+        String normalizedName = categoryDetails.getName()
+                .trim()
+                .replaceAll("\\s+", " ")
+                .toLowerCase();
 
-        if (categoryRepo.findByNameIgnoreCase(normalizedName).isPresent()) {
+        if (categoryRepo.findByName(normalizedName).isPresent()) {
             throw new ResourceConflictException(String
                     .format(MessageKeys.CATEGORY_ALREADY_EXIST, categoryDetails.getName()));
         }
         Category category = categoryMapper.toEntity(categoryDetails);
+        category.setName(normalizedName);
         Image image = fileStorageService.uploadCategoryImage(categoryDetails.getImage());
-        category.setImage(image);
         categoryMapper.toDTO(categoryRepo.save(category));
     }
 
