@@ -91,9 +91,9 @@ public class ProductController {
             @ApiResponse(responseCode = "201", description = "Продукт успешно изменен"),
             @ApiResponse(responseCode = "404", description = "Продукт не найден")
     })
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Response updateProduct(@PathVariable String id, @Valid @RequestBody ProductRequest productDetails) {
+    public Response updateProduct(@PathVariable String id, @Valid @ModelAttribute ProductRequest productDetails) {
         productService.updateProductById(id, productDetails);
         return new Response(
                 MessageKeys.PRODUCT_UPDATE_SUCCESSFULLY,

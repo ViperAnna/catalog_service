@@ -88,9 +88,7 @@ const ProductsPage = () => {
                 </p>
             </div>
 
-            {/* Панель фильтров */}
             <div className="flex flex-col sm:flex-row gap-3 mb-8">
-                {/* Поиск */}
                 <div className="relative flex-1">
                     <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"/>
                     <input
@@ -110,7 +108,6 @@ const ProductsPage = () => {
                     )}
                 </div>
 
-                {/* Фильтр по категории */}
                 <select
                     value={categoryId}
                     onChange={handleCategoryChange}
@@ -122,7 +119,6 @@ const ProductsPage = () => {
                     ))}
                 </select>
 
-                {/* Кнопка добавления */}
                 <button
                     onClick={() => setIsModalOpen(true)}
                     className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium whitespace-nowrap"
@@ -132,7 +128,6 @@ const ProductsPage = () => {
                 </button>
             </div>
 
-            {/* Контент */}
             {loading ? (
                 <LoadingState/>
             ) : products.length === 0 ? (

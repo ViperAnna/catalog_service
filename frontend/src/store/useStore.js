@@ -2,7 +2,6 @@ import {create} from 'zustand';
 import {api} from '../services/api';
 
 const MINIO_INTERNAL_URL = 'http://minio:9000';
-// const MINIO_EXTERNAL_URL = 'http://localhost:9000';
 const MINIO_EXTERNAL_URL = `${window.location.protocol}//${window.location.hostname}/minio`;
 
 const convertPictureUrl = (url) => {
@@ -60,29 +59,19 @@ export const useStore = create((set, get) => ({
 
     createCategory: async (categoryData, options = {}) => {
         return await api.post('/categories', categoryData, {
-            // headers: {
-            //     'Content-Type': 'multipart/form-data',
-            // },
             ...options
-            // ,
         });
     },
 
     updateCategory: async (id, categoryData, options = {}) => {
         return await api.put(`/categories/${id}`, categoryData, {
-            // headers: {
-            //     'Content-Type': 'multipart/form-data',
-            // },
             ...options
-            // ,
         });
     },
 
     deleteCategory: async (id) => {
         return await api.delete(`/categories/${id}`);
     },
-
-    // ========== ТОВАРЫ ==========
 
     pagination: {page: 0, size: 8, totalPages: 0, totalElements: 0},
 
@@ -113,8 +102,6 @@ export const useStore = create((set, get) => ({
         }
     },
 
-    // Количество товаров в категории. Бэкенд не отдаёт счётчик в категории,
-    // поэтому берём totalElements из постраничного ответа /products?categoryId=
     fetchCategoryProductCount: async (categoryId) => {
         if (!categoryId) return 0;
         try {

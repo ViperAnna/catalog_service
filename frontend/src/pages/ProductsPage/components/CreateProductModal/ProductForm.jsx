@@ -166,7 +166,6 @@ const ProductForm = ({onClose}) => {
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
             <div className="space-y-6">
 
-                {/* Основные поля */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -249,7 +248,6 @@ const ProductForm = ({onClose}) => {
                     </div>
                 </div>
 
-                {/* Изображения */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Изображения <span className="text-red-500">*</span>
@@ -307,7 +305,6 @@ const ProductForm = ({onClose}) => {
                     </div>
                 </div>
 
-                {/* Категории */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Категории <span className="text-red-500">*</span>
@@ -333,7 +330,6 @@ const ProductForm = ({onClose}) => {
                     )}
                 </div>
 
-                {/* Теги */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Теги <span className="text-red-500">*</span>
@@ -362,7 +358,6 @@ const ProductForm = ({onClose}) => {
                     </div>
                 </div>
 
-                {/* Характеристики */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Характеристики
