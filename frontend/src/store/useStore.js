@@ -113,6 +113,18 @@ export const useStore = create((set, get) => ({
         }
     },
 
+    // Количество товаров в категории. Бэкенд не отдаёт счётчик в категории,
+    // поэтому берём totalElements из постраничного ответа /products?categoryId=
+    fetchCategoryProductCount: async (categoryId) => {
+        if (!categoryId) return 0;
+        try {
+            const response = await api.get(`/products?categoryId=${categoryId}&size=1`);
+            return response.data?.totalElements ?? 0;
+        } catch {
+            return 0;
+        }
+    },
+
     fetchProductsByName: async (name) => {
         set({loading: true, error: null});
         try {

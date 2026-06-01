@@ -9,8 +9,7 @@ const INITIAL_FORM = {
     description: '',
     brand: '',
     price: '',
-    articleNumber: '',
-    status: PRODUCT_STATUS.IN_STOCK,
+    status: PRODUCT_STATUS.ACTIVE,
 };
 
 const ProductForm = ({onClose}) => {
@@ -124,7 +123,6 @@ const ProductForm = ({onClose}) => {
             fd.append('description', form.description.trim());
             fd.append('brand', form.brand.trim());
             fd.append('price', form.price);
-            if (form.articleNumber.trim()) fd.append('articleNumber', form.articleNumber.trim());
             fd.append('status', form.status);
 
             imageFiles.forEach(file => fd.append('images', file));
@@ -232,20 +230,6 @@ const ProductForm = ({onClose}) => {
                             required
                         />
                         <p className="text-xs text-gray-400 mt-1 text-right">{form.description.length}/500</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Артикул
-                        </label>
-                        <input
-                            type="text"
-                            name="articleNumber"
-                            value={form.articleNumber}
-                            onChange={handleChange}
-                            placeholder="ART-XXXX (необязательно)"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
-                        />
                     </div>
 
                     <div>
