@@ -3,6 +3,7 @@ import {useNavigate} from 'react-router-dom';
 import {toast} from 'react-hot-toast';
 import {useStore} from '../../../../store/useStore.js';
 import ProductImageGallery from './ProductImageGallery.jsx';
+import ProductImageEditor from './ProductImageEditor.jsx';
 import ProductActionButtons from './ProductActionButtons.jsx';
 import ProductStatusEditor from './ProductStatusEditor.jsx';
 import ProductCharacteristics from './ProductCharacteristics.jsx';
@@ -10,6 +11,7 @@ import ProductTags from './ProductTags.jsx';
 import ProductCategories from './ProductCategories.jsx';
 import ProductStats from './ProductStats.jsx';
 import DeleteConfirmationModal from './DeleteConfirmationModal.jsx';
+import {urlToImageFile} from '../../../../utils/imageFile.js';
 
 const ProductCard = ({product, onSuccess}) => {
     const navigate = useNavigate();
@@ -33,6 +35,11 @@ const ProductCard = ({product, onSuccess}) => {
         product.categories?.map(c => c.id) || []
     );
 
+    const [keptImages, setKeptImages] = useState(product.imagesUrl || []);
+    const [newImageFiles, setNewImageFiles] = useState([]);
+    const [newImagePreviews, setNewImagePreviews] = useState([]);
+    const [uploadProgress, setUploadProgress] = useState(0);
+
     const [original, setOriginal] = useState(null);
 
     useEffect(() => {
@@ -47,7 +54,9 @@ const ProductCard = ({product, onSuccess}) => {
         editedStatus !== original.status ||
         JSON.stringify(editedTags) !== JSON.stringify(original.tags) ||
         JSON.stringify(editedCharacteristic) !== JSON.stringify(original.characteristic) ||
-        JSON.stringify(editedCategoryIds.sort()) !== JSON.stringify(original.categoryIds.sort())
+        JSON.stringify(editedCategoryIds.sort()) !== JSON.stringify(original.categoryIds.sort()) ||
+        JSON.stringify(keptImages) !== JSON.stringify(original.images) ||
+        newImageFiles.length > 0
     );
 
     const isValid =
@@ -57,9 +66,14 @@ const ProductCard = ({product, onSuccess}) => {
         editedPrice !== '' &&
         Number(editedPrice) > 0 &&
         editedTags.length > 0 &&
-        editedCategoryIds.length > 0;
+        editedCategoryIds.length > 0 &&
+        (keptImages.length + newImageFiles.length) > 0;
 
     const handleEditClick = () => {
+        const currentImages = product.imagesUrl || [];
+        setKeptImages(currentImages);
+        setNewImageFiles([]);
+        setNewImagePreviews([]);
         setOriginal({
             name: editedName,
             brand: editedBrand,
@@ -69,6 +83,7 @@ const ProductCard = ({product, onSuccess}) => {
             tags: [...editedTags],
             characteristic: JSON.parse(JSON.stringify(editedCharacteristic)),
             categoryIds: [...editedCategoryIds],
+            images: [...currentImages],
         });
         setIsEditing(true);
     };
@@ -83,26 +98,64 @@ const ProductCard = ({product, onSuccess}) => {
             setEditedTags(original.tags);
             setEditedCharacteristic(original.characteristic);
             setEditedCategoryIds(original.categoryIds);
+            setKeptImages(original.images);
         }
+        setNewImageFiles([]);
+        setNewImagePreviews([]);
         setIsEditing(false);
+    };
+
+    const handleAddImages = (files) => {
+        setNewImageFiles(prev => [...prev, ...files]);
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onloadend = () => setNewImagePreviews(prev => [...prev, reader.result]);
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const handleRemoveKept = (idx) => {
+        setKeptImages(prev => prev.filter((_, i) => i !== idx));
+    };
+
+    const handleRemoveNew = (idx) => {
+        setNewImageFiles(prev => prev.filter((_, i) => i !== idx));
+        setNewImagePreviews(prev => prev.filter((_, i) => i !== idx));
     };
 
     const handleSaveClick = async () => {
         if (!hasChanges) return;
         setIsSubmitting(true);
+        setUploadProgress(0);
         try {
-            const body = {
-                name: editedName.trim(),
-                description: editedDescription.trim(),
-                brand: editedBrand.trim(),
-                price: Number(editedPrice),
-                articleNumber: product.articleNumber || undefined,
-                categories: editedCategoryIds,
-                characteristic: editedCharacteristic,
-                tag: editedTags,
-                status: editedStatus,
-            };
-            const response = await updateProduct(product.id, body);
+            const fd = new FormData();
+            fd.append('name', editedName.trim());
+            fd.append('description', editedDescription.trim());
+            fd.append('brand', editedBrand.trim());
+            fd.append('price', editedPrice);
+            fd.append('status', editedStatus);
+            editedCategoryIds.forEach(id => fd.append('categories', id));
+            editedTags.forEach(tag => fd.append('tag', tag));
+
+            const attrs = editedCharacteristic?.attributes || {};
+            const validAttrs = Object.entries(attrs).filter(([k, v]) => k.trim() && String(v).trim());
+            if (validAttrs.length > 0) {
+                validAttrs.forEach(([k, v]) => fd.append(`characteristic.attributes[${k.trim()}]`, String(v).trim()));
+            } else {
+                fd.append('characteristic.attributes[—]', '—');
+            }
+
+            for (let i = 0; i < keptImages.length; i++) {
+                const file = await urlToImageFile(keptImages[i], `image_${i}.jpg`);
+                fd.append('images', file);
+            }
+            newImageFiles.forEach(file => fd.append('images', file));
+
+            const response = await updateProduct(product.id, fd, {
+                onUploadProgress: (ev) => {
+                    if (ev.total) setUploadProgress(Math.round((ev.loaded * 100) / ev.total));
+                },
+            });
             if (response?.status === 201 || response?.status === 200) {
                 toast.success('Товар успешно обновлён!');
                 setIsEditing(false);
@@ -114,6 +167,7 @@ const ProductCard = ({product, onSuccess}) => {
             toast.error(error?.message || 'Не удалось обновить товар');
         } finally {
             setIsSubmitting(false);
+            setUploadProgress(0);
         }
     };
 
@@ -144,7 +198,19 @@ const ProductCard = ({product, onSuccess}) => {
     return (
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
             <div className="md:flex">
-                <ProductImageGallery images={product.imagesUrl} productName={product.name}/>
+                {isEditing ? (
+                    <ProductImageEditor
+                        keptImages={keptImages}
+                        newPreviews={newImagePreviews}
+                        onRemoveKept={handleRemoveKept}
+                        onRemoveNew={handleRemoveNew}
+                        onAddFiles={handleAddImages}
+                        isSubmitting={isSubmitting}
+                        uploadProgress={uploadProgress}
+                    />
+                ) : (
+                    <ProductImageGallery images={product.imagesUrl} productName={product.name}/>
+                )}
 
                 <div className="md:w-3/5 p-8">
                     <ProductActionButtons
@@ -159,7 +225,6 @@ const ProductCard = ({product, onSuccess}) => {
                         onDeleteClick={() => setShowDeleteModal(true)}
                     />
 
-                    {/* Название */}
                     <div className="mb-2">
                         {isEditing ? (
                             <input
@@ -174,7 +239,6 @@ const ProductCard = ({product, onSuccess}) => {
                         )}
                     </div>
 
-                    {/* Бренд */}
                     <div className="mb-4">
                         {isEditing ? (
                             <input
@@ -190,7 +254,6 @@ const ProductCard = ({product, onSuccess}) => {
                         )}
                     </div>
 
-                    {/* Цена */}
                     <div className="mb-4">
                         {isEditing ? (
                             <div className="flex items-center gap-2">
@@ -219,7 +282,6 @@ const ProductCard = ({product, onSuccess}) => {
                         onStatusChange={setEditedStatus}
                     />
 
-                    {/* Описание */}
                     <div className="mb-6">
                         <h4 className="text-sm font-semibold text-gray-700 mb-2">Описание</h4>
                         {isEditing ? (

@@ -28,8 +28,10 @@ const CategoryPage = () => {
         }
     };
 
-    if (loading) return <LoadingState/>;
-    if (error || !currentCategory) return <CategoryNotFound/>;
+    const isCurrentLoaded = currentCategory && currentCategory.id === id;
+
+    if (loading && !isCurrentLoaded) return <LoadingState/>;
+    if (error || !isCurrentLoaded) return <CategoryNotFound/>;
 
     return (
         <div className="container mx-auto px-4 py-8">

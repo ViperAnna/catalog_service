@@ -14,3 +14,15 @@ realApi.interceptors.response.use(
         return Promise.reject(new Error(message));
     }
 );
+
+const inflightGet = new Map();
+const originalGet = realApi.get.bind(realApi);
+realApi.get = (url, config) => {
+    const key = url;
+    if (inflightGet.has(key)) {
+        return inflightGet.get(key);
+    }
+    const request = originalGet(url, config).finally(() => inflightGet.delete(key));
+    inflightGet.set(key, request);
+    return request;
+};

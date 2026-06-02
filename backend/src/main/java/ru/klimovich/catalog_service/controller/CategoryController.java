@@ -11,8 +11,9 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import ru.klimovich.catalog_service.dto.Response;
 import ru.klimovich.catalog_service.dto.request.CategoryRequest;
+import ru.klimovich.catalog_service.dto.request.CategoryUpdateRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryResponse;
-import ru.klimovich.catalog_service.service.impl.CategoryServiceImpl;
+import ru.klimovich.catalog_service.service.CategoryService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,7 +26,7 @@ import static ru.klimovich.catalog_service.util.MessageKeys.*;
 @Tag(name = "Category Controller", description = "API для управления категориями")
 public class CategoryController {
 
-    private final CategoryServiceImpl categoryService;
+    private final CategoryService categoryService;
 
     @Operation(summary = "Создание новой категории",
             description = "Создает новую категорию с предоставленными данными")
@@ -66,7 +67,7 @@ public class CategoryController {
             @ApiResponse(responseCode = "404", description = "Категория не найдена")
     })
     @PutMapping("/{id}")
-    public Response updateCategory(@PathVariable String id, @Valid @ModelAttribute CategoryRequest categoryDetails) {
+    public Response updateCategory(@PathVariable String id, @Valid @ModelAttribute CategoryUpdateRequest categoryDetails) {
         categoryService.updateCategoryById(id, categoryDetails);
         return new Response(
                 CATEGORY_UPDATE_SUCCESSFULLY,

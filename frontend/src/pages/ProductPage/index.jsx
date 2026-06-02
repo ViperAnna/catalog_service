@@ -20,8 +20,10 @@ const ProductPage = () => {
         if (id) fetchProductById(id);
     };
 
-    if (loading) return <LoadingState/>;
-    if (error || !currentProduct) return <ProductNotFound/>;
+    const isCurrentLoaded = currentProduct && currentProduct.id === id;
+
+    if (loading && !isCurrentLoaded) return <LoadingState/>;
+    if (error || !isCurrentLoaded) return <ProductNotFound/>;
 
     return (
         <div className="container mx-auto px-4 py-8">

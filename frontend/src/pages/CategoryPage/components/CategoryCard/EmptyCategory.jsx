@@ -2,14 +2,25 @@ import React from 'react';
 import {Link} from 'react-router-dom';
 import {FiArrowRight, FiPackage} from 'react-icons/fi';
 
-const EmptyCategory = ({categoryId}) => {
+const EmptyCategory = ({categoryId, productCount}) => {
+    const hasProducts = typeof productCount === 'number' && productCount > 0;
+
     return (
         <div className="flex items-center justify-between text-sm text-emerald-600 bg-emerald-50 px-4 py-3 rounded-lg">
             <div className="flex items-center">
                 <FiPackage className="mr-3 flex-shrink-0"/>
                 <div>
-                    <p className="font-medium">Товары скоро появятся</p>
-                    <p className="text-emerald-500">В этой категории пока нет товаров</p>
+                    {hasProducts ? (
+                        <>
+                            <p className="font-medium">В категории {productCount} товаров</p>
+                            <p className="text-emerald-500">Посмотрите весь список товаров категории</p>
+                        </>
+                    ) : (
+                        <>
+                            <p className="font-medium">Товары скоро появятся</p>
+                            <p className="text-emerald-500">В этой категории пока нет товаров</p>
+                        </>
+                    )}
                 </div>
             </div>
             {categoryId && (

@@ -9,8 +9,7 @@ const INITIAL_FORM = {
     description: '',
     brand: '',
     price: '',
-    articleNumber: '',
-    status: PRODUCT_STATUS.IN_STOCK,
+    status: PRODUCT_STATUS.ACTIVE,
 };
 
 const ProductForm = ({onClose}) => {
@@ -124,7 +123,6 @@ const ProductForm = ({onClose}) => {
             fd.append('description', form.description.trim());
             fd.append('brand', form.brand.trim());
             fd.append('price', form.price);
-            if (form.articleNumber.trim()) fd.append('articleNumber', form.articleNumber.trim());
             fd.append('status', form.status);
 
             imageFiles.forEach(file => fd.append('images', file));
@@ -168,7 +166,6 @@ const ProductForm = ({onClose}) => {
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
             <div className="space-y-6">
 
-                {/* Основные поля */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -236,20 +233,6 @@ const ProductForm = ({onClose}) => {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Артикул
-                        </label>
-                        <input
-                            type="text"
-                            name="articleNumber"
-                            value={form.articleNumber}
-                            onChange={handleChange}
-                            placeholder="ART-XXXX (необязательно)"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
                             Статус
                         </label>
                         <select
@@ -265,7 +248,6 @@ const ProductForm = ({onClose}) => {
                     </div>
                 </div>
 
-                {/* Изображения */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Изображения <span className="text-red-500">*</span>
@@ -323,7 +305,6 @@ const ProductForm = ({onClose}) => {
                     </div>
                 </div>
 
-                {/* Категории */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Категории <span className="text-red-500">*</span>
@@ -349,7 +330,6 @@ const ProductForm = ({onClose}) => {
                     )}
                 </div>
 
-                {/* Теги */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Теги <span className="text-red-500">*</span>
@@ -378,7 +358,6 @@ const ProductForm = ({onClose}) => {
                     </div>
                 </div>
 
-                {/* Характеристики */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Характеристики

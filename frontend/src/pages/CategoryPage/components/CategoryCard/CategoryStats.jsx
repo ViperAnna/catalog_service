@@ -1,21 +1,21 @@
 import React from 'react';
-import moment from "moment";
+import {formatMoscowDateTime} from '../../../../utils/formatDate.js';
 
-const CategoryStats = ({category}) => {
+const CategoryStats = ({category, productCount}) => {
     const stats = [
         {
             label: 'Товаров',
-            value: '0',
+            value: productCount === null || productCount === undefined ? '…' : String(productCount),
             isNumber: true
         },
         {
             label: 'Создана',
-            value: moment(category.createdAt, 'YYYY-MM-DD HH:mm:ss').format('DD.MM.YYYY HH:mm:ss'),
+            value: formatMoscowDateTime(category.createdAt),
             isDate: true
         },
         {
             label: 'Обновлена',
-            value: moment(category.updatedAt, 'YYYY-MM-DD HH:mm:ss').format('DD.MM.YYYY HH:mm:ss'),
+            value: formatMoscowDateTime(category.updatedAt),
             isDate: true
         }
     ];

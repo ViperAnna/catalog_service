@@ -1,4 +1,5 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import {toast} from 'react-hot-toast';
 import CategoryImageEditor from './CategoryImageEditor.jsx';
 import CategoryHeader from './CategoryHeader.jsx';
@@ -11,8 +12,11 @@ import {useStore} from "../../../../store/useStore.js";
 import DeleteConfirmationModal from './DeleteConfirmationModal.jsx';
 
 const CategoryCard = ({category, onSuccess}) => {
-    const {updateCategory, deleteCategory} = useStore();
+    const navigate = useNavigate();
+    const {updateCategory, deleteCategory, fetchCategoryProductCount} = useStore();
     const {image: initialImage} = category;
+    const [productCount, setProductCount] = useState(null);
+    const deletingRef = useRef(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editedName, setEditedName] = useState(category.name);
     const [editedDescription, setEditedDescription] = useState(category.description || '');
@@ -31,6 +35,16 @@ const CategoryCard = ({category, onSuccess}) => {
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+
+    useEffect(() => {
+        let active = true;
+        fetchCategoryProductCount(category.id).then(count => {
+            if (active) setProductCount(count);
+        });
+        return () => {
+            active = false;
+        };
+    }, [category.id]);
 
     useEffect(() => {
         const convertImageToDataURL = async () => {
@@ -133,24 +147,26 @@ const CategoryCard = ({category, onSuccess}) => {
     };
 
     const handleConfirmDelete = async () => {
-        if (isDeleting) return;
-
+        if (deletingRef.current) return;
+        deletingRef.current = true;
         setIsDeleting(true);
 
         try {
             const response = await deleteCategory(category.id);
 
-            if (response?.status === 204) {
+            if (response?.status === 200 || response?.status === 204) {
                 toast.success('Категория успешно удалена!');
-                onSuccess();
                 setShowDeleteModal(false);
+                navigate('/');
             } else {
-                toast.error(response?.message || 'Не удалось удалить категорию');
+                toast.error(response?.data?.message || 'Не удалось удалить категорию');
+                deletingRef.current = false;
                 setIsDeleting(false);
             }
 
         } catch (error) {
-            toast.error('Не удалось удалить категорию');
+            toast.error(error?.message || 'Не удалось удалить категорию');
+            deletingRef.current = false;
             setIsDeleting(false);
         }
     };
@@ -253,8 +269,8 @@ const CategoryCard = ({category, onSuccess}) => {
                         onKeyDown={handleKeyDown}
                     />
 
-                    <CategoryStats category={category}/>
-                    <EmptyCategory categoryId={category.id}/>
+                    <CategoryStats category={category} productCount={productCount}/>
+                    <EmptyCategory categoryId={category.id} productCount={productCount}/>
                 </div>
             </div>
 
