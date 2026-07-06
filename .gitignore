@@ -1,63 +1,45 @@
-# Java
+HELP.md
 target/
-*.class
-*.jar
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
 
-# Maven
-.mvn/
-mvnw
-mvnw.cmd
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
 
-# IDE
-.idea/
-.vscode/
+### IntelliJ IDEA ###
+.idea
+*.iws
 *.iml
 *.ipr
-*.iws
 
-#Git
-.git/
-.gitattributes
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
 
-# Logs
-*.log
-log/
-logs/
-
-# Archives
-
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Env
-.env*
-.env.*
-!.env.example
-
-# Crash logs
-hs_err_pid*
-replay_pid*
-
-# Local data
-minio/
-data/
-storage/
-uploads/
-
-#Temp files
-tmp/
-temp/
-*.tmp
-
-
-
-/frontend/node_modules/
-/frontend/dist/
+### VS Code ###
+.vscode/
+/.
+/.env.catalog
+/.env.minio
+/.env.mongodb
+/.env.notification
+/.env.postgres
+/.env.spring
+/.env.spring.generate-data
+/.env.spring.service
+/.env.user
+/.env.spring.txt
+/logs/

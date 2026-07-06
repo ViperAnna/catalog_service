@@ -2,8 +2,7 @@ services:
 
   # ----------Catalog Service----------
   catalog-service:
-    build: ./catalog-service
-#    image: viperanna/catalog-service:${BACKEND_TAG}
+    image: viperanna/catalog-service:${CATALOG_SERVICE_TAG}
     container_name: catalog-service
     expose:
       - "8080"
@@ -22,7 +21,7 @@ services:
 
   #  ----------User service----------
   user-service:
-    build: ./user-service
+    image: viperanna/user-service:${USER_SERVICE_TAG}
     container_name: user-service
     expose:
       - "8080"
@@ -39,7 +38,7 @@ services:
 
   #  ----------Notification service----------
   notification-service:
-    build: ./notification-service
+    image: viperanna/notification-service:${NOTIFICATION_SERVICE_TAG}
     container_name: notification-service
     expose:
       - "8080"
@@ -56,22 +55,22 @@ services:
 
   # ----------Frontend----------
   front:
-    build: ./frontend
+    image: viperanna/front:${FRONTEND_TAG}
     container_name: front
-
     ports:
       - "80:80"
-
+      - "443:443"
     volumes:
-      - ./frontend/nginx.local.conf:/etc/nginx/conf.d/default.conf:ro
-
+      - ./nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot
     restart: unless-stopped
     networks:
       - default
 
   #  ----------Api gateway----------
   api-gateway:
-    build: ./api-gateway
+    image: viperanna/api-gateway:${API_GATEWAY_TAG}
     container_name: api-gateway
     ports:
       - "8080:8080"
@@ -82,7 +81,7 @@ services:
 
   #  ----------Discovery service----------
   discovery-service:
-    build: ./discovery-service
+    image: viperanna/discovery-service:${DISCOVERY_SERVICE_TAG}
     container_name: discovery-service
     ports:
       - "8761:8761"

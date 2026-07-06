@@ -1,5 +1,5 @@
 # Java build
-backend/target/
+catalog-service/target/
 *.class
 *.jar
 

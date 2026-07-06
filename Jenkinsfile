@@ -9,8 +9,12 @@ pipeline {
     environment {
         DOCKERHUB_USER = 'viperanna'
 
-        BACKEND_IMAGE = "${DOCKERHUB_USER}/catalog-service"
         FRONTEND_IMAGE = "${DOCKERHUB_USER}/front"
+        BACKEND_IMAGE = "${DOCKERHUB_USER}/catalog-service"
+        USER_IMAGE = "${DOCKERHUB_USER}/user-service"
+        NOTIFICATION_IMAGE = "${DOCKERHUB_USER}/notification-service"
+        DISCOVERY_IMAGE = "${DOCKERHUB_USER}/discovery-service"
+        GATEWAY_IMAGE = "${DOCKERHUB_USER}/api-gateway"
 
         SERVER_IP = '144.124.250.82'
         SERVER_PATH = '/home/user/catalog_service'
@@ -40,24 +44,39 @@ pipeline {
 
                     echo "Changed files:\n${changes}"
 
-                    env.BUILD_BACKEND = (
-                            changes.contains("backend/") ||
-                                    changes.contains("pom.xml")
-                    ).toString()
+                    def changed = { path ->
+                        changedFiles.any { it.startsWith(path) }
+                    }
 
-                    env.BUILD_FRONTEND = (
-                            changes.contains("frontend/") ||
-                                    changes.contains("package.json") ||
-                                    changes.contains("pom.xml")
-                    ).toString()
+                    def changedFiles = changes?.trim()
+                            ? changes.split("\n").collect { it.trim() }
+                            : []
 
-                    env.UPLOAD_CONFIG = (
-                            changes.contains("docker-compose.yml") || firstDeploy
-                    ).toString()
 
-                    echo "BUILD_BACKEND = ${env.BUILD_BACKEND}"
+                    def services = [
+                            "catalog-service"     : "BUILD_CATALOG_SERVICE",
+                            "user-service"        : "BUILD_USER_SERVICE",
+                            "notification-service": "BUILD_NOTIFICATION_SERVICE",
+                            "api-gateway"         : "BUILD_GATEWAY_SERVICE",
+                            "discovery-service"   : "BUILD_DISCOVERY_SERVICE",
+                            "frontend"            : "BUILD_FRONTEND"
+                    ]
+                    for (entry in services) {
+
+                        def path = entry.key
+                        def envName = entry.value
+
+                        env[envName] = changed(path).toString()
+                        echo "${envName} = ${env[envName]}"
+                    }
+
+
+                    echo "BUILD_CATALOG_SERVICE = ${env.BUILD_CATALOG_SERVICE}"
+                    echo "BUILD_USER_SERVICE = ${env.BUILD_USER_SERVICE}"
+                    echo "BUILD_NOTIFICATION_SERVICE = ${env.BUILD_NOTIFICATION_SERVICE}"
+                    echo "BUILD_GATEWAY_SERVICE = ${env.BUILD_GATEWAY_SERVICE}"
+                    echo "BUILD_DISCOVERY_SERVICE = ${env.BUILD_DISCOVERY_SERVICE}"
                     echo "BUILD_FRONTEND = ${env.BUILD_FRONTEND}"
-                    echo "UPLOAD_CONFIG = ${env.UPLOAD_CONFIG}"
                 }
             }
         }
@@ -103,105 +122,97 @@ pipeline {
             when {
                 branch 'develop'
             }
+            def deployTags = [:]
 
             steps {
                 sshagent(['server-ssh']) {
                     script {
+                        def services = [
+                                "catalog-service"     : "current_catalog_tag",
+                                "user-service"        : "current_user_tag",
+                                "notification-service": "current_notification_tag",
+                                "api-gateway"         : "current_gateway_tag",
+                                "discovery-service"   : "current_discovery_tag",
+                                "frontend"            : "current_frontend_tag"
+                        ]
 
-                        //
-                        // BACKEND TAG
-                        //
 
-                        def backendTagFromServer = sh(
-                                script: """
-                        ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \
-                        "cat ${SERVER_PATH}/current_backend_tag 2>/dev/null || true"
-                    """,
-                                returnStdout: true
-                        ).trim()
+                        for (entry in services) {
 
-                        if (env.BUILD_BACKEND == 'true') {
+                            def service = entry.key
+                            def tagFile = entry.value
 
-                            env.DEPLOY_BACKEND_TAG =
-                                    env.IMAGE_TAG
+                            def serverTag = sh(
+                                    script: """
+                                    ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \
+                                    "cat ${SERVER_PATH}/${tagFile} 2>/dev/null || true"
+                                    """,
+                                    returnStdout: true
+                            ).trim()
 
-                        } else {
+                            def buildFlag = env["BUILD_${service.replace('-', '_').toUpperCase()}"]
 
-                            env.DEPLOY_BACKEND_TAG =
-                                    backendTagFromServer ?: env.IMAGE_TAG
+                            deployTags.put(service,
+                                    (buildFlag == 'true')
+                                            ? env.IMAGE_TAG
+                                            : (serverTag ?: env.IMAGE_TAG)
+                            )
+
+                            echo "DEPLOY_${service.toUpperCase().replace('-', '_')} = ${deployTags[service]}"
                         }
-
-                        //
-                        // FRONTEND TAG
-                        //
-
-                        def frontendTagFromServer = sh(
-                                script: """
-                        ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \
-                        "cat ${SERVER_PATH}/current_frontend_tag 2>/dev/null || true"
-                    """,
-                                returnStdout: true
-                        ).trim()
-
-                        if (env.BUILD_FRONTEND == 'true') {
-
-                            env.DEPLOY_FRONTEND_TAG =
-                                    env.IMAGE_TAG
-
-                        } else {
-
-                            env.DEPLOY_FRONTEND_TAG =
-                                    frontendTagFromServer ?: env.IMAGE_TAG
-                        }
-
-                        echo "DEPLOY_BACKEND_TAG = ${env.DEPLOY_BACKEND_TAG}"
-                        echo "DEPLOY_FRONTEND_TAG = ${env.DEPLOY_FRONTEND_TAG}"
                     }
                 }
             }
         }
 
         // =========================================================
-        // Build backend
+        // Build images
         // =========================================================
-        stage('Build Backend Image') {
-
+        stage('Build Images') {
             when {
                 expression {
-                    env.BUILD_BACKEND == 'true'
+                    env.BUILD_FRONTEND == 'true' ||
+                            env.BUILD_CATALOG_SERVICE == 'true' ||
+                            env.BUILD_USER_SERVICE == 'true' ||
+                            env.BUILD_NOTIFICATION_SERVICE == 'true' ||
+                            env.BUILD_GATEWAY_SERVICE == 'true' ||
+                            env.BUILD_DISCOVERY_SERVICE == 'true'
                 }
             }
 
             steps {
-                sh "ls"
+                script {
+                    def builds = [
+                            "catalog-service"     : ["./catalog-service", "${DOCKERHUB_USER}/catalog-service", env.BUILD_CATALOG_SERVICE],
+                            "user-service"        : ["./user-service", "${DOCKERHUB_USER}/user-service", env.BUILD_USER_SERVICE],
+                            "notification-service": ["./notification-service", "${DOCKERHUB_USER}/notification-service", env.BUILD_NOTIFICATION_SERVICE],
+                            "api-gateway"         : ["./api-gateway", "${DOCKERHUB_USER}/api-gateway", env.BUILD_GATEWAY_SERVICE],
+                            "discovery-service"   : ["./discovery-service", "${DOCKERHUB_USER}/discovery-service", env.BUILD_DISCOVERY_SERVICE],
+                            "frontend"            : ["./frontend", "${DOCKERHUB_USER}/front", env.BUILD_FRONTEND]
+                    ]
+                    for (entry in builds) {
 
-                sh """
-                    docker build \
-                      -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
-                      ./backend
-                """
-            }
-        }
+                        def name = entry.key
+                        def cfg = entry.value
 
-        // =========================================================
-        // Build frontend
-        // =========================================================
-        stage('Build Frontend Image') {
+                        def path = cfg[0]
+                        def image = cfg[1]
+                        def flag = cfg[2]
 
-            when {
-                expression {
-                    env.BUILD_FRONTEND == 'true'
+                        if (flag == 'true') {
+                            echo "Building ${name}"
+
+                            sh """
+                        docker build \
+                          -t ${image}:${IMAGE_TAG} \
+                          ${path}
+                         """
+                        }
+                    }
                 }
             }
-
-            steps {
-                sh """
-                    docker build \
-                      -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
-                      ./frontend
-                """
-            }
         }
+
 
         //=========================================================
         //Docker Login
@@ -209,7 +220,12 @@ pipeline {
         stage('Docker Login') {
             when {
                 expression {
-                    env.BUILD_BACKEND == 'true' || env.BUILD_FRONTEND == 'true'
+                    env.BUILD_FRONTEND == 'true' ||
+                            env.BUILD_CATALOG_SERVICE == 'true' ||
+                            env.BUILD_USER_SERVICE == 'true' ||
+                            env.BUILD_NOTIFICATION_SERVICE == 'true' ||
+                            env.BUILD_GATEWAY_SERVICE == 'true' ||
+                            env.BUILD_DISCOVERY_SERVICE == 'true'
                 }
             }
             steps {
@@ -231,37 +247,46 @@ pipeline {
         }
 
         // =========================================================
-        // Push backend
+        // Push images
         // =========================================================
-        stage('Push Backend Image') {
-
+        stage('Push Images') {
             when {
-                allOf {
-                    expression { env.BUILD_BACKEND == 'true' }
+                expression {
+                    env.BUILD_FRONTEND == 'true' ||
+                            env.BUILD_CATALOG_SERVICE == 'true' ||
+                            env.BUILD_USER_SERVICE == 'true' ||
+                            env.BUILD_NOTIFICATION_SERVICE == 'true' ||
+                            env.BUILD_GATEWAY_SERVICE == 'true' ||
+                            env.BUILD_DISCOVERY_SERVICE == 'true'
                 }
             }
 
             steps {
-                sh """
-                        docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
-                    """
-            }
-        }
+                script {
 
-        // =========================================================
-        // Push frontend
-        // =========================================================
-        stage('Push Frontend Image') {
-            when {
-                allOf {
-                    expression { env.BUILD_FRONTEND == 'true' }
+                    def images = [
+                            "catalog-service"     : "${DOCKERHUB_USER}/catalog-service",
+                            "user-service"        : "${DOCKERHUB_USER}/user-service",
+                            "notification-service": "${DOCKERHUB_USER}/notification-service",
+                            "api-gateway"         : "${DOCKERHUB_USER}/api-gateway",
+                            "discovery-service"   : "${DOCKERHUB_USER}/discovery-service",
+                            "frontend"            : "${DOCKERHUB_USER}/front"
+                    ]
+
+                    for (entry in images) {
+
+                        def service = entry.key
+                        def image = entry.value
+
+                        def flag = env["BUILD_${service.replace('-', '_').toUpperCase()}"]
+
+                        if (flag == 'true') {
+                            echo "Pushing ${service}"
+
+                            sh "docker push ${image}:${IMAGE_TAG}"
+                        }
+                    }
                 }
-            }
-
-            steps {
-                sh """
-                        docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
-                    """
             }
         }
 
@@ -276,48 +301,44 @@ pipeline {
 
             steps {
                 sshagent(['server-ssh']) {
-                    sh """
-                ssh -o StrictHostKeyChecking=no \
-                root@${SERVER_IP} '
-                
-                set -e
-                mkdir -p ${SERVER_PATH}
-                cd ${SERVER_PATH}
+                    script {
 
-                TIMESTAMP=\$(date +%F_%T)
+                        def services = [
+                                "catalog-service",
+                                "user-service",
+                                "notification-service",
+                                "api-gateway",
+                                "discovery-service",
+                                "frontend"
+                        ]
+                        def remoteScript = ""
+                        remoteScript += """
+                    set -e
+                    mkdir -p ${SERVER_PATH}
+                    cd ${SERVER_PATH}
 
-                echo "== BEFORE UPDATE =="
-
-                echo "current backend:"
-                cat current_backend_tag 2>/dev/null || true
-
-                echo "current frontend:"
-                cat current_frontend_tag 2>/dev/null || true
-
-                echo "== INIT HISTORY FILES =="
-
-                touch deploy_history_backend.log
-                touch deploy_history_frontend.log
-
-                echo "== SAVE HISTORY =="
-
-                echo "\$TIMESTAMP ${DEPLOY_BACKEND_TAG}" >> deploy_history_backend.log
-                echo "\$TIMESTAMP ${DEPLOY_FRONTEND_TAG}" >> deploy_history_frontend.log
-
-                echo "== UPDATE CURRENT =="
-
-                echo "${DEPLOY_BACKEND_TAG}" > current_backend_tag.tmp
-                mv current_backend_tag.tmp current_backend_tag
-
-                echo "${DEPLOY_FRONTEND_TAG}" > current_frontend_tag.tmp
-                mv current_frontend_tag.tmp current_frontend_tag
-
-                echo "== AFTER UPDATE =="
-
-                cat current_backend_tag
-                cat current_frontend_tag
-                '
+                    TIMESTAMP=\$(date +%F_%T)
+                    echo "== SAVE DEPLOY HISTORY =="
                 """
+                        for (service in services) {
+
+                            def envName = "DEPLOY_${service.replace('-', '_').toUpperCase()}"
+
+                            remoteScript += """
+                        echo "\$TIMESTAMP ${env[envName]}" >> deploy_history_${service}.log
+                        echo "${env[envName]}" > current_${service}_tag.tmp
+                        mv current_${service}_tag.tmp current_${service}_tag
+                    """
+                        }
+
+                        remoteScript += """
+                    echo "== DONE =="
+                """
+
+                        sh """
+                    ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteScript}'
+                """
+                    }
                 }
             }
         }
@@ -341,23 +362,31 @@ pipeline {
                     withCredentials([
                             file(credentialsId: 'env-minio', variable: 'MINIO_ENV'),
                             file(credentialsId: 'env-mongodb', variable: 'MONGO_ENV'),
-                            file(credentialsId: 'env-spring', variable: 'SPRING_ENV')
+                            file(credentialsId: 'env-catalog', variable: 'CATALOG_ENV'),
+                            file(credentialsId: 'env-user', variable: 'USER_ENV'),
+                            file(credentialsId: 'env-notification', variable: 'NOTIFICATION_ENV'),
+                            file(credentialsId: 'env-postgres', variable: 'POSTGRES_ENV')
+
                     ]) {
 
+                        for (entry in configs) {
+
+                            def envVar = entry.key
+                            def remoteFile = entry.value
+
+                            sh """
+                            scp -o StrictHostKeyChecking=no \$${envVar} \
+                                root@${SERVER_IP}:${SERVER_PATH}/${remoteFile}
+                        """
+
+                            echo "Uploaded ${remoteFile}"
+                        }
+
                         sh """
-                    scp -o StrictHostKeyChecking=no \$MINIO_ENV \
-                        root@${SERVER_IP}:${SERVER_PATH}/.env.minio
-
-                    scp -o StrictHostKeyChecking=no \$MONGO_ENV \
-                        root@${SERVER_IP}:${SERVER_PATH}/.env.mongodb
-
-                    scp -o StrictHostKeyChecking=no \$SPRING_ENV \
-                        root@${SERVER_IP}:${SERVER_PATH}/.env.spring
-
-                    scp -o StrictHostKeyChecking=no \
-                        docker-compose.yml \
-                        root@${SERVER_IP}:${SERVER_PATH}/
-                """
+                        scp -o StrictHostKeyChecking=no \
+                            docker-compose.prod.yml \
+                            root@${SERVER_IP}:${SERVER_PATH}/
+                    """
                     }
                 }
             }
@@ -373,28 +402,47 @@ pipeline {
             }
 
             steps {
-                script {
-                    def pullNeeded = (env.BUILD_BACKEND == 'true' || env.BUILD_FRONTEND == 'true') ? "true" : "false"
+                sshagent(['server-ssh']) {
+                    script {
 
-                    sshagent(['server-ssh']) {
+                        def pullNeeded = env.BUILD_CATALOG_SERVICE == 'true' ||
+                                env.BUILD_USER_SERVICE == 'true' ||
+                                env.BUILD_FRONTEND == 'true'
+
+                        def remoteCmd = """
+                    set -e
+                    cd ${SERVER_PATH}
+
+                    echo "== DEPLOY START =="
+
+                    export PULL_NEEDED=${pullNeeded}
+                """
+
+                        deployTags.each { service, tag ->
+
+                            def envName = service.replace('-', '_').toUpperCase() + "_TAG"
+
+                            remoteCmd += """
+                        export ${envName}="${tag}"
+                    """
+                        }
+
+                        remoteCmd += """
+                    if [ "\$PULL_NEEDED" = "true" ]; then
+                        echo "Pulling images..."
+                        docker compose pull
+                    else
+                        echo "Skipping pull"
+                    fi
+
+                    docker compose up -d
+
+                    echo "== DEPLOY DONE =="
+                """
+
                         sh """
-                        ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '
-                        cd ${SERVER_PATH}
-
-                        export BACKEND_TAG="${DEPLOY_BACKEND_TAG}"
-                        export FRONTEND_TAG="${DEPLOY_FRONTEND_TAG}"
-                        export PULL_NEEDED="${pullNeeded}"
-                   
-                        if [ "\$PULL_NEEDED" = "true" ]; then
-                            echo "Pulling images..."
-                            docker compose pull
-                        else
-                            echo "Skipping pull (images unchanged)"
-                        fi
-
-                        docker compose up -d
-                        '
-                        """
+                    ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteCmd}'
+                """
                     }
                 }
             }
