@@ -3,7 +3,7 @@
 #  -F "name=Фотоаппараты"
 #  -F "description=Камеры и объективы"
 #  -F "status=ACTIVE"
-#  -F "image=@D:/080_original.jpg"
+
 
 POST http://localhost:8080/categories
 Accept: application/json

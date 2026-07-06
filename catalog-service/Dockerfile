@@ -11,7 +11,7 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-COPY --from=build /app/target/*.jar catalog_service.jar
+COPY --from=build /app/target/*.jar catalog-service.jar
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "catalog_service.jar"]
+ENTRYPOINT ["java", "-jar", "catalog-service.jar"]

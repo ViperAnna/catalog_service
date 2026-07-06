@@ -1,0 +1,89 @@
+spring:
+
+#APPLICATION
+  application:
+    name: catalog_service
+
+#DB
+  data:
+    mongodb:
+      host: ${MONGODB_HOST:mongodb}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGO_INITDB_DATABASE}
+      username: ${MONGO_INITDB_ROOT_USERNAME}
+      password: ${MONGO_INITDB_ROOT_PASSWORD}
+
+  profiles:
+    active: dev
+
+  main:
+    banner-mode: console
+
+  output:
+    ansi:
+      enabled: ALWAYS
+
+app:
+  init:
+    categories: true
+    products: true
+    # force: false
+
+
+#CORS
+cors:
+  mapping:
+    path: "/**"
+  allowed:
+    origins:
+      - http://localhost:3000
+      - http://144.124.250.82:3000
+      - https://v693663.hosted-by-vdsina.com
+    methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    headers:
+      - Authorization
+      - Content-Type
+      - Accept
+      - Origin
+      - Cache-Control
+      - X-Requested-With
+
+#MinIO
+minio:
+  endpoint: http://minio:9000
+  public-endpoint: http://minio:9000
+  access-key: ${MINIO_ACCESS_KEY}
+  secret-key: ${MINIO_SECRET_KEY}
+  # bucket-name: categories
+
+#Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+
+#Logging
+logging:
+  level:
+    root: INFO
+    org:
+      mongodb:
+        driver: WARN
+
+  file:
+    name: /app/logs/application.log
+
+  pattern:
+    file: "%d{HH:mm:ss.SSS} [%-5level]  %logger{1}  - %msg%n"
+
+  logback:
+    rollingpolicy:
+      file-name-pattern: /app/logs/application.%d{yyyy-MM-dd}.%i.log
+      max-file-size: 10MB
+      max-history: 3
+      total-size-cap: 100MB
