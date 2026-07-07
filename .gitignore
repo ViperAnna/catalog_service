@@ -32,14 +32,9 @@ build/
 ### VS Code ###
 .vscode/
 /.
-/.env.catalog
-/.env.minio
-/.env.mongodb
-/.env.notification
-/.env.postgres
-/.env.spring
-/.env.spring.generate-data
-/.env.spring.service
-/.env.user
-/.env.spring.txt
+*.env
+.env*
+**/.env*
 /logs/
+/minio/
+
