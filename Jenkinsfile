@@ -137,17 +137,16 @@ pipeline {
                         ]
 
 
-                        for (entry in services) {
+                        for (String service in services.keySet()) {
 
-                            def service = entry.key
-                            def tagFile = entry.value
+                            def tagFile = services[service]
                             def serviceName = service.replace('-', '_').toUpperCase()
 
                             def serverTag = sh(
                                     script: """
-                                    ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \
-                                    "cat ${SERVER_PATH}/${tagFile} 2>/dev/null || true"
-                                    """,
+                           ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \
+                           "cat ${SERVER_PATH}/${tagFile} 2>/dev/null || true"
+                           """,
                                     returnStdout: true
                             ).trim()
 
@@ -157,11 +156,9 @@ pipeline {
                                     ? env.IMAGE_TAG
                                     : (serverTag ?: env.IMAGE_TAG)
 
-                            def envName = "DEPLOY_${serviceName}"
+                            env["DEPLOY_${serviceName}"] = tag
 
-                            env[envName] = tag
-
-                            echo "${envName} = ${env[envName]}"
+                            echo "DEPLOY_${serviceName} = ${tag}"
                         }
                     }
                 }
@@ -507,6 +504,7 @@ pipeline {
                 }
             }
         }
+
     }
 
     post {
@@ -520,4 +518,3 @@ pipeline {
         }
     }
 }
-
