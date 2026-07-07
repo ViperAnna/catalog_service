@@ -372,91 +372,91 @@ pipeline {
                 }
             }
         }
-    }
 
-    // =========================================================
-    // Upload Config
-    // =========================================================
-    stage('Upload Config') {
 
-        when {
-            allOf {
-                branch 'develop'
-                expression {
-                    env.UPLOAD_CONFIG == 'true'
+        // =========================================================
+        // Upload Config
+        // =========================================================
+        stage('Upload Config') {
+
+            when {
+                allOf {
+                    branch 'develop'
+                    expression {
+                        env.UPLOAD_CONFIG == 'true'
+                    }
                 }
             }
-        }
 
-        steps {
-            sshagent(['server-ssh']) {
-                withCredentials([
-                        file(credentialsId: 'env-minio', variable: 'MINIO_ENV'),
-                        file(credentialsId: 'env-mongodb', variable: 'MONGO_ENV'),
-                        file(credentialsId: 'env-catalog', variable: 'CATALOG_ENV'),
-                        file(credentialsId: 'env-user', variable: 'USER_ENV'),
-                        file(credentialsId: 'env-notification', variable: 'NOTIFICATION_ENV'),
-                        file(credentialsId: 'env-postgres', variable: 'POSTGRES_ENV')
-                ]) {
+            steps {
+                sshagent(['server-ssh']) {
+                    withCredentials([
+                            file(credentialsId: 'env-minio', variable: 'MINIO_ENV'),
+                            file(credentialsId: 'env-mongodb', variable: 'MONGO_ENV'),
+                            file(credentialsId: 'env-catalog', variable: 'CATALOG_ENV'),
+                            file(credentialsId: 'env-user', variable: 'USER_ENV'),
+                            file(credentialsId: 'env-notification', variable: 'NOTIFICATION_ENV'),
+                            file(credentialsId: 'env-postgres', variable: 'POSTGRES_ENV')
+                    ]) {
 
-                    script {
+                        script {
 
-                        def configs = [
-                                "MINIO_ENV"       : ".env.minio",
-                                "MONGO_ENV"       : ".env.mongodb",
-                                "CATALOG_ENV"     : ".env.catalog",
-                                "USER_ENV"        : ".env.user",
-                                "NOTIFICATION_ENV": ".env.notification",
-                                "POSTGRES_ENV"    : ".env.postgres"
-                        ]
+                            def configs = [
+                                    "MINIO_ENV"       : ".env.minio",
+                                    "MONGO_ENV"       : ".env.mongodb",
+                                    "CATALOG_ENV"     : ".env.catalog",
+                                    "USER_ENV"        : ".env.user",
+                                    "NOTIFICATION_ENV": ".env.notification",
+                                    "POSTGRES_ENV"    : ".env.postgres"
+                            ]
 
-                        for (entry in configs) {
+                            for (entry in configs) {
 
-                            def envVar = entry.key
-                            def remoteFile = entry.value
+                                def envVar = entry.key
+                                def remoteFile = entry.value
 
-                            sh """
+                                sh """
                             scp -o StrictHostKeyChecking=no \$${envVar} \
                                 root@${SERVER_IP}:${SERVER_PATH}/${remoteFile}
                         """
 
-                            echo "Uploaded ${remoteFile}"
-                        }
+                                echo "Uploaded ${remoteFile}"
+                            }
 
-                        sh """
+                            sh """
                         scp -o StrictHostKeyChecking=no \
                             docker-compose.prod.yml \
                             root@${SERVER_IP}:${SERVER_PATH}/
                     """
+                        }
                     }
                 }
             }
         }
-    }
 
-    // =========================================================
-    // Deploy
-    // =========================================================
-    stage('Deploy') {
+        // =========================================================
+        // Deploy
+        // =========================================================
+        stage('Deploy') {
 
-        when {
-            branch 'develop'
-        }
+            when {
+                branch 'develop'
+            }
 
-        steps {
-            sshagent(['server-ssh']) {
-                script {
+            steps {
+                sshagent(['server-ssh']) {
+                    script {
 
-                    def pullNeeded = [
-                            env.BUILD_CATALOG_SERVICE,
-                            env.BUILD_USER_SERVICE,
-                            env.BUILD_NOTIFICATION_SERVICE,
-                            env.BUILD_GATEWAY_SERVICE,
-                            env.BUILD_DISCOVERY_SERVICE,
-                            env.BUILD_FRONTEND
-                    ].any { it == 'true' }
+                        def pullNeeded = [
+                                env.BUILD_CATALOG_SERVICE,
+                                env.BUILD_USER_SERVICE,
+                                env.BUILD_NOTIFICATION_SERVICE,
+                                env.BUILD_GATEWAY_SERVICE,
+                                env.BUILD_DISCOVERY_SERVICE,
+                                env.BUILD_FRONTEND
+                        ].any { it == 'true' }
 
-                    def remoteCmd = """
+                        def remoteCmd = """
                     set -e
                     cd ${SERVER_PATH}
 
@@ -465,29 +465,29 @@ pipeline {
                     export PULL_NEEDED=${pullNeeded}
                 """
 
-                    def services = [
-                            "catalog-service",
-                            "user-service",
-                            "notification-service",
-                            "api-gateway",
-                            "discovery-service",
-                            "frontend"
-                    ]
+                        def services = [
+                                "catalog-service",
+                                "user-service",
+                                "notification-service",
+                                "api-gateway",
+                                "discovery-service",
+                                "frontend"
+                        ]
 
-                    for (service in services) {
+                        for (service in services) {
 
-                        def serviceName = service.replace('-', '_').toUpperCase()
+                            def serviceName = service.replace('-', '_').toUpperCase()
 
-                        def envName = "DEPLOY_${serviceName}"
+                            def envName = "DEPLOY_${serviceName}"
 
-                        def composeName = "${serviceName}_TAG"
+                            def composeName = "${serviceName}_TAG"
 
-                        remoteCmd += """
+                            remoteCmd += """
                     export ${composeName}="${env[envName]}"
                     """
-                    }
+                        }
 
-                    remoteCmd += """
+                        remoteCmd += """
                     if [ "\$PULL_NEEDED" = "true" ]; then
                         echo "Pulling images..."
                         docker compose pull
@@ -500,9 +500,10 @@ pipeline {
                     echo "== DEPLOY DONE =="
                 """
 
-                    sh """
+                        sh """
                     ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteCmd}'
                 """
+                    }
                 }
             }
         }
@@ -519,3 +520,4 @@ pipeline {
         }
     }
 }
+
