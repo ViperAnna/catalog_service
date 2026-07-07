@@ -117,8 +117,10 @@ pipeline {
         stage('Resolve Deploy Tags') {
 
             when {
-                branch 'develop'
-                branch 'feature/test-pipeline'
+                anyOf {
+                    branch 'develop'
+                    branch 'feature/test-pipeline'
+                }
             }
 
             steps {
@@ -370,90 +372,91 @@ pipeline {
                 }
             }
         }
+    }
 
-        // =========================================================
-        // Upload Config
-        // =========================================================
-        stage('Upload Config') {
+    // =========================================================
+    // Upload Config
+    // =========================================================
+    stage('Upload Config') {
 
-            when {
-                allOf {
-                    branch 'develop'
-                    expression {
-                        env.UPLOAD_CONFIG == 'true'
-                    }
-                }
-            }
-
-            steps {
-                sshagent(['server-ssh']) {
-                    withCredentials([
-                            file(credentialsId: 'env-minio', variable: 'MINIO_ENV'),
-                            file(credentialsId: 'env-mongodb', variable: 'MONGO_ENV'),
-                            file(credentialsId: 'env-catalog', variable: 'CATALOG_ENV'),
-                            file(credentialsId: 'env-user', variable: 'USER_ENV'),
-                            file(credentialsId: 'env-notification', variable: 'NOTIFICATION_ENV'),
-                            file(credentialsId: 'env-postgres', variable: 'POSTGRES_ENV')
-                    ]) {
-
-                        script {
-
-                            def configs = [
-                                    "MINIO_ENV"       : ".env.minio",
-                                    "MONGO_ENV"       : ".env.mongodb",
-                                    "CATALOG_ENV"     : ".env.catalog",
-                                    "USER_ENV"        : ".env.user",
-                                    "NOTIFICATION_ENV": ".env.notification",
-                                    "POSTGRES_ENV"    : ".env.postgres"
-                            ]
-
-                            for (entry in configs) {
-
-                                def envVar = entry.key
-                                def remoteFile = entry.value
-
-                                sh """
-                            scp -o StrictHostKeyChecking=no \$${envVar} \
-                                root@${SERVER_IP}:${SERVER_PATH}/${remoteFile}
-                        """
-
-                                echo "Uploaded ${remoteFile}"
-                            }
-
-                            sh """
-                        scp -o StrictHostKeyChecking=no \
-                            docker-compose.prod.yml \
-                            root@${SERVER_IP}:${SERVER_PATH}/
-                    """
-                        }
-                    }
+        when {
+            allOf {
+                branch 'develop'
+                expression {
+                    env.UPLOAD_CONFIG == 'true'
                 }
             }
         }
 
-        // =========================================================
-        // Deploy
-        // =========================================================
-        stage('Deploy') {
+        steps {
+            sshagent(['server-ssh']) {
+                withCredentials([
+                        file(credentialsId: 'env-minio', variable: 'MINIO_ENV'),
+                        file(credentialsId: 'env-mongodb', variable: 'MONGO_ENV'),
+                        file(credentialsId: 'env-catalog', variable: 'CATALOG_ENV'),
+                        file(credentialsId: 'env-user', variable: 'USER_ENV'),
+                        file(credentialsId: 'env-notification', variable: 'NOTIFICATION_ENV'),
+                        file(credentialsId: 'env-postgres', variable: 'POSTGRES_ENV')
+                ]) {
 
-            when {
-                branch 'develop'
-            }
-
-            steps {
-                sshagent(['server-ssh']) {
                     script {
 
-                        def pullNeeded = [
-                                env.BUILD_CATALOG_SERVICE,
-                                env.BUILD_USER_SERVICE,
-                                env.BUILD_NOTIFICATION_SERVICE,
-                                env.BUILD_GATEWAY_SERVICE,
-                                env.BUILD_DISCOVERY_SERVICE,
-                                env.BUILD_FRONTEND
-                        ].any { it == 'true' }
+                        def configs = [
+                                "MINIO_ENV"       : ".env.minio",
+                                "MONGO_ENV"       : ".env.mongodb",
+                                "CATALOG_ENV"     : ".env.catalog",
+                                "USER_ENV"        : ".env.user",
+                                "NOTIFICATION_ENV": ".env.notification",
+                                "POSTGRES_ENV"    : ".env.postgres"
+                        ]
 
-                        def remoteCmd = """
+                        for (entry in configs) {
+
+                            def envVar = entry.key
+                            def remoteFile = entry.value
+
+                            sh """
+                            scp -o StrictHostKeyChecking=no \$${envVar} \
+                                root@${SERVER_IP}:${SERVER_PATH}/${remoteFile}
+                        """
+
+                            echo "Uploaded ${remoteFile}"
+                        }
+
+                        sh """
+                        scp -o StrictHostKeyChecking=no \
+                            docker-compose.prod.yml \
+                            root@${SERVER_IP}:${SERVER_PATH}/
+                    """
+                    }
+                }
+            }
+        }
+    }
+
+    // =========================================================
+    // Deploy
+    // =========================================================
+    stage('Deploy') {
+
+        when {
+            branch 'develop'
+        }
+
+        steps {
+            sshagent(['server-ssh']) {
+                script {
+
+                    def pullNeeded = [
+                            env.BUILD_CATALOG_SERVICE,
+                            env.BUILD_USER_SERVICE,
+                            env.BUILD_NOTIFICATION_SERVICE,
+                            env.BUILD_GATEWAY_SERVICE,
+                            env.BUILD_DISCOVERY_SERVICE,
+                            env.BUILD_FRONTEND
+                    ].any { it == 'true' }
+
+                    def remoteCmd = """
                     set -e
                     cd ${SERVER_PATH}
 
@@ -462,29 +465,29 @@ pipeline {
                     export PULL_NEEDED=${pullNeeded}
                 """
 
-                        def services = [
-                                "catalog-service",
-                                "user-service",
-                                "notification-service",
-                                "api-gateway",
-                                "discovery-service",
-                                "frontend"
-                        ]
+                    def services = [
+                            "catalog-service",
+                            "user-service",
+                            "notification-service",
+                            "api-gateway",
+                            "discovery-service",
+                            "frontend"
+                    ]
 
-                        for (service in services) {
+                    for (service in services) {
 
-                            def serviceName = service.replace('-', '_').toUpperCase()
+                        def serviceName = service.replace('-', '_').toUpperCase()
 
-                            def envName = "DEPLOY_${serviceName}"
+                        def envName = "DEPLOY_${serviceName}"
 
-                            def composeName = "${serviceName}_TAG"
-
-                            remoteCmd += """
-                    export ${composeName}="${env[envName]}"
-                    """
-                        }
+                        def composeName = "${serviceName}_TAG"
 
                         remoteCmd += """
+                    export ${composeName}="${env[envName]}"
+                    """
+                    }
+
+                    remoteCmd += """
                     if [ "\$PULL_NEEDED" = "true" ]; then
                         echo "Pulling images..."
                         docker compose pull
@@ -497,23 +500,22 @@ pipeline {
                     echo "== DEPLOY DONE =="
                 """
 
-                        sh """
+                    sh """
                     ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteCmd}'
                 """
-                    }
                 }
             }
         }
+    }
 
-        post {
-            always {
-                echo "Catalog tag: ${env.DEPLOY_CATALOG_SERVICE}"
-                echo "User tag: ${env.DEPLOY_USER_SERVICE}"
-                echo "Notification tag: ${env.DEPLOY_NOTIFICATION_SERVICE}"
-                echo "Gateway tag: ${env.DEPLOY_GATEWAY_SERVICE}"
-                echo "Discovery tag: ${env.DEPLOY_DISCOVERY_SERVICE}"
-                echo "Frontend tag: ${env.DEPLOY_FRONTEND}"
-            }
+    post {
+        always {
+            echo "Catalog tag: ${env.DEPLOY_CATALOG_SERVICE}"
+            echo "User tag: ${env.DEPLOY_USER_SERVICE}"
+            echo "Notification tag: ${env.DEPLOY_NOTIFICATION_SERVICE}"
+            echo "Gateway tag: ${env.DEPLOY_GATEWAY_SERVICE}"
+            echo "Discovery tag: ${env.DEPLOY_DISCOVERY_SERVICE}"
+            echo "Frontend tag: ${env.DEPLOY_FRONTEND}"
         }
     }
 }

@@ -43,3 +43,9 @@ build/
 /.env.user
 /.env.spring.txt
 /logs/
+# Environment files
+.env*
+**/.env*
+
+# Minio data
+minio/
