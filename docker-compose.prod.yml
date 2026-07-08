@@ -214,7 +214,6 @@ services:
        mc mb --ignore-existing myminio/products &&
       mc anonymous set public myminio/categories &&
       mc anonymous set public myminio/products
-      
       "
     restart: "no"
 
