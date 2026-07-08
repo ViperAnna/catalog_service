@@ -131,8 +131,13 @@ services:
       - .env.keycloak
     command:
       - start
+      - --http-enabled=true
+      - --proxy-headers=xforwarded
     ports:
       - "8181:8080"
+    environment:
+      KC_HOSTNAME: v693663.hosted-by-vdsina.com
+      KC_HTTP_ENABLED: "true"
     depends_on:
       - postgres
     restart: unless-stopped

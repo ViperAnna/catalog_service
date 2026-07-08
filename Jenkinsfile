@@ -496,45 +496,31 @@ pipeline {
                                 env.BUILD_FRONTEND
                         ].any { it == 'true' }
 
-
                         def remoteCmd = """
                     set -e
 
                     cd ${SERVER_PATH}
 
-                    echo "== DEPLOY START =="
+                    echo "========== DEPLOY START =========="
 
                     export PULL_NEEDED=${pullNeeded}
 
                     echo "PULL_NEEDED=\$PULL_NEEDED"
-                """
 
+                    echo "Generating .env..."
 
-                        def services = [
-                                "catalog-service",
-                                "user-service",
-                                "notification-service",
-                                "api-gateway",
-                                "discovery-service",
-                                "frontend"
-                        ]
+                    cat > .env <<EOF
+CATALOG_SERVICE_TAG=${env.DEPLOY_CATALOG_SERVICE}
+USER_SERVICE_TAG=${env.DEPLOY_USER_SERVICE}
+NOTIFICATION_SERVICE_TAG=${env.DEPLOY_NOTIFICATION_SERVICE}
+API_GATEWAY_TAG=${env.DEPLOY_API_GATEWAY}
+DISCOVERY_SERVICE_TAG=${env.DEPLOY_DISCOVERY_SERVICE}
+FRONTEND_TAG=${env.DEPLOY_FRONTEND}
+EOF
 
-
-                        for (service in services) {
-
-                            def serviceName = service.replace('-', '_').toUpperCase()
-
-                            def envName = "DEPLOY_${serviceName}"
-
-                            def composeName = "${serviceName}_TAG"
-
-                            remoteCmd += """
-                    export ${composeName}="${env[envName]}"
-                    """
-                        }
-
-
-                        remoteCmd += """
+                    echo "========== .env =========="
+                    cat .env
+                    echo "=========================="
 
                     echo "Checking nginx config..."
 
@@ -550,35 +536,27 @@ pipeline {
 
                     echo "nginx config OK"
 
-
                     echo "Docker compose services:"
                     docker compose config --services
-
 
                     if [ "\$PULL_NEEDED" = "true" ]; then
                         echo "Pulling images..."
                         docker compose pull
                     else
-                        echo "Skipping pull"
+                        echo "Skipping pull (images unchanged)"
                     fi
 
-
                     echo "Starting containers..."
-
                     docker compose up -d
-
 
                     echo "Container status:"
                     docker compose ps
 
-
-                    echo "== DEPLOY DONE =="
+                    echo "========== DEPLOY DONE =========="
                 """
-
 
                         echo "Remote deploy command:"
                         echo remoteCmd
-
 
                         sh """
                     ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteCmd}'
