@@ -408,7 +408,8 @@ pipeline {
                                     "CATALOG_ENV"     : ".env.catalog",
                                     "USER_ENV"        : ".env.user",
                                     "NOTIFICATION_ENV": ".env.notification",
-                                    "POSTGRES_ENV"    : ".env.postgres"
+                                    "POSTGRES_ENV"    : ".env.postgres",
+                                    "KAFKA_ENV"       : ".env.kafka"
                             ]
 
                             for (entry in configs) {
@@ -516,7 +517,7 @@ pipeline {
             echo "Catalog tag: ${env.DEPLOY_CATALOG_SERVICE}"
             echo "User tag: ${env.DEPLOY_USER_SERVICE}"
             echo "Notification tag: ${env.DEPLOY_NOTIFICATION_SERVICE}"
-            echo "Gateway tag: ${env.DEPLOY_GATEWAY_SERVICE}"
+            echo "Gateway tag: ${env.DEPLOY_API_GATEWAY}"
             echo "Discovery tag: ${env.DEPLOY_DISCOVERY_SERVICE}"
             echo "Frontend tag: ${env.DEPLOY_FRONTEND}"
         }
