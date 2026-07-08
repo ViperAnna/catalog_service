@@ -54,7 +54,7 @@ pipeline {
                             "catalog-service"     : "BUILD_CATALOG_SERVICE",
                             "user-service"        : "BUILD_USER_SERVICE",
                             "notification-service": "BUILD_NOTIFICATION_SERVICE",
-                            "api-gateway"         : "BUILD_GATEWAY_SERVICE",
+                            "api-gateway"         : "BUILD_API_GATEWAY",
                             "discovery-service"   : "BUILD_DISCOVERY_SERVICE",
                             "frontend"            : "BUILD_FRONTEND"
                     ]
@@ -71,7 +71,7 @@ pipeline {
                     echo "BUILD_CATALOG_SERVICE = ${env.BUILD_CATALOG_SERVICE}"
                     echo "BUILD_USER_SERVICE = ${env.BUILD_USER_SERVICE}"
                     echo "BUILD_NOTIFICATION_SERVICE = ${env.BUILD_NOTIFICATION_SERVICE}"
-                    echo "BUILD_GATEWAY_SERVICE = ${env.BUILD_GATEWAY_SERVICE}"
+                    echo "BUILD_API_GATEWAY = ${env.BUILD_API_GATEWAY}"
                     echo "BUILD_DISCOVERY_SERVICE = ${env.BUILD_DISCOVERY_SERVICE}"
                     echo "BUILD_FRONTEND = ${env.BUILD_FRONTEND}"
                     echo "UPLOAD_CONFIG = ${env.UPLOAD_CONFIG}"
@@ -88,14 +88,12 @@ pipeline {
 
                     def mvnHome = tool 'MAVEN_3'
 
-                    sh "${mvnHome}/bin/mvn -q -DskipTests clean compile"
-
                     env.APP_VERSION = sh(
                             script: """
-                            ${mvnHome}/bin/mvn help:evaluate \
-                            -Dexpression=project.version \
-                            -q -DforceStdout
-                        """,
+                         ${mvnHome}/bin/mvn help:evaluate \
+                         -Dexpression=project.version \
+                         -q -DforceStdout
+                     """,
                             returnStdout: true
                     ).trim()
 
@@ -231,7 +229,7 @@ pipeline {
                             env.BUILD_CATALOG_SERVICE == 'true' ||
                             env.BUILD_USER_SERVICE == 'true' ||
                             env.BUILD_NOTIFICATION_SERVICE == 'true' ||
-                            env.BUILD_GATEWAY_SERVICE == 'true' ||
+                            env.BUILD_API_GATEWAY == 'true' ||
                             env.BUILD_DISCOVERY_SERVICE == 'true'
                 }
             }
@@ -257,7 +255,7 @@ pipeline {
                             "api-gateway"         : [
                                     path : "./api-gateway",
                                     image: "${DOCKERHUB_USER}/api-gateway",
-                                    build: env.BUILD_GATEWAY_SERVICE
+                                    build: env.BUILD_API_GATEWAY
                             ],
                             "discovery-service"   : [
                                     path : "./discovery-service",
@@ -270,6 +268,7 @@ pipeline {
                                     build: env.BUILD_FRONTEND
                             ]
                     ]
+                    def mvnHome = tool 'MAVEN_3'
 
                     for (String name : builds.keySet()) {
 
@@ -279,13 +278,24 @@ pipeline {
 
                         if (build == 'true') {
 
+                            if (name != "frontend") {
+
+                                echo "Packaging ${name}"
+
+                                dir(path) {
+                                    sh "${mvnHome}/bin/mvn clean package -DskipTests"
+                                    sh "find target -name '*.jar'"
+                                }
+                            }
+
                             echo "Building ${name}"
 
                             sh """
-                            docker build \
-                                -t ${image}:${IMAGE_TAG} \
-                                ${path}
-                            """
+                             docker build \
+                                 -t ${image}:${IMAGE_TAG} \
+                                 ${path}
+                         """
+
                         }
                     }
                 }
@@ -303,7 +313,7 @@ pipeline {
                             env.BUILD_CATALOG_SERVICE == 'true' ||
                             env.BUILD_USER_SERVICE == 'true' ||
                             env.BUILD_NOTIFICATION_SERVICE == 'true' ||
-                            env.BUILD_GATEWAY_SERVICE == 'true' ||
+                            env.BUILD_API_GATEWAY == 'true' ||
                             env.BUILD_DISCOVERY_SERVICE == 'true'
                 }
             }
@@ -474,25 +484,31 @@ pipeline {
 
             steps {
                 sshagent(['server-ssh']) {
+
                     script {
 
                         def pullNeeded = [
                                 env.BUILD_CATALOG_SERVICE,
                                 env.BUILD_USER_SERVICE,
                                 env.BUILD_NOTIFICATION_SERVICE,
-                                env.BUILD_GATEWAY_SERVICE,
+                                env.BUILD_API_GATEWAY,
                                 env.BUILD_DISCOVERY_SERVICE,
                                 env.BUILD_FRONTEND
                         ].any { it == 'true' }
 
+
                         def remoteCmd = """
                     set -e
+
                     cd ${SERVER_PATH}
 
                     echo "== DEPLOY START =="
 
                     export PULL_NEEDED=${pullNeeded}
+
+                    echo "PULL_NEEDED=\$PULL_NEEDED"
                 """
+
 
                         def services = [
                                 "catalog-service",
@@ -502,6 +518,7 @@ pipeline {
                                 "discovery-service",
                                 "frontend"
                         ]
+
 
                         for (service in services) {
 
@@ -516,7 +533,28 @@ pipeline {
                     """
                         }
 
+
                         remoteCmd += """
+
+                    echo "Checking nginx config..."
+
+                    if [ ! -f "./nginx/nginx.prod.conf" ]; then
+                        echo "ERROR: nginx/nginx.prod.conf is missing"
+                        exit 1
+                    fi
+
+                    if [ -d "./nginx/nginx.prod.conf" ]; then
+                        echo "ERROR: nginx/nginx.prod.conf is a directory"
+                        exit 1
+                    fi
+
+                    echo "nginx config OK"
+
+
+                    echo "Docker compose services:"
+                    docker compose config --services
+
+
                     if [ "\$PULL_NEEDED" = "true" ]; then
                         echo "Pulling images..."
                         docker compose pull
@@ -524,10 +562,23 @@ pipeline {
                         echo "Skipping pull"
                     fi
 
+
+                    echo "Starting containers..."
+
                     docker compose up -d
+
+
+                    echo "Container status:"
+                    docker compose ps
+
 
                     echo "== DEPLOY DONE =="
                 """
+
+
+                        echo "Remote deploy command:"
+                        echo remoteCmd
+
 
                         sh """
                     ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteCmd}'
