@@ -33,8 +33,6 @@ pipeline {
                             returnStdout: true
                     ).trim()
 
-                    def firstDeploy = (previousCommit == '')
-
                     echo "PREVIOUS COMMIT: ${previousCommit}"
                     echo "CURRENT COMMIT : ${env.GIT_COMMIT}"
 
@@ -68,9 +66,7 @@ pipeline {
                         env[envName] = changed(path).toString()
                         echo "${envName} = ${env[envName]}"
                     }
-                    env.UPLOAD_CONFIG = (
-                            changed("docker-compose.prod.yml") || firstDeploy
-                    ).toString()
+                    env.UPLOAD_CONFIG = changed("docker-compose.prod.yml").toString()
 
                     echo "BUILD_CATALOG_SERVICE = ${env.BUILD_CATALOG_SERVICE}"
                     echo "BUILD_USER_SERVICE = ${env.BUILD_USER_SERVICE}"
@@ -115,6 +111,31 @@ pipeline {
                 }
             }
         }
+        //=========================================================
+        //Docker Login
+        //=========================================================
+        stage('Docker Login') {
+            when {
+                branch 'develop'
+            }
+
+            steps {
+                withCredentials([
+                        usernamePassword(
+                                credentialsId: 'dockerhub-creds',
+                                usernameVariable: 'DOCKER_LOGIN_USER',
+                                passwordVariable: 'DOCKER_PASS'
+                        )
+                ]) {
+
+                    sh """
+                        echo "$DOCKER_PASS" | docker login \
+                          -u "$DOCKER_LOGIN_USER" \
+                          --password-stdin
+                    """
+                }
+            }
+        }
 
         // =========================================================
         // Resolve deploy tags
@@ -122,9 +143,7 @@ pipeline {
         stage('Resolve Deploy Tags') {
 
             when {
-                anyOf {
-                    branch 'develop'
-                }
+                branch 'develop'
             }
 
             steps {
@@ -132,37 +151,70 @@ pipeline {
                     script {
 
                         def services = [
-                                "catalog-service"     : "current_catalog_tag",
-                                "user-service"        : "current_user_tag",
-                                "notification-service": "current_notification_tag",
-                                "api-gateway"         : "current_gateway_tag",
-                                "discovery-service"   : "current_discovery_tag",
-                                "frontend"            : "current_frontend_tag"
+                                "catalog-service"     : [tagFile: "current_catalog_tag",      image: BACKEND_IMAGE],
+                                "user-service"        : [tagFile: "current_user_tag",         image: USER_IMAGE],
+                                "notification-service": [tagFile: "current_notification_tag", image: NOTIFICATION_IMAGE],
+                                "api-gateway"         : [tagFile: "current_gateway_tag",      image: GATEWAY_IMAGE],
+                                "discovery-service"   : [tagFile: "current_discovery_tag",    image: DISCOVERY_IMAGE],
+                                "frontend"            : [tagFile: "current_frontend_tag",     image: FRONTEND_IMAGE]
                         ]
 
+                        for (entry in services) {
 
-                        for (String service in services.keySet()) {
+                            def service = entry.key
+                            def tagFile = entry.value.tagFile
+                            def image = entry.value.image
 
-                            def tagFile = services[service]
                             def serviceName = service.replace('-', '_').toUpperCase()
 
                             def serverTag = sh(
                                     script: """
-                           ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \
-                           "cat ${SERVER_PATH}/${tagFile} 2>/dev/null || true"
-                           """,
+                                ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \
+                                "cat ${SERVER_PATH}/${tagFile} 2>/dev/null || true"
+                            """,
                                     returnStdout: true
                             ).trim()
 
-                            def buildFlag = env["BUILD_${serviceName}"]
+                            def buildFlag = env["BUILD_${serviceName}"] == "true"
 
-                            def tag = (buildFlag == 'true')
+                            if (!serverTag) {
+
+                                echo "No saved tag for ${service}. Rebuild required."
+
+                                env["BUILD_${serviceName}"] = "true"
+                                env.UPLOAD_CONFIG = "true"
+
+                                buildFlag = true
+                            }
+
+                            if (!buildFlag && serverTag) {
+
+                                def exists = sh(
+                                        script: """
+                                    docker manifest inspect ${image}:${serverTag} >/dev/null 2>&1
+                                """,
+                                        returnStatus: true
+                                )
+
+                                if (exists != 0) {
+
+                                    echo "${image}:${serverTag} not found in Docker Hub. Rebuild required."
+
+                                    env["BUILD_${serviceName}"] = "true"
+
+                                    buildFlag = true
+                                }
+                            }
+
+                            def deployTag = buildFlag
                                     ? env.IMAGE_TAG
-                                    : (serverTag ?: env.IMAGE_TAG)
+                                    : serverTag
 
-                            env["DEPLOY_${serviceName}"] = tag
+                            env["DEPLOY_${serviceName}"] = deployTag
 
-                            echo "DEPLOY_${serviceName} = ${tag}"
+                            echo "BUILD_${serviceName} = ${env["BUILD_${serviceName}"]}"
+                            echo "DEPLOY_${serviceName} = ${deployTag}"
+                            echo "UPLOAD_CONFIG = ${env.UPLOAD_CONFIG}"
                         }
                     }
                 }
@@ -240,37 +292,7 @@ pipeline {
         }
 
 
-        //=========================================================
-        //Docker Login
-        //=========================================================
-        stage('Docker Login') {
-            when {
-                expression {
-                    env.BUILD_FRONTEND == 'true' ||
-                            env.BUILD_CATALOG_SERVICE == 'true' ||
-                            env.BUILD_USER_SERVICE == 'true' ||
-                            env.BUILD_NOTIFICATION_SERVICE == 'true' ||
-                            env.BUILD_GATEWAY_SERVICE == 'true' ||
-                            env.BUILD_DISCOVERY_SERVICE == 'true'
-                }
-            }
-            steps {
-                withCredentials([
-                        usernamePassword(
-                                credentialsId: 'dockerhub-creds',
-                                usernameVariable: 'DOCKER_LOGIN_USER',
-                                passwordVariable: 'DOCKER_PASS'
-                        )
-                ]) {
 
-                    sh """
-                        echo "$DOCKER_PASS" | docker login \
-                          -u "$DOCKER_LOGIN_USER" \
-                          --password-stdin
-                    """
-                }
-            }
-        }
 
         // =========================================================
         // Push images
