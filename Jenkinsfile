@@ -33,6 +33,8 @@ pipeline {
                             returnStdout: true
                     ).trim()
 
+                    def firstDeploy = (previousCommit == '')
+
                     echo "PREVIOUS COMMIT: ${previousCommit}"
                     echo "CURRENT COMMIT : ${env.GIT_COMMIT}"
 
@@ -66,7 +68,9 @@ pipeline {
                         env[envName] = changed(path).toString()
                         echo "${envName} = ${env[envName]}"
                     }
-
+                    env.UPLOAD_CONFIG = (
+                            changed("docker-compose.prod.yml") || firstDeploy
+                    ).toString()
 
                     echo "BUILD_CATALOG_SERVICE = ${env.BUILD_CATALOG_SERVICE}"
                     echo "BUILD_USER_SERVICE = ${env.BUILD_USER_SERVICE}"
@@ -74,6 +78,7 @@ pipeline {
                     echo "BUILD_GATEWAY_SERVICE = ${env.BUILD_GATEWAY_SERVICE}"
                     echo "BUILD_DISCOVERY_SERVICE = ${env.BUILD_DISCOVERY_SERVICE}"
                     echo "BUILD_FRONTEND = ${env.BUILD_FRONTEND}"
+                    echo "UPLOAD_CONFIG = ${env.UPLOAD_CONFIG}"
                 }
             }
         }
@@ -412,9 +417,9 @@ pipeline {
                                 def remoteFile = entry.value
 
                                 sh """
-                            scp -o StrictHostKeyChecking=no \$${envVar} \
+                                 scp -o StrictHostKeyChecking=no \$${envVar} \
                                 root@${SERVER_IP}:${SERVER_PATH}/${remoteFile}
-                        """
+                                 """
 
                                 echo "Uploaded ${remoteFile}"
                             }
@@ -422,7 +427,7 @@ pipeline {
                             sh """
                         scp -o StrictHostKeyChecking=no \
                             docker-compose.prod.yml \
-                            root@${SERVER_IP}:${SERVER_PATH}/
+                            root@${SERVER_IP}:${SERVER_PATH}/docker-compose.yml
                     """
                         }
                     }
