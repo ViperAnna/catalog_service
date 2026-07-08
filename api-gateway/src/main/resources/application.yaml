@@ -13,17 +13,22 @@ spring:
             - id: user-service
               uri: lb://USER-SERVICE
               predicates:
-                - Path=/users/**, Path=/admin/users/**, Path=/wishlists/**
+                - Path=/users/**,/admin/users/**,/wishlists/**
 
             - id: notification-service
               uri: lb://NOTIFICATION-SERVICE
               predicates:
                 - Path=/notifications/**
 
-            - id: catalog-service
+            - id: categories
               uri: lb://CATALOG-SERVICE
               predicates:
-                - Path=/categories/**,  Path=/products/**
+                - Path=/categories/**
+
+            - id: products
+              uri: lb://CATALOG-SERVICE
+              predicates:
+                - Path=/products/**
           discovery:
             locator:
               enabled: true
