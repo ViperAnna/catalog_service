@@ -58,12 +58,12 @@ pipeline {
                             "discovery-service"   : "BUILD_DISCOVERY_SERVICE",
                             "frontend"            : "BUILD_FRONTEND"
                     ]
-                    for (entry in services) {
+                    for (String path : services.keySet()) {
 
-                        def path = entry.key
-                        def envName = entry.value
+                        String envName = services[path]
 
                         env[envName] = changed(path).toString()
+
                         echo "${envName} = ${env[envName]}"
                     }
                     env.UPLOAD_CONFIG = changed("docker-compose.prod.yml").toString()
@@ -151,19 +151,19 @@ pipeline {
                     script {
 
                         def services = [
-                                "catalog-service"     : [tagFile: "current_catalog_tag",      image: BACKEND_IMAGE],
-                                "user-service"        : [tagFile: "current_user_tag",         image: USER_IMAGE],
+                                "catalog-service"     : [tagFile: "current_catalog_tag", image: BACKEND_IMAGE],
+                                "user-service"        : [tagFile: "current_user_tag", image: USER_IMAGE],
                                 "notification-service": [tagFile: "current_notification_tag", image: NOTIFICATION_IMAGE],
-                                "api-gateway"         : [tagFile: "current_gateway_tag",      image: GATEWAY_IMAGE],
-                                "discovery-service"   : [tagFile: "current_discovery_tag",    image: DISCOVERY_IMAGE],
-                                "frontend"            : [tagFile: "current_frontend_tag",     image: FRONTEND_IMAGE]
+                                "api-gateway"         : [tagFile: "current_gateway_tag", image: GATEWAY_IMAGE],
+                                "discovery-service"   : [tagFile: "current_discovery_tag", image: DISCOVERY_IMAGE],
+                                "frontend"            : [tagFile: "current_frontend_tag", image: FRONTEND_IMAGE]
                         ]
 
-                        for (entry in services) {
+                        for (String service : services.keySet()) {
 
-                            def service = entry.key
-                            def tagFile = entry.value.tagFile
-                            def image = entry.value.image
+
+                            String tagFile = services[service]["tagFile"]
+                            String image = services[service]["image"]
 
                             def serviceName = service.replace('-', '_').toUpperCase()
 
@@ -271,27 +271,26 @@ pipeline {
                             ]
                     ]
 
-                    for (entry in builds) {
+                    for (String name : builds.keySet()) {
 
-                        def name = entry.key
-                        def cfg = entry.value
+                        def path = builds[name].path
+                        def image = builds[name].image
+                        def build = builds[name].build
 
-                        if (cfg.build == 'true') {
+                        if (build == 'true') {
 
                             echo "Building ${name}"
 
                             sh """
-                        docker build \
-                          -t ${cfg.image}:${IMAGE_TAG} \
-                          ${cfg.path}
-                    """
+                            docker build \
+                                -t ${image}:${IMAGE_TAG} \
+                                ${path}
+                            """
                         }
                     }
                 }
             }
         }
-
-
 
 
         // =========================================================
@@ -321,11 +320,12 @@ pipeline {
                             "frontend"            : "${DOCKERHUB_USER}/front"
                     ]
 
-                    for (entry in images) {
+                    for (String service : images.keySet()) {
 
-                        def service = entry.key
-                        def image = entry.value
-                        def serviceName = service.replace('-', '_').toUpperCase()
+                        String image = images[service]
+
+                        String serviceName =
+                                service.replace('-', '_').toUpperCase()
 
                         if (env["BUILD_${serviceName}"] == 'true') {
 
@@ -370,18 +370,21 @@ pipeline {
                     echo "== SAVE DEPLOY HISTORY =="
                 """
 
-                        for (entry in services) {
+                        for (String service : services.keySet()) {
 
-                            def service = entry.key
-                            def tagFile = entry.value
-                            def serviceName = service.replace('-', '_').toUpperCase()
-                            def tag = env["DEPLOY_${serviceName}"]
+                            String tagFile = services[service]
+
+                            String serviceName =
+                                    service.replace('-', '_').toUpperCase()
+
+                            String tag =
+                                    env["DEPLOY_${serviceName}"]
 
                             remoteScript += """
-                    echo "\$TIMESTAMP ${tag}" >> deploy_history_${service}.log
-                    echo "${tag}" > ${tagFile}.tmp
-                    mv ${tagFile}.tmp ${tagFile}
-                    """
+                            echo "\$TIMESTAMP ${tag}" >> deploy_history_${service}.log
+                            echo "${tag}" > ${tagFile}.tmp
+                            mv ${tagFile}.tmp ${tagFile}
+                            """
                         }
 
                         remoteScript += """
