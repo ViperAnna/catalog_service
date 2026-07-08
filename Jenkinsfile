@@ -397,7 +397,8 @@ pipeline {
                             file(credentialsId: 'env-catalog', variable: 'CATALOG_ENV'),
                             file(credentialsId: 'env-user', variable: 'USER_ENV'),
                             file(credentialsId: 'env-notification', variable: 'NOTIFICATION_ENV'),
-                            file(credentialsId: 'env-postgres', variable: 'POSTGRES_ENV')
+                            file(credentialsId: 'env-postgres', variable: 'POSTGRES_ENV'),
+                            file(credentialsId: 'env-kafka', variable: 'KAFKA_ENV')
                     ]) {
 
                         script {
@@ -412,15 +413,14 @@ pipeline {
                                     "KAFKA_ENV"       : ".env.kafka"
                             ]
 
-                            for (entry in configs) {
+                            for (String envVar : configs.keySet()) {
 
-                                def envVar = entry.key
-                                def remoteFile = entry.value
+                                def remoteFile = configs[envVar]
 
                                 sh """
-                                 scp -o StrictHostKeyChecking=no \$${envVar} \
-                                root@${SERVER_IP}:${SERVER_PATH}/${remoteFile}
-                                 """
+                                  scp -o StrictHostKeyChecking=no \$${envVar} \
+                                      root@${SERVER_IP}:${SERVER_PATH}/${remoteFile}
+                              """
 
                                 echo "Uploaded ${remoteFile}"
                             }
