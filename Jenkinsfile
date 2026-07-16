@@ -434,7 +434,8 @@ pipeline {
                             file(credentialsId: 'env-notification', variable: 'NOTIFICATION_ENV'),
                             file(credentialsId: 'env-postgres', variable: 'POSTGRES_ENV'),
                             file(credentialsId: 'env-kafka', variable: 'KAFKA_ENV'),
-                            file(credentialsId: 'env-keycloak', variable: 'KEYCLOAK_ENV')
+                            file(credentialsId: 'env-keycloak', variable: 'KEYCLOAK_ENV'),
+                            file(credentialsId: 'env-gateway', variable: 'GATEWAY_ENV')
                     ]) {
 
                         script {
@@ -447,7 +448,8 @@ pipeline {
                                     "NOTIFICATION_ENV": ".env.notification",
                                     "POSTGRES_ENV"    : ".env.postgres",
                                     "KAFKA_ENV"       : ".env.kafka",
-                                    "KEYCLOAK_ENV"    : ".env.keycloak"
+                                    "KEYCLOAK_ENV"    : ".env.keycloak",
+                                    "GATEWAY_ENV"     : ".env.gateway"
                             ]
 
                             for (String envVar : configs.keySet()) {

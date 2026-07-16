@@ -1,13 +1,27 @@
 import React from 'react';
 import {Link, useLocation} from 'react-router-dom';
-import {FiGrid, FiPackage} from 'react-icons/fi';
+import {FiGrid, FiPackage, FiUser, FiLogOut, FiHeart, FiUsers} from 'react-icons/fi';
+import {useAuthStore} from '../../store/useAuthStore';
 
 const Header = () => {
     const location = useLocation();
+    const authEnabled = useAuthStore((s) => s.authEnabled);
+    const authenticated = useAuthStore((s) => s.authenticated);
+    const profile = useAuthStore((s) => s.profile);
+    const hasRole = useAuthStore((s) => s.hasRole);
+    const login = useAuthStore((s) => s.login);
+    const logout = useAuthStore((s) => s.logout);
+
+    const displayName = profile?.firstName || profile?.username || 'Профиль';
+
+    const showAuthedLinks = !authEnabled || authenticated;
+    const showAdminLinks = !authEnabled || (authenticated && hasRole('ADMIN'));
 
     const navLinks = [
         {to: '/', label: 'Категории', icon: FiGrid},
         {to: '/products', label: 'Товары', icon: FiPackage},
+        ...(showAuthedLinks ? [{to: '/wishlists', label: 'Списки желаний', icon: FiHeart}] : []),
+        ...(showAdminLinks ? [{to: '/admin/users', label: 'Пользователи', icon: FiUsers}] : []),
     ];
 
     return (
@@ -49,10 +63,29 @@ const Header = () => {
                         </div>
                     </div>
 
-                    <button
-                        className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg">
-                        Войти
-                    </button>
+                    {authEnabled && authenticated ? (
+                        <div className="flex items-center gap-2">
+                            <Link
+                                to="/profile"
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                                <FiUser className="w-4 h-4"/>
+                                <span className="hidden sm:inline max-w-[140px] truncate">{displayName}</span>
+                            </Link>
+                            <button
+                                onClick={logout}
+                                title="Выйти"
+                                className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors">
+                                <FiLogOut className="w-4 h-4"/>
+                                <span className="hidden md:inline">Выйти</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={login}
+                            className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 shadow-md hover:shadow-lg">
+                            Войти
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex md:hidden items-center space-x-1 mt-3 pt-3 border-t border-gray-100">

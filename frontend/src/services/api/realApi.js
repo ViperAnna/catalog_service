@@ -1,9 +1,18 @@
 import axios from 'axios';
+import {getValidToken} from '../auth/keycloak';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export const realApi = axios.create({
     baseURL: API_BASE_URL,
+});
+
+realApi.interceptors.request.use(async (config) => {
+    const token = await getValidToken();
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
 });
 
 realApi.interceptors.response.use(

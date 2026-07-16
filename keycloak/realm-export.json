@@ -962,6 +962,61 @@
         "offline_access",
         "microprofile-jwt"
       ]
+    },
+    {
+      "id": "1452e831-c966-4c55-899b-f56e486f5432",
+      "clientId": "frontend-client",
+      "name": "Frontend SPA",
+      "description": "Публичный клиент React-фронтенда: Authorization Code Flow + PKCE (S256).",
+      "rootUrl": "https://v693663.hosted-by-vdsina.com",
+      "baseUrl": "/",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "https://v693663.hosted-by-vdsina.com/*",
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "https://v693663.hosted-by-vdsina.com",
+        "http://localhost:3000"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://v693663.hosted-by-vdsina.com/*##http://localhost:3000/*",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "roles",
+        "profile",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "organization",
+        "offline_access",
+        "microprofile-jwt"
+      ]
     }
   ],
   "clientScopes": [

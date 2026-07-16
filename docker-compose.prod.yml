@@ -79,6 +79,7 @@ services:
     container_name: api-gateway
     env_file:
       - .env.kafka
+      - .env.gateway
     ports:
       - "8080:8080"
     depends_on:
@@ -125,17 +126,16 @@ services:
 
   #  ----------Keycloak----------
   keycloak:
-    image: quay.io/keycloak/keycloak:26.2
+    image: quay.io/keycloak/keycloak:26.6.3
     container_name: keycloak
     env_file:
       - .env.keycloak
     command:
       - start
       - --http-enabled=true
+      - --http-port=8181
       - --proxy-headers=xforwarded
       - --import-realm
-#    ports:
-#      - "8181:8080"
     volumes:
       - ./keycloak:/opt/keycloak/data/import
     depends_on:
