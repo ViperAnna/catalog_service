@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+    // Обязательная страница для тихой проверки SSO в Keycloak (check-sso).
+    // Keycloak грузит её в скрытый iframe и передаёт результат родительскому окну.
+    parent.postMessage(location.href, location.origin);
+</script>
+</body>
+</html>
