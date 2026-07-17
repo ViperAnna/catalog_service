@@ -31,13 +31,22 @@ spring:
                 - Path=/products/**
           discovery:
             locator:
-              enabled: true
+              enabled: ${GATEWAY_DISCOVERY_LOCATOR_ENABLED}
               lower-case-service-id: true
+
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: ${CORS_ALLOWED_ORIGINS}
+                allowedMethods: ${CORS_ALLOWED_METHODS}
+                allowedHeaders: ${CORS_ALLOWED_HEADERS}
+                allowCredentials: ${CORS_ALLOW_CREDENTIALS}
+                maxAge: ${CORS_MAX_AGE}
 
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG
-    reactor.netty.http.client: DEBUG
+    org.springframework.cloud.gateway: ${GATEWAY_LOG_LEVEL}
+    reactor.netty.http.client: ${GATEWAY_NETTY_LOG_LEVEL}
 
 eureka:
   client:
