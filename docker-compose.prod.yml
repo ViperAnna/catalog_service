@@ -231,3 +231,4 @@ networks:
   default:
     name: catalog_service_default
     driver: bridge
+
