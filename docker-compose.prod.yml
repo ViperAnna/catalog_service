@@ -232,3 +232,4 @@ networks:
     name: catalog_service_default
     driver: bridge
 
+
