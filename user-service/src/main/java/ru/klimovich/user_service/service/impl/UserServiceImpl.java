@@ -19,11 +19,11 @@ import ru.klimovich.user_service.util.MessageKeys;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepo;
     private final UserMapper userMapper;
@@ -31,29 +31,8 @@ public class UserServiceImpl implements UserService {
     private final EventMapper eventMapper;
 
 
-//    @Override
-//    public void createUser(UserRequest userDetails, String keycloakUserId) {
-//
-//        if (userRepo.existsByKeycloakUserId(keycloakUserId)) {
-//            throw new ResourceConflictException(MessageKeys.USER_KEYCLOAK_ACCOUNT_EXIST);
-//        }
-////или моб
-//        if (userRepo.findByEmail(userDetails.getEmail()).isPresent()) {
-//            throw new ResourceConflictException(String.format(
-//                    MessageKeys.USER_EMAIL_ALREADY_EXIST, userDetails.getEmail()));
-//        }
-//        if (userRepo.findByPhone(userDetails.getPhone()).isPresent()) {
-//            throw new ResourceConflictException(String.format(
-//                    MessageKeys.USER_PHONE_ALREADY_EXIST, userDetails.getPhone()));
-//        }
-//
-//        User user = userMapper.toEntity(userDetails);
-//        user.setKeycloakUserId(keycloakUserId);
-//        userRepo.save(user);
-//    }
-
-
     @Override
+    @Transactional(readOnly = true)
     public List<UserResponse> getAllUsers() {
         List<User> usersList = userRepo.findAll();
         return usersList.stream()
@@ -63,6 +42,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse getUserByKeycloakId(String keycloakId) {
         User user = userRepo.findByKeycloakUserId(keycloakId)
                 .orElseThrow(() ->
@@ -73,27 +53,54 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse getOrCreateUser(Jwt jwt) {
-        String id = jwt.getSubject();
+    public UserResponse getUser(Jwt jwt) {
 
-        return userRepo.findByKeycloakUserId(jwt.getSubject())
-                .map(userMapper::toDTO)
-                .orElseGet(() -> {
+        User user = userRepo.findByKeycloakUserId(jwt.getSubject())
+                .orElseGet(() -> createUser(jwt));
 
-                    User user = new User();
+        UserResponse response = userMapper.toDTO(user);
+        response.setRoles(getRoles(jwt));
+        return response;
 
-                    user.setKeycloakUserId(jwt.getSubject());
-                    user.setFirstName(jwt.getClaimAsString("given_name"));
-                    user.setLastName(jwt.getClaimAsString("family_name"));
-                    user.setEmail(jwt.getClaimAsString("email"));
-
-                    user = userRepo.save(user);
-
-                    saveUserCreatedEvent(user, jwt);
-
-                    return userMapper.toDTO(user);
-                });
     }
+
+
+    private User createUser(Jwt jwt) {
+
+        User user = new User();
+
+        user.setKeycloakUserId(jwt.getSubject());
+        user.setFirstName(jwt.getClaimAsString("given_name"));
+        user.setLastName(jwt.getClaimAsString("family_name"));
+        user.setEmail(jwt.getClaimAsString("email"));
+
+        user = userRepo.save(user);
+
+        saveUserCreatedEvent(user, jwt);
+
+        return user;
+
+    }
+
+    private List<String> getRoles(Jwt jwt) {
+
+        Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+
+        if (realmAccess == null) {
+            return List.of();
+        }
+
+        Object roles = realmAccess.get("roles");
+
+        if (roles instanceof List<?> list) {
+            return list.stream()
+                    .map(Object::toString)
+                    .toList();
+        }
+
+        return List.of();
+    }
+
 
     private void saveUserCreatedEvent(User user, Jwt jwt) {
         UserCreatedEvent event = UserCreatedEvent.builder()
@@ -117,16 +124,18 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserResponse updateUserById(String keycloakId, UserUpdateRequest userDetails) {
         User user = userRepo.findByKeycloakUserId(keycloakId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(String
                                 .format(MessageKeys.USER_NOT_FOUND, keycloakId)));
         userMapper.updateUserFromDTO(userDetails, user);
-        return userMapper.toDTO(userRepo.save(user));
+        return userMapper.toDTO(user);
     }
 
     @Override
+    @Transactional
     public void deleteUserById(String keycloakId) {
         User user = userRepo.findByKeycloakUserId(keycloakId)
                 .orElseThrow(() ->

@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -20,4 +21,5 @@ public class UserResponse {
     private String nicknameTelegram;
     private String email;
     private AddressResponse address;
+    private List<String> roles;
 }

@@ -15,7 +15,7 @@ public interface UserService {
 
     UserResponse getUserByKeycloakId(String keycloakId);
 
-    UserResponse getOrCreateUser(Jwt jwt);
+    UserResponse getUser(Jwt jwt);
 
     UserResponse updateUserById(String keycloakId, UserUpdateRequest userDetails);
 
