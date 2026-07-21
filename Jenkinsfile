@@ -67,6 +67,7 @@ pipeline {
                         echo "${envName} = ${env[envName]}"
                     }
                     env.UPLOAD_CONFIG = changed("docker-compose.prod.yml").toString()
+                    env.NGINX_CHANGED = changed("nginx/nginx.prod.conf").toString()
 
                     echo "BUILD_CATALOG_SERVICE = ${env.BUILD_CATALOG_SERVICE}"
                     echo "BUILD_USER_SERVICE = ${env.BUILD_USER_SERVICE}"
@@ -75,6 +76,7 @@ pipeline {
                     echo "BUILD_DISCOVERY_SERVICE = ${env.BUILD_DISCOVERY_SERVICE}"
                     echo "BUILD_FRONTEND = ${env.BUILD_FRONTEND}"
                     echo "UPLOAD_CONFIG = ${env.UPLOAD_CONFIG}"
+                    echo "NGINX_CHANGED = ${env.NGINX_CHANGED}"
                 }
             }
         }
@@ -464,11 +466,23 @@ pipeline {
                                 echo "Uploaded ${remoteFile}"
                             }
 
-                            sh """
-                        scp -o StrictHostKeyChecking=no \
-                            docker-compose.prod.yml \
-                            root@${SERVER_IP}:${SERVER_PATH}/docker-compose.yml
-                    """
+                            if (env.UPLOAD_CONFIG == 'true') {
+
+                                sh """
+                                scp -o StrictHostKeyChecking=no \
+                                    docker-compose.prod.yml \
+                                    root@${SERVER_IP}:${SERVER_PATH}/docker-compose.yml
+                                """
+                            }
+                              if (env.NGINX_CHANGED == 'true') {
+
+                                  sh """
+                                  scp -o StrictHostKeyChecking=no \
+                                      nginx/nginx.prod.conf \
+                                      root@${SERVER_IP}:${SERVER_PATH}/nginx/nginx.prod.conf
+                                  """
+
+                            }
                         }
                     }
                 }
@@ -506,8 +520,10 @@ pipeline {
                     echo "========== DEPLOY START =========="
 
                     export PULL_NEEDED=${pullNeeded}
-
                     echo "PULL_NEEDED=\$PULL_NEEDED"
+
+                    export NGINX_CHANGED=${env.NGINX_CHANGED}
+                    echo "NGINX_CHANGED=\$NGINX_CHANGED"
 
                     echo "Generating .env..."
 
@@ -550,21 +566,41 @@ EOF
 
                     echo "Starting containers..."
                     docker compose up -d
+                    
+                    if [ "\$NGINX_CHANGED" = "true" ]; then
 
-                    echo "Container status:"
-                    docker compose ps
+                    echo "Nginx config changed"
+                
+                    if docker ps --format '{{.Names}}' | grep -q "^front\$"; then
+                
+                        echo "Checking nginx config..."
+                        docker exec front nginx -t
+                
+                        echo "Reloading nginx..."     
+                        docker exec front nginx -s reload
+                
+                    else
+                        echo "Frontend container not running, skip nginx reload"
+                    fi
+                
+                    else
+                        echo "Nginx config unchanged, skip reload"
+                    fi
 
-                    echo "========== DEPLOY DONE =========="
-                """
+                        echo "Container status:"
+                        docker compose ps
 
-                        echo "Remote deploy command:"
-                        echo remoteCmd
+                        echo "========== DEPLOY DONE =========="
+                    """
 
-                        sh """
-                    ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteCmd}'
-                """
+                            echo "Remote deploy command:"
+                            echo remoteCmd
+
+                            sh """
+                        ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteCmd}'
+                    """
+                        }
                     }
-                }
             }
         }
 
