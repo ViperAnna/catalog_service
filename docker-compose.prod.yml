@@ -21,7 +21,7 @@ services:
       discovery-service:
         condition: service_healthy
       kafka:
-        condition: service_healthy
+        condition: service_started
     restart: unless-stopped
 
   #  ----------User service----------
@@ -111,15 +111,6 @@ services:
       - "9092:9092"
     volumes:
       - kafka_data:/var/lib/kafka
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "kafka-broker-api-versions.sh --bootstrap-server localhost:9092"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
     restart: unless-stopped
 
   #  ----------Kafka UI----------
@@ -134,7 +125,7 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     restart: unless-stopped
-
+    
   #  ----------Keycloak----------
   keycloak:
     image: quay.io/keycloak/keycloak:26.6.3
