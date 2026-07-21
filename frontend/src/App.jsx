@@ -6,6 +6,7 @@ import ProductsPage from './pages/ProductsPage/index.jsx';
 import ProductPage from './pages/ProductPage/index.jsx';
 import ProfilePage from './pages/ProfilePage/index.jsx';
 import WishlistsPage from './pages/WishlistsPage/index.jsx';
+import WishlistDetailPage from './pages/WishlistDetailPage/index.jsx';
 import AdminUsersPage from './pages/AdminUsersPage/index.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Header from './components/layout/Header';
@@ -36,6 +37,14 @@ const App = () => {
                             element={
                                 <ProtectedRoute>
                                     <WishlistsPage/>
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/wishlists/:id"
+                            element={
+                                <ProtectedRoute>
+                                    <WishlistDetailPage/>
                                 </ProtectedRoute>
                             }
                         />

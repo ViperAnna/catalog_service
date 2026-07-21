@@ -5,6 +5,9 @@ export const useWishlistStore = create((set, get) => ({
     wishlists: [],
     loading: false,
     error: null,
+    current: null,
+    detailLoading: false,
+    detailError: null,
 
     fetchWishlists: async () => {
         set({loading: true, error: null});
@@ -31,6 +34,20 @@ export const useWishlistStore = create((set, get) => ({
             throw e;
         }
     },
+
+    fetchWishlistById: async (id) => {
+        set({detailLoading: true, detailError: null, current: null});
+        try {
+            const {data} = await api.get(`/wishlists/${id}`);
+            set({current: data ?? null, detailLoading: false});
+            return data;
+        } catch (e) {
+            set({detailLoading: false, detailError: e?.message || 'Не удалось загрузить список'});
+            throw e;
+        }
+    },
+
+    clearCurrent: () => set({current: null, detailError: null}),
 
     createWishlist: async (name) => {
         const response = await api.post('/wishlists', {name: name.trim()});

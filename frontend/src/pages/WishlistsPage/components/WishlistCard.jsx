@@ -1,4 +1,5 @@
 import React from 'react';
+import {Link} from 'react-router-dom';
 import {FiEdit2, FiTrash2, FiHeart, FiPackage} from 'react-icons/fi';
 
 const WishlistCard = ({wishlist, onEdit, onDelete}) => {
@@ -12,7 +13,13 @@ const WishlistCard = ({wishlist, onEdit, onDelete}) => {
                     <div className="w-10 h-10 shrink-0 bg-emerald-50 rounded-xl flex items-center justify-center">
                         <FiHeart className="w-5 h-5 text-emerald-600"/>
                     </div>
-                    <h3 className="font-semibold text-gray-800 truncate">{wishlist.name}</h3>
+                    {hasId ? (
+                        <Link to={`/wishlists/${wishlist.id}`} className="min-w-0">
+                            <h3 className="font-semibold text-gray-800 truncate hover:text-emerald-600 transition-colors">{wishlist.name}</h3>
+                        </Link>
+                    ) : (
+                        <h3 className="font-semibold text-gray-800 truncate">{wishlist.name}</h3>
+                    )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                     <button
