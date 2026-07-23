@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -15,6 +15,7 @@ import java.util.List;
 public class WishlistResponse {
     Long id;
     String name;
-    List<ItemResponse> items;
+    Set<ProductResponse> products;
     LocalDateTime createdAt;
+    LocalDateTime updatedAt;
 }

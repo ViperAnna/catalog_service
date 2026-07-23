@@ -36,26 +36,37 @@ public class WishlistController {
         return wishlistService.getAllWishlistsByUser();
     }
 
-    @GetMapping("/{id}")
-    public WishlistResponse getWishlistById(@PathVariable Long id) {
-        return wishlistService.getWishListById(id);
+    @GetMapping("/{wishlistId}")
+    public WishlistResponse getWishlistById(@PathVariable Long wishlistId) {
+        return wishlistService.getWishListById(wishlistId);
     }
 
-    @PutMapping("/{id}")
-    public Response updateWishList(@PathVariable Long id, @Valid @RequestBody WishlistRequest wishlistDetails) {
-        wishlistService.updateWishlist(id, wishlistDetails);
+    @PutMapping("/{wishlistId}")
+    public Response updateWishlist(@PathVariable Long wishlistId, @Valid @RequestBody WishlistRequest wishlistDetails) {
+        wishlistService.updateWishlist(wishlistId, wishlistDetails);
         return new Response(
                 WISHLIST_UPDATE_SUCCESSFULLY,
                 LocalDateTime.now()
         );
     }
 
-    @DeleteMapping("/{id}")
-    public Response deleteWishListById(@PathVariable Long id) {
-        wishlistService.deleteWishlist(id);
+    @DeleteMapping("/{wishlistId}")
+    public Response deleteWishlistById(@PathVariable Long wishlistId) {
+        wishlistService.deleteWishlist(wishlistId);
         return new Response(
                 WISHLIST_DELETE_SUCCESSFULLY,
                 LocalDateTime.now()
         );
+    }
+
+
+    @PostMapping("/{wishlistId}/products/{productId}")
+    public WishlistResponse addProduct(@PathVariable Long wishlistId, @PathVariable String productId) {
+        return wishlistService.addProduct(wishlistId, productId);
+    }
+
+    @DeleteMapping("/{wishlistId}/products/{productId}")
+    public WishlistResponse removeProduct(@PathVariable Long wishlistId, @PathVariable String productId) {
+        return wishlistService.removeProduct(wishlistId, productId);
     }
 }

@@ -3,6 +3,7 @@ package ru.klimovich.user_service.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.klimovich.user_service.client.CatalogClient;
 import ru.klimovich.user_service.dto.request.WishlistRequest;
 import ru.klimovich.user_service.dto.responce.WishlistResponse;
 import ru.klimovich.user_service.exception.ResourceConflictException;
@@ -25,6 +26,7 @@ public class WishlistServiceImpl implements WishlistService {
     private final WishlistMapper wishlistMapper;
     private final CurrentUserService currentUserService;
     private final WishlistResponseBuilder responseBuilder;
+    private final CatalogClient catalogClient;
 
     @Override
     public WishlistResponse createWishlist(WishlistRequest wishlistDetails) {
@@ -49,55 +51,84 @@ public class WishlistServiceImpl implements WishlistService {
                 .toList();
     }
 
-    private Wishlist getWishlist(Long id) {
+    @Override
+    public WishlistResponse getWishListById(Long wishlistId) {
+        Wishlist wishlist = getWishlist(wishlistId);
+        return responseBuilder.buildWishlistResponse(wishlist, currentUserService.getAccessToken());
+    }
+
+    private Wishlist getWishlist(Long wishlistId) {
         return wishlistRepo
-                .findByIdAndKeycloakUserId(id, currentUserService.getUserId())
+                .findByIdAndKeycloakUserId(wishlistId, currentUserService.getUserId())
                 .orElseThrow(
                         () -> new ResourceNotFoundException(
-                                String.format(MessageKeys.WISHLIST_NOT_FOUND, id)
+                                String.format(MessageKeys.WISHLIST_NOT_FOUND, wishlistId)
                         ));
     }
 
     @Override
-    public WishlistResponse getWishListById(Long id) {
-        Wishlist wishlist = getWishlist(id);
-        return responseBuilder.buildWishlistResponse(wishlist, currentUserService.getAccessToken());
+    public WishlistResponse addProduct(Long wishlistId, String productId) {
+        String accessToken = currentUserService.getAccessToken();
+
+        Wishlist wishlist = getWishlist(wishlistId);
+        catalogClient.getProductById(productId, accessToken);
+
+        if (!wishlist.getProductIds().add(productId)) {
+            throw new ResourceConflictException(MessageKeys.PRODUCT_ALREADY_IN_WISHLIST, productId);
+        }
+
+        wishlistRepo.save(wishlist);
+        return responseBuilder.buildWishlistResponse(wishlist, accessToken);
     }
 
     @Override
-    public WishlistResponse updateWishlist(Long id, WishlistRequest wishlistDetails) {
-        String userId = currentUserService.getUserId();
+    public WishlistResponse removeProduct(Long wishlistId, String productId) {
+        String accessToken = currentUserService.getAccessToken();
+        Wishlist wishlist = getWishlist(wishlistId);
 
-        validateUniqueName(userId, wishlistDetails.getName(), id);
+        if (!wishlist.getProductIds().remove(productId)) {
+            throw new ResourceConflictException(MessageKeys.PRODUCT_NOT_FOUND, productId);
+        }
+        wishlistRepo.save(wishlist);
+        return responseBuilder.buildWishlistResponse(wishlist, accessToken);
 
-        Wishlist wishlist = getWishlist(id);
-
-        wishlistMapper.updateUserFromDTO(wishlistDetails, wishlist);
-
-        return responseBuilder.buildWishlistResponse(
-                wishlistRepo.save(wishlist), currentUserService.getAccessToken());
     }
 
-    private void validateUniqueName(String userId, String name, Long wishlistId) {
+    @Override
+    public WishlistResponse updateWishlist(Long wishlistId, WishlistRequest wishlistDetails) {
+        String userId = currentUserService.getUserId();
+        String accessToken = currentUserService.getAccessToken();
+
+        validateUniqueName(userId, wishlistDetails.getName(), wishlistId);
+
+        Wishlist wishlist = getWishlist(wishlistId);
+
+        wishlistMapper.updateFromDTO(wishlistDetails, wishlist);
+        wishlistRepo.save(wishlist);
+
+        return responseBuilder.buildWishlistResponse(wishlist, accessToken);
+    }
+
+    private void validateUniqueName(String userId, String wishlistName, Long wishlistId) {
         boolean exists = wishlistId == null
-                ? wishlistRepo.existsByKeycloakUserIdAndName(userId, name)
+                ? wishlistRepo.existsByKeycloakUserIdAndName(userId, wishlistName)
                 : wishlistRepo.existsByKeycloakUserIdAndNameAndIdNot(
                 userId,
-                name,
+                wishlistName,
                 wishlistId
         );
         if (exists) {
             throw new ResourceConflictException(
                     String.format(
                             MessageKeys.WISHLIST_NAME_ALREADY_EXIST,
-                            name
+                            wishlistName
                     )
             );
         }
     }
 
     @Override
-    public void deleteWishlist(Long id) {
-        wishlistRepo.delete(getWishlist(id));
+    public void deleteWishlist(Long wishlistId) {
+        wishlistRepo.delete(getWishlist(wishlistId));
     }
 }
