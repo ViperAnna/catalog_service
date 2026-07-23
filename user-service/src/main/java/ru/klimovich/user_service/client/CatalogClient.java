@@ -33,8 +33,7 @@ public class CatalogClient {
                         HttpStatusCode::is4xxClientError,
                         response -> Mono.error(
                                 new ProductNotFoundException(
-                                        MessageKeys.PRODUCT_NOT_FOUND,
-                                        productId
+                                        MessageKeys.PRODUCT_NOT_FOUND
                                 )
                         )
                 )
