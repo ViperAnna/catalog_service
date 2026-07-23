@@ -29,12 +29,8 @@ public class Wishlist {
     @Column(name = "name")
     private String name;
 
-    @OneToMany(mappedBy = "wishlist", cascade = CascadeType.ALL)
-    private List<Item> items = new ArrayList<>();
-
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "user_id")
-//    private User user;
+    @OneToMany(mappedBy = "wishlist", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WishlistItem> items = new ArrayList<>();
 
 
     @Column(name = "keycloak_user_id")

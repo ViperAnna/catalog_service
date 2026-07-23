@@ -1,24 +1,21 @@
 package ru.klimovich.user_service.service;
 
+import ru.klimovich.user_service.dto.request.WishlistItemRequest;
 import ru.klimovich.user_service.dto.request.WishlistRequest;
 import ru.klimovich.user_service.dto.responce.WishlistResponse;
 
 import java.util.List;
 
 public interface WishlistService {
-    WishlistResponse createWishlist(WishlistRequest wishlistDetails, String keycloakUserId);
+    WishlistResponse createWishlist(WishlistRequest wishlistDetails);
 
-    List<WishlistResponse> getAllWishlistsByUser(String keycloakUserId);
+    List<WishlistResponse> getAllWishlistsByUser();
 
-    List<WishlistResponse> getWishlistsByUser(String keycloakUserId);
-
-    WishlistResponse getWishListById(Long id, String keycloakUserId);
-
-    List<WishlistResponse> getWishlistByName(String name, String keycloakUserId);
+    WishlistResponse getWishListById(Long id);
 
 
-    WishlistResponse updateWishlist(Long id, WishlistRequest wishlistDetails, String keycloakUserId);
+    WishlistResponse updateWishlist(Long id, WishlistRequest wishlistDetails);
 
-    void deleteWishlist(Long id, String keycloakUserId);
+    void deleteWishlist(Long id);
 
 }

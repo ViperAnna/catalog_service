@@ -27,6 +27,12 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- WebClient -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
         <!--        Security-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -50,6 +56,11 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+        <!-- LoadBalancer -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
 
         <!--        AOP-->
@@ -121,6 +132,12 @@
             <artifactId>testcontainers</artifactId>
             <!--            <version>1.19.2</version>-->
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ru.klimovich</groupId>
+            <artifactId>catalog-service</artifactId>
+            <version>0.0.4</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
     <dependencyManagement>

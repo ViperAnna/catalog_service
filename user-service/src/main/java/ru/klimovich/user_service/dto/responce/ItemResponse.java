@@ -1,20 +1,25 @@
 package ru.klimovich.user_service.dto.responce;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import ru.klimovich.user_service.model.Wishlist;
+import lombok.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+
 
 @Getter
 @Setter
-@ToString
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ItemResponse {
-    private Long id;
+
+    private String id;
+
     private String name;
-    private String productId;
-    private Wishlist wishlists;
+
+    private BigDecimal price;
+
+    private String articleNumber;
+
+    private List<String> imagesUrl;
 }
-
-

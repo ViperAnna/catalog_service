@@ -8,9 +8,6 @@ import java.util.List;
 
 public interface UserService {
 
-//    void createUser(UserRequest userDetails, String keycloakUserId);
-//void createUser(UserRequest userDetails);
-
     List<UserResponse> getAllUsers();
 
     UserResponse getUserByKeycloakId(String keycloakId);

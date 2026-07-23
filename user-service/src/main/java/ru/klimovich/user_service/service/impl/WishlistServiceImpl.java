@@ -7,12 +7,12 @@ import ru.klimovich.user_service.dto.request.WishlistRequest;
 import ru.klimovich.user_service.dto.responce.WishlistResponse;
 import ru.klimovich.user_service.exception.ResourceConflictException;
 import ru.klimovich.user_service.exception.ResourceNotFoundException;
-import ru.klimovich.user_service.mapper.ItemMapper;
 import ru.klimovich.user_service.mapper.WishlistMapper;
 import ru.klimovich.user_service.model.Wishlist;
 import ru.klimovich.user_service.repository.WishlistRepository;
 import ru.klimovich.user_service.service.WishlistService;
 import ru.klimovich.user_service.util.MessageKeys;
+import ru.klimovich.user_service.util.builder.WishlistResponseBuilder;
 
 import java.util.List;
 
@@ -20,100 +20,84 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional
 public class WishlistServiceImpl implements WishlistService {
+
     private final WishlistRepository wishlistRepo;
     private final WishlistMapper wishlistMapper;
-    public final ItemMapper itemMapper;
+    private final CurrentUserService currentUserService;
+    private final WishlistResponseBuilder responseBuilder;
 
     @Override
-    public WishlistResponse createWishlist(WishlistRequest wishlistDetails, String keycloakUserId) {
+    public WishlistResponse createWishlist(WishlistRequest wishlistDetails) {
+        String userId = currentUserService.getUserId();
+        validateUniqueName(userId, wishlistDetails.getName(), null);
 
-//        User user = userRepo.findById(userId)
-//                .orElseThrow(() -> new ResourceNotFoundException(
-//                        String.format(MessageKeys.USER_NOT_FOUND, userId)
-//                ));
+        Wishlist wishlist = wishlistMapper.toEntity(wishlistDetails);
+        wishlist.setKeycloakUserId(userId);
 
-        if (wishlistRepo.existsByKeycloakUserIdAndName(keycloakUserId, wishlistDetails.getName())) {
-            throw new ResourceConflictException(String.format(
-                    MessageKeys.WISHLIST_NAME_ALREADY_EXIST, wishlistDetails.getName()));
+        return wishlistMapper.toDTO(wishlistRepo.save(wishlist));
+    }
+
+    @Override
+    public List<WishlistResponse> getAllWishlistsByUser() {
+        String keycloakUserId = currentUserService.getUserId();
+        String accessToken = currentUserService.getAccessToken();
+
+        return wishlistRepo.findByKeycloakUserId(keycloakUserId)
+                .stream()
+                .map(wishlist ->
+                        responseBuilder.buildWishlistResponse(wishlist, accessToken))
+                .toList();
+    }
+
+    private Wishlist getWishlist(Long id) {
+        return wishlistRepo
+                .findByIdAndKeycloakUserId(id, currentUserService.getUserId())
+                .orElseThrow(
+                        () -> new ResourceNotFoundException(
+                                String.format(MessageKeys.WISHLIST_NOT_FOUND, id)
+                        ));
+    }
+
+    @Override
+    public WishlistResponse getWishListById(Long id) {
+        Wishlist wishlist = getWishlist(id);
+        return responseBuilder.buildWishlistResponse(wishlist, currentUserService.getAccessToken());
+    }
+
+    @Override
+    public WishlistResponse updateWishlist(Long id, WishlistRequest wishlistDetails) {
+        String userId = currentUserService.getUserId();
+
+        validateUniqueName(userId, wishlistDetails.getName(), id);
+
+        Wishlist wishlist = getWishlist(id);
+
+        wishlistMapper.updateUserFromDTO(wishlistDetails, wishlist);
+
+        return responseBuilder.buildWishlistResponse(
+                wishlistRepo.save(wishlist), currentUserService.getAccessToken());
+    }
+
+    private void validateUniqueName(String userId, String name, Long wishlistId) {
+        boolean exists = wishlistId == null
+                ? wishlistRepo.existsByKeycloakUserIdAndName(userId, name)
+                : wishlistRepo.existsByKeycloakUserIdAndNameAndIdNot(
+                userId,
+                name,
+                wishlistId
+        );
+        if (exists) {
+            throw new ResourceConflictException(
+                    String.format(
+                            MessageKeys.WISHLIST_NAME_ALREADY_EXIST,
+                            name
+                    )
+            );
         }
-        Wishlist wishlist = new Wishlist();
-        wishlist.setName(wishlistDetails.getName());
-        wishlist.setKeycloakUserId(keycloakUserId);
-
-        return wishlistMapper.toDTO(wishlistRepo.save(wishlist));
-    }
-
-
-    @Override
-    public List<WishlistResponse> getAllWishlistsByUser(String keycloakUserId) {
-
-//        return wishlistRepo.findAll()
-//                .stream()
-//                .map(wishlistMapper::toDTO)
-//                .toList();
-
-        return wishlistRepo.findByKeycloakUserId(keycloakUserId)
-                .stream()
-                .map(wishlistMapper::toDTO)
-                .toList();
-    }
-
-
-    public List<WishlistResponse> getWishlistsByUser(String keycloakUserId) {
-//
-//        return wishlistRepo.findByUserId(userId)
-//                .stream()
-//                .map(wishlistMapper::toDTO)
-//                .toList();
-
-        return wishlistRepo.findByKeycloakUserId(keycloakUserId)
-                .stream()
-                .map(wishlistMapper::toDTO)
-                .toList();
-    }
-
-
-    @Override
-    public WishlistResponse getWishListById(Long id, String keycloakUserId) {
-
-        Wishlist wishlist = wishlistRepo.findByIdAndKeycloakUserId(id, keycloakUserId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        String.format(MessageKeys.WISHLIST_NOT_FOUND, id)
-                ));
-
-        return wishlistMapper.toDTO(wishlist);
     }
 
     @Override
-    public List<WishlistResponse> getWishlistByName(String name, String keycloakUserId) {
-
-        return wishlistRepo.findByKeycloakUserIdAndNameContainingIgnoreCase(keycloakUserId, name)
-                .stream()
-                .map(wishlistMapper::toDTO)
-                .toList();
-    }
-
-    @Override
-    public WishlistResponse updateWishlist(Long id, WishlistRequest wishlistDetails, String keycloakUserId) {
-
-        Wishlist wishlist = wishlistRepo.findByIdAndKeycloakUserId(id, keycloakUserId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        String.format(MessageKeys.WISHLIST_NOT_FOUND, id)
-                ));
-
-        wishlist.setName(wishlistDetails.getName());
-
-        return wishlistMapper.toDTO(wishlistRepo.save(wishlist));
-    }
-
-    @Override
-    public void deleteWishlist(Long id, String keycloakUserId) {
-
-        Wishlist wishlist = wishlistRepo.findByIdAndKeycloakUserId(id, keycloakUserId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        String.format("Wishlist not found: %d", id)
-                ));
-
-        wishlistRepo.delete(wishlist);
+    public void deleteWishlist(Long id) {
+        wishlistRepo.delete(getWishlist(id));
     }
 }
