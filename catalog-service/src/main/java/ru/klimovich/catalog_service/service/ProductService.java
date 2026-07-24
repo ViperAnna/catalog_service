@@ -18,6 +18,8 @@ public interface ProductService {
 
     List<ProductResponse> getProductByName(String productName);
 
+    List<ProductResponse> getProductsByIds(List<String> productsId);
+
     Page<ProductResponse> getProductsByCategory(Pageable pageable, String categoryId);
 
     void updateProductById(String id, ProductRequest productDetails);

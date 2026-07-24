@@ -66,3 +66,6 @@ logging:
 #    org.hibernate.orm.jdbc.bind: TRACE
 server:
   port: 8080
+
+catalog-service:
+  url: lb://CATALOG-SERVICE

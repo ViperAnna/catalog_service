@@ -95,6 +95,15 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public List<ProductResponse> getProductsByIds(List<String> productsId) {
+        return productRepo
+                .findAllByIdIn(productsId)
+                .stream()
+                .map(this::buildProductResponse)
+                .toList();
+    }
+
+    @Override
     public Page<ProductResponse> getProductsByCategory(Pageable pageable, String categoryId) {
         categoryRepo.findById(categoryId)
                 .orElseThrow(() ->

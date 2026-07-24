@@ -74,6 +74,20 @@ public class ProductController {
     }
 
     @Operation(
+            summary = "Получение списка продуктов по ID",
+            description = "Возвращает список продуктов по переданному списку ID"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Список продуктов успешно получен"),
+            @ApiResponse(responseCode = "400", description = "Некорректный список идентификаторов"),
+            @ApiResponse(responseCode = "404", description = "Некоторые продукты не найдены")
+    })
+    @PostMapping("/by-ids")
+    public List<ProductResponse> getProductsByIds(@RequestBody List<String> productsIds){
+        return productService.getProductsByIds(productsIds);
+    }
+
+    @Operation(
             summary = "Получение продукта по имени",
             description = "Возвращает список продуктов, соответствующих заданному названию"
     )

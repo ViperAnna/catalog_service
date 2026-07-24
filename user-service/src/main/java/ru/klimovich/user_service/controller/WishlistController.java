@@ -3,8 +3,6 @@ package ru.klimovich.user_service.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import ru.klimovich.user_service.dto.Response;
 import ru.klimovich.user_service.dto.request.WishlistRequest;
@@ -20,13 +18,13 @@ import static ru.klimovich.user_service.util.MessageKeys.*;
 @RequestMapping("/wishlists")
 @RequiredArgsConstructor
 public class WishlistController {
+
     private final WishlistService wishlistService;
 
     @PostMapping()
     @ResponseStatus(HttpStatus.CREATED)
-    public Response createWishList(@Valid @RequestBody WishlistRequest wishlistDetails, @AuthenticationPrincipal Jwt jwt) {
-
-        wishlistService.createWishlist(wishlistDetails, jwt.getSubject());
+    public Response createWishList(@Valid @RequestBody WishlistRequest wishlistDetails) {
+        wishlistService.createWishlist(wishlistDetails);
         return new Response(
                 WISHLIST_CREATED_SUCCESSFULLY,
                 LocalDateTime.now()
@@ -34,39 +32,41 @@ public class WishlistController {
     }
 
     @GetMapping()
-    public List<WishlistResponse> getAllWishlistsByUser(@AuthenticationPrincipal Jwt jwt) {
-
-        return wishlistService.getAllWishlistsByUser(jwt.getSubject());
+    public List<WishlistResponse> getAllWishlistsByUser() {
+        return wishlistService.getAllWishlistsByUser();
     }
 
-    @GetMapping("/{id}")
-    public WishlistResponse getWishlistById(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-
-        return wishlistService.getWishListById(id, jwt.getSubject());
+    @GetMapping("/{wishlistId}")
+    public WishlistResponse getWishlistById(@PathVariable Long wishlistId) {
+        return wishlistService.getWishListById(wishlistId);
     }
 
-    @GetMapping("/search")
-    public List<WishlistResponse> getWishListByName(@RequestParam String name, @AuthenticationPrincipal Jwt jwt) {
-
-        return wishlistService.getWishlistByName(name, jwt.getSubject());
-    }
-
-    @PutMapping("/{id}")
-    public Response updateWishList(@PathVariable Long id, @Valid @RequestBody WishlistRequest wishlistDetails, @AuthenticationPrincipal Jwt jwt) {
-
-        wishlistService.updateWishlist(id, wishlistDetails, jwt.getSubject());
+    @PutMapping("/{wishlistId}")
+    public Response updateWishlist(@PathVariable Long wishlistId, @Valid @RequestBody WishlistRequest wishlistDetails) {
+        wishlistService.updateWishlist(wishlistId, wishlistDetails);
         return new Response(
                 WISHLIST_UPDATE_SUCCESSFULLY,
                 LocalDateTime.now()
         );
     }
 
-    @DeleteMapping("/{id}")
-    public Response deleteWishListById(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        wishlistService.deleteWishlist(id, jwt.getSubject());
+    @DeleteMapping("/{wishlistId}")
+    public Response deleteWishlistById(@PathVariable Long wishlistId) {
+        wishlistService.deleteWishlist(wishlistId);
         return new Response(
                 WISHLIST_DELETE_SUCCESSFULLY,
                 LocalDateTime.now()
         );
+    }
+
+
+    @PostMapping("/{wishlistId}/products/{productId}")
+    public WishlistResponse addProduct(@PathVariable Long wishlistId, @PathVariable String productId) {
+        return wishlistService.addProduct(wishlistId, productId);
+    }
+
+    @DeleteMapping("/{wishlistId}/products/{productId}")
+    public WishlistResponse removeProduct(@PathVariable Long wishlistId, @PathVariable String productId) {
+        return wishlistService.removeProduct(wishlistId, productId);
     }
 }

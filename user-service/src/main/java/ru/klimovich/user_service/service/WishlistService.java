@@ -6,19 +6,19 @@ import ru.klimovich.user_service.dto.responce.WishlistResponse;
 import java.util.List;
 
 public interface WishlistService {
-    WishlistResponse createWishlist(WishlistRequest wishlistDetails, String keycloakUserId);
+    WishlistResponse createWishlist(WishlistRequest wishlistDetails);
 
-    List<WishlistResponse> getAllWishlistsByUser(String keycloakUserId);
+    List<WishlistResponse> getAllWishlistsByUser();
 
-    List<WishlistResponse> getWishlistsByUser(String keycloakUserId);
+    WishlistResponse getWishListById(Long id);
 
-    WishlistResponse getWishListById(Long id, String keycloakUserId);
+    WishlistResponse addProduct(Long wishlistId, String productId);
 
-    List<WishlistResponse> getWishlistByName(String name, String keycloakUserId);
+    WishlistResponse removeProduct(Long wishlistId, String productId);
 
 
-    WishlistResponse updateWishlist(Long id, WishlistRequest wishlistDetails, String keycloakUserId);
+    WishlistResponse updateWishlist(Long id, WishlistRequest wishlistDetails);
 
-    void deleteWishlist(Long id, String keycloakUserId);
+    void deleteWishlist(Long id);
 
 }

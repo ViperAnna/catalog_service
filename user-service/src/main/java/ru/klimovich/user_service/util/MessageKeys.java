@@ -16,4 +16,10 @@ public class MessageKeys {
     public static final String WISHLIST_UPDATE_SUCCESSFULLY = "The wishlist was successfully updated.";
     public static final String WISHLIST_DELETE_SUCCESSFULLY = "The wishlist was successfully deleted.";
 
+
+    public static final String PRODUCT_NOT_FOUND = "Product with id [%s] not found.";
+    public static final String PRODUCT_ALREADY_IN_WISHLIST = "Product with id [%s] already exists in wishlist.";
+    public static final String WISHLIST_ITEM_NOT_FOUND = "Product with id [%s] not found in wishlist.";
+    public static final String CATALOG_SERVICE_UNAVAILABLE = "Catalog service is unavailable.";
+
 }

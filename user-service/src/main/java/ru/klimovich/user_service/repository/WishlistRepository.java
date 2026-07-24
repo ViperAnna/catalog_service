@@ -1,5 +1,6 @@
 package ru.klimovich.user_service.repository;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import ru.klimovich.user_service.model.Wishlist;
@@ -10,17 +11,23 @@ import java.util.Optional;
 @Repository
 public interface WishlistRepository extends JpaRepository<Wishlist, Long> {
 
-//    List<Wishlist> findByUserId(String userId);
+    List<Wishlist> findByKeycloakUserId(String keycloakUserId);
 
     Optional<Wishlist> findByIdAndKeycloakUserId(Long id, String keycloakUserId);
 
-    List<Wishlist> findByKeycloakUserId(String keycloakUserId);
+
+
 
     boolean existsByKeycloakUserIdAndName(String keycloakUserId, String name);
 
+    boolean existsByKeycloakUserIdAndNameAndIdNot(String keycloakUserId, String name, Long id);
+
+
+
+
+
+
     List<Wishlist> findByKeycloakUserIdAndNameContainingIgnoreCase(String keycloakUserId, String name);
 
-    Optional<Wishlist> findById(Long id);
-
-//    Optional<Wishlist> findByName(String name);
+    Optional<Wishlist> findByName(String name);
 }

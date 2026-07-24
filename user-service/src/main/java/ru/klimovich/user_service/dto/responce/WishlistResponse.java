@@ -4,10 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import ru.klimovich.user_service.model.Item;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -16,6 +15,7 @@ import java.util.List;
 public class WishlistResponse {
     Long id;
     String name;
-    List<Item> items;
+    Set<ProductResponse> products;
     LocalDateTime createdAt;
+    LocalDateTime updatedAt;
 }

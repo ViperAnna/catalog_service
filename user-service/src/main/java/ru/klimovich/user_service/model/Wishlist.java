@@ -11,7 +11,9 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "wishlists")
@@ -29,15 +31,16 @@ public class Wishlist {
     @Column(name = "name")
     private String name;
 
-    @OneToMany(mappedBy = "wishlist", cascade = CascadeType.ALL)
-    private List<Item> items = new ArrayList<>();
+    @ElementCollection
+    @CollectionTable(
+            name= "wishlist_products",
+            joinColumns = @JoinColumn(name="wishlist_id")
+    )
+    @Column(name="product_id")
+    private Set<String> productIds = new HashSet<>();
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "user_id")
-//    private User user;
 
-
-    @Column(name = "keycloak_user_id")
+    @Column(name = "keycloak_user_id", nullable = false)
     private String keycloakUserId;
 
     @CreatedDate

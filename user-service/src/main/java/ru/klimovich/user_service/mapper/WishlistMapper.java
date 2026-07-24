@@ -15,5 +15,5 @@ public interface WishlistMapper {
 
     @BeanMapping(nullValuePropertyMappingStrategy = IGNORE)
     @Mapping(target = "id", ignore = true)
-    void updateUserFromDTO(WishlistRequest wishlistDetails, @MappingTarget Wishlist wishlist);
+    void updateFromDTO(WishlistRequest wishlistDetails, @MappingTarget Wishlist wishlist);
 }

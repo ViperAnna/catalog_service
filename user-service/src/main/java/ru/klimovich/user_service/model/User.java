@@ -47,13 +47,6 @@ public class User {
     @Embedded
     private Address address;
 
-//    @OneToMany(
-//            mappedBy = "user",
-//            cascade = CascadeType.ALL,
-//            orphanRemoval = true,
-//            fetch = FetchType.LAZY)
-//    private List<Wishlist> wishlists = new ArrayList<>();
-
     @CreatedDate
     @Column(name = "date_create")
     private LocalDateTime createdAt;

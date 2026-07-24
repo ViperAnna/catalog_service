@@ -26,7 +26,7 @@ public class UserController {
 
     @GetMapping("/me")
     public UserResponse getMyAccount(@AuthenticationPrincipal Jwt jwt) {
-        return userService.getOrCreateUser(jwt);
+        return userService.getUser(jwt);
     }
 
     @PutMapping("/me")
