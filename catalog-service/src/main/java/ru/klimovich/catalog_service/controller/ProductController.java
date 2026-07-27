@@ -88,6 +88,7 @@ public class ProductController {
         return productService.getProductsByIds(productsIds);
     }
 
+    
     @Operation(
             summary = "Получение продукта по имени",
             description = "Возвращает список продуктов, соответствующих заданному названию"

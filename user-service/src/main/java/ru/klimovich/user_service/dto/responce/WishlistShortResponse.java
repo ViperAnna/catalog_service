@@ -17,4 +17,5 @@ public class WishlistShortResponse {
     int productCount;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
+
 }
