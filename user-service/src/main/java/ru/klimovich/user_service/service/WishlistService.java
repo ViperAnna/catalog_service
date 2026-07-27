@@ -2,13 +2,14 @@ package ru.klimovich.user_service.service;
 
 import ru.klimovich.user_service.dto.request.WishlistRequest;
 import ru.klimovich.user_service.dto.responce.WishlistResponse;
+import ru.klimovich.user_service.dto.responce.WishlistShortResponse;
 
 import java.util.List;
 
 public interface WishlistService {
     WishlistResponse createWishlist(WishlistRequest wishlistDetails);
 
-    List<WishlistResponse> getAllWishlistsByUser();
+    List<WishlistShortResponse> getAllWishlistsByUser();
 
     WishlistResponse getWishListById(Long id);
 

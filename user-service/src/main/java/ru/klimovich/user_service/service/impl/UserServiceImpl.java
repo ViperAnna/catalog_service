@@ -20,6 +20,7 @@ import ru.klimovich.user_service.util.MessageKeys;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -29,7 +30,11 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final OutboxRepository outboxRepository;
     private final EventMapper eventMapper;
-
+    private static final Set<String> SYSTEM_ROLES = Set.of(
+            "offline_access",
+            "uma_authorization",
+            "default-roles-user-service-realm"
+    );
 
     @Override
     @Transactional(readOnly = true)
@@ -38,7 +43,6 @@ public class UserServiceImpl implements UserService {
         return usersList.stream()
                 .map(userMapper::toDTO)
                 .toList();
-
     }
 
     @Override
@@ -61,9 +65,7 @@ public class UserServiceImpl implements UserService {
         UserResponse response = userMapper.toDTO(user);
         response.setRoles(getRoles(jwt));
         return response;
-
     }
-
 
     private User createUser(Jwt jwt) {
 
@@ -92,15 +94,14 @@ public class UserServiceImpl implements UserService {
 
         Object roles = realmAccess.get("roles");
 
-        if (roles instanceof List<?> list) {
-            return list.stream()
-                    .map(Object::toString)
-                    .toList();
+        if (!(roles instanceof List<?> list)) {
+            return List.of();
         }
-
-        return List.of();
+        return list.stream()
+                .map(Object::toString)
+                .filter(role -> !SYSTEM_ROLES.contains(role))
+                .toList();
     }
-
 
     private void saveUserCreatedEvent(User user, Jwt jwt) {
         UserCreatedEvent event = UserCreatedEvent.builder()

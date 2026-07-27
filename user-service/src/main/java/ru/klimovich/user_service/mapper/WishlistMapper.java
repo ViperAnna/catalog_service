@@ -3,6 +3,7 @@ package ru.klimovich.user_service.mapper;
 import org.mapstruct.*;
 import ru.klimovich.user_service.dto.request.WishlistRequest;
 import ru.klimovich.user_service.dto.responce.WishlistResponse;
+import ru.klimovich.user_service.dto.responce.WishlistShortResponse;
 import ru.klimovich.user_service.model.Wishlist;
 
 import static org.mapstruct.NullValuePropertyMappingStrategy.IGNORE;
@@ -16,4 +17,6 @@ public interface WishlistMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = IGNORE)
     @Mapping(target = "id", ignore = true)
     void updateFromDTO(WishlistRequest wishlistDetails, @MappingTarget Wishlist wishlist);
+
+    WishlistShortResponse toShortDTO(Wishlist wishlist);
 }

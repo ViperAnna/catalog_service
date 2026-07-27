@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.klimovich.user_service.dto.Response;
 import ru.klimovich.user_service.dto.request.WishlistRequest;
 import ru.klimovich.user_service.dto.responce.WishlistResponse;
+import ru.klimovich.user_service.dto.responce.WishlistShortResponse;
 import ru.klimovich.user_service.service.WishlistService;
 
 import java.time.LocalDateTime;
@@ -32,11 +33,11 @@ public class WishlistController {
     }
 
     @GetMapping()
-    public List<WishlistResponse> getAllWishlistsByUser() {
+    public List<WishlistShortResponse> getAllWishlistsByUser() {
         return wishlistService.getAllWishlistsByUser();
     }
 
-    
+
     @GetMapping("/{wishlistId}")
     public WishlistResponse getWishlistById(@PathVariable Long wishlistId) {
         return wishlistService.getWishListById(wishlistId);

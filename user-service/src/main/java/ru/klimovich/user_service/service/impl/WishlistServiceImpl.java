@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.klimovich.user_service.client.CatalogClient;
 import ru.klimovich.user_service.dto.request.WishlistRequest;
 import ru.klimovich.user_service.dto.responce.WishlistResponse;
+import ru.klimovich.user_service.dto.responce.WishlistShortResponse;
 import ru.klimovich.user_service.exception.ResourceConflictException;
 import ru.klimovich.user_service.exception.ResourceNotFoundException;
 import ru.klimovich.user_service.mapper.WishlistMapper;
@@ -40,14 +41,17 @@ public class WishlistServiceImpl implements WishlistService {
     }
 
     @Override
-    public List<WishlistResponse> getAllWishlistsByUser() {
+    public List<WishlistShortResponse> getAllWishlistsByUser() {
         String keycloakUserId = currentUserService.getUserId();
-        String accessToken = currentUserService.getAccessToken();
 
         return wishlistRepo.findByKeycloakUserId(keycloakUserId)
                 .stream()
-                .map(wishlist ->
-                        responseBuilder.buildWishlistResponse(wishlist, accessToken))
+                .map(wishlist -> {
+                    WishlistShortResponse response = wishlistMapper.toShortDTO(wishlist);
+                    response.setProductCount(wishlist.getProductIds().size());
+                    return response;
+                })
+
                 .toList();
     }
 
@@ -55,15 +59,6 @@ public class WishlistServiceImpl implements WishlistService {
     public WishlistResponse getWishListById(Long wishlistId) {
         Wishlist wishlist = getWishlist(wishlistId);
         return responseBuilder.buildWishlistResponse(wishlist, currentUserService.getAccessToken());
-    }
-
-    private Wishlist getWishlist(Long wishlistId) {
-        return wishlistRepo
-                .findByIdAndKeycloakUserId(wishlistId, currentUserService.getUserId())
-                .orElseThrow(
-                        () -> new ResourceNotFoundException(
-                                String.format(MessageKeys.WISHLIST_NOT_FOUND, wishlistId)
-                        ));
     }
 
     @Override
@@ -81,6 +76,16 @@ public class WishlistServiceImpl implements WishlistService {
         return responseBuilder.buildWishlistResponse(wishlist, accessToken);
     }
 
+    private Wishlist getWishlist(Long wishlistId) {
+        return wishlistRepo
+                .findByIdAndKeycloakUserId(wishlistId, currentUserService.getUserId())
+                .orElseThrow(
+                        () -> new ResourceNotFoundException(
+                                String.format(MessageKeys.WISHLIST_NOT_FOUND, wishlistId)
+                        ));
+    }
+
+
     @Override
     public WishlistResponse removeProduct(Long wishlistId, String productId) {
         String accessToken = currentUserService.getAccessToken();
@@ -91,7 +96,6 @@ public class WishlistServiceImpl implements WishlistService {
         }
         wishlistRepo.save(wishlist);
         return responseBuilder.buildWishlistResponse(wishlist, accessToken);
-
     }
 
     @Override
