@@ -4,6 +4,7 @@ import {api} from '../services/api';
 export const useWishlistStore = create((set, get) => ({
     wishlists: [],
     loading: false,
+    loaded: false,
     error: null,
     current: null,
     detailLoading: false,
@@ -13,11 +14,20 @@ export const useWishlistStore = create((set, get) => ({
         set({loading: true, error: null});
         try {
             const {data} = await api.get('/wishlists');
-            set({wishlists: Array.isArray(data) ? data : [], loading: false});
+            set({wishlists: Array.isArray(data) ? data : [], loading: false, loaded: true});
             return data;
         } catch (e) {
             set({loading: false, error: e?.message || 'Не удалось загрузить списки'});
             throw e;
+        }
+    },
+
+    ensureWishlists: async () => {
+        if (get().loaded || get().loading) return;
+        try {
+            await get().fetchWishlists();
+        } catch {
+            // индикация не критична — молча
         }
     },
 

@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {toast} from 'react-hot-toast';
 import {FiHeart, FiX, FiPlus, FiCheck, FiLoader} from 'react-icons/fi';
 import {useWishlistStore} from '../store/useWishlistStore';
@@ -140,9 +140,20 @@ const AddToWishlistModal = ({productId, onClose}) => {
 
 const AddToWishlistButton = ({productId, variant = 'icon'}) => {
     const authenticated = useAuthStore((s) => s.authenticated);
+    const wishlists = useWishlistStore((s) => s.wishlists);
+    const ensureWishlists = useWishlistStore((s) => s.ensureWishlists);
     const [open, setOpen] = useState(false);
 
+    useEffect(() => {
+        if (authenticated) ensureWishlists();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [authenticated]);
+
     if (!authenticated) return null;
+
+    const inAny = wishlists.some(
+        (w) => Array.isArray(w.products) && w.products.some((p) => p.id === productId)
+    );
 
     const handleOpen = (e) => {
         e.preventDefault();
@@ -155,16 +166,22 @@ const AddToWishlistButton = ({productId, variant = 'icon'}) => {
             {variant === 'full' ? (
                 <button
                     onClick={handleOpen}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 font-medium rounded-lg border border-emerald-600 text-emerald-700 hover:bg-emerald-50 transition-colors">
-                    <FiHeart className="w-5 h-5"/>
-                    В список желаний
+                    className={`inline-flex items-center gap-2 px-5 py-2.5 font-medium rounded-lg border transition-colors ${
+                        inAny
+                            ? 'border-rose-500 text-rose-600 bg-rose-50 hover:bg-rose-100'
+                            : 'border-emerald-600 text-emerald-700 hover:bg-emerald-50'
+                    }`}>
+                    <FiHeart className="w-5 h-5" fill={inAny ? 'currentColor' : 'none'}/>
+                    {inAny ? 'В списках желаний' : 'В список желаний'}
                 </button>
             ) : (
                 <button
                     onClick={handleOpen}
-                    title="В список желаний"
-                    className="p-2 bg-white/90 text-gray-500 hover:text-emerald-600 rounded-full shadow-sm transition-colors">
-                    <FiHeart className="w-5 h-5"/>
+                    title={inAny ? 'Товар в списке желаний' : 'В список желаний'}
+                    className={`p-2 bg-white/90 rounded-full shadow-sm transition-colors ${
+                        inAny ? 'text-rose-500 hover:text-rose-600' : 'text-gray-500 hover:text-emerald-600'
+                    }`}>
+                    <FiHeart className="w-5 h-5" fill={inAny ? 'currentColor' : 'none'}/>
                 </button>
             )}
 
