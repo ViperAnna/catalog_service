@@ -82,6 +82,7 @@ public class ProductController {
             @ApiResponse(responseCode = "400", description = "Некорректный список идентификаторов"),
             @ApiResponse(responseCode = "404", description = "Некоторые продукты не найдены")
     })
+
     @PostMapping("/by-ids")
     public List<ProductResponse> getProductsByIds(@RequestBody List<String> productsIds){
         return productService.getProductsByIds(productsIds);
