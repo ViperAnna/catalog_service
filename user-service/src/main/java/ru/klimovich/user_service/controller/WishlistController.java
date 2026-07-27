@@ -36,6 +36,7 @@ public class WishlistController {
         return wishlistService.getAllWishlistsByUser();
     }
 
+    
     @GetMapping("/{wishlistId}")
     public WishlistResponse getWishlistById(@PathVariable Long wishlistId) {
         return wishlistService.getWishListById(wishlistId);
