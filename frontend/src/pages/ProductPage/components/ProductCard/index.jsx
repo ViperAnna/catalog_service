@@ -11,6 +11,7 @@ import ProductTags from './ProductTags.jsx';
 import ProductCategories from './ProductCategories.jsx';
 import ProductStats from './ProductStats.jsx';
 import DeleteConfirmationModal from './DeleteConfirmationModal.jsx';
+import AddToWishlistButton from '../../../../components/AddToWishlistButton.jsx';
 import {urlToImageFile} from '../../../../utils/imageFile.js';
 
 const ProductCard = ({product, onSuccess}) => {
@@ -274,6 +275,12 @@ const ProductCard = ({product, onSuccess}) => {
                             </p>
                         )}
                     </div>
+
+                    {!isEditing && (
+                        <div className="mb-4">
+                            <AddToWishlistButton productId={product.id} variant="full"/>
+                        </div>
+                    )}
 
                     <ProductStatusEditor
                         isEditing={isEditing}

@@ -19,6 +19,13 @@ const addressFields = [
     {name: 'postalCode', label: 'Индекс'},
 ];
 
+const TECHNICAL_ROLES = new Set(['offline_access', 'uma_authorization']);
+
+const displayRoles = (raw) =>
+    (Array.isArray(raw) ? raw : [])
+        .filter((r) => !r.startsWith('default-') && !TECHNICAL_ROLES.has(r))
+        .map((r) => (r.startsWith('ROLE_') ? r.slice(5) : r));
+
 const validate = (form) => {
     const errors = {};
     if (form.phone && !/^\+?[0-9]{7,15}$/.test(form.phone)) {
@@ -127,6 +134,8 @@ const ProfilePage = () => {
 
     if (loading) return <LoadingState message="Загрузка профиля…"/>;
 
+    const roles = displayRoles(dbProfile?.roles ?? profile?.roles);
+
     return (
         <div className="container mx-auto px-4 py-8 max-w-3xl">
             <div className="flex items-center gap-3 mb-8">
@@ -141,16 +150,14 @@ const ProfilePage = () => {
                 </div>
             </div>
 
-            {profile?.roles?.length > 0 && (
+            {roles.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 mb-6">
                     <span className="text-sm text-gray-500">Роли:</span>
-                    {profile.roles
-                        .filter((r) => !r.startsWith('default-') && r !== 'offline_access' && r !== 'uma_authorization')
-                        .map((r) => (
-                            <span key={r} className="px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-700 rounded-full">
-                                {r}
-                            </span>
-                        ))}
+                    {roles.map((r) => (
+                        <span key={r} className="px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-700 rounded-full">
+                            {r}
+                        </span>
+                    ))}
                 </div>
             )}
 

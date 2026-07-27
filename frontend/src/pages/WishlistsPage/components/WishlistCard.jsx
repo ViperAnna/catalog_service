@@ -1,8 +1,9 @@
 import React from 'react';
+import {Link} from 'react-router-dom';
 import {FiEdit2, FiTrash2, FiHeart, FiPackage} from 'react-icons/fi';
 
 const WishlistCard = ({wishlist, onEdit, onDelete}) => {
-    const items = Array.isArray(wishlist.items) ? wishlist.items : [];
+    const products = Array.isArray(wishlist.products) ? wishlist.products : [];
     const hasId = wishlist.id !== undefined && wishlist.id !== null;
 
     return (
@@ -12,7 +13,13 @@ const WishlistCard = ({wishlist, onEdit, onDelete}) => {
                     <div className="w-10 h-10 shrink-0 bg-emerald-50 rounded-xl flex items-center justify-center">
                         <FiHeart className="w-5 h-5 text-emerald-600"/>
                     </div>
-                    <h3 className="font-semibold text-gray-800 truncate">{wishlist.name}</h3>
+                    {hasId ? (
+                        <Link to={`/wishlists/${wishlist.id}`} className="min-w-0">
+                            <h3 className="font-semibold text-gray-800 truncate hover:text-emerald-600 transition-colors">{wishlist.name}</h3>
+                        </Link>
+                    ) : (
+                        <h3 className="font-semibold text-gray-800 truncate">{wishlist.name}</h3>
+                    )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                     <button
@@ -35,17 +42,20 @@ const WishlistCard = ({wishlist, onEdit, onDelete}) => {
             <div className="mt-4 pt-4 border-t border-gray-100">
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                     <FiPackage className="w-4 h-4"/>
-                    {items.length > 0
-                        ? `Товаров: ${items.length}`
+                    {products.length > 0
+                        ? `Товаров: ${products.length}`
                         : 'Список пуст'}
                 </div>
-                {items.length > 0 && (
+                {products.length > 0 && (
                     <ul className="mt-3 space-y-1.5">
-                        {items.map((it, idx) => (
-                            <li key={it.id ?? idx} className="text-sm text-gray-700 truncate">
-                                • {it.name || it.productId}
+                        {products.slice(0, 4).map((p, idx) => (
+                            <li key={p.id ?? idx} className="text-sm text-gray-700 truncate">
+                                • {p.name || p.id}
                             </li>
                         ))}
+                        {products.length > 4 && (
+                            <li className="text-sm text-gray-400">и ещё {products.length - 4}…</li>
+                        )}
                     </ul>
                 )}
             </div>

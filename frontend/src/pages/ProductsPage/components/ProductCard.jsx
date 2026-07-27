@@ -2,6 +2,7 @@ import React from 'react';
 import {Link} from 'react-router-dom';
 import {FiArrowRight, FiTag} from 'react-icons/fi';
 import EmptyImage from '../../../components/EmptyImage.jsx';
+import AddToWishlistButton from '../../../components/AddToWishlistButton.jsx';
 import {getProductStatusColor, getProductStatusLabel} from '../../../utils/productStatus.js';
 
 const ProductCard = ({product}) => {
@@ -22,6 +23,9 @@ const ProductCard = ({product}) => {
                         <EmptyImage/>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"/>
+                    <div className="absolute top-3 left-3">
+                        <AddToWishlistButton productId={product.id}/>
+                    </div>
                     <div className="absolute top-3 right-3">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getProductStatusColor(product.status)}`}>
                             {getProductStatusLabel(product.status)}
