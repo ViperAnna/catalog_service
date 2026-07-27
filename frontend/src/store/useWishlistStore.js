@@ -21,20 +21,6 @@ export const useWishlistStore = create((set, get) => ({
         }
     },
 
-    searchWishlists: async (name) => {
-        const q = (name ?? '').trim();
-        if (!q) return get().fetchWishlists();
-        set({loading: true, error: null});
-        try {
-            const {data} = await api.get(`/wishlists/search?name=${encodeURIComponent(q)}`);
-            set({wishlists: Array.isArray(data) ? data : [], loading: false});
-            return data;
-        } catch (e) {
-            set({loading: false, error: e?.message || 'Ошибка поиска'});
-            throw e;
-        }
-    },
-
     fetchWishlistById: async (id) => {
         set({detailLoading: true, detailError: null, current: null});
         try {
@@ -65,5 +51,23 @@ export const useWishlistStore = create((set, get) => ({
         const response = await api.delete(`/wishlists/${id}`);
         set((state) => ({wishlists: state.wishlists.filter((w) => w.id !== id)}));
         return response;
+    },
+
+    addProduct: async (wishlistId, productId) => {
+        const {data} = await api.post(`/wishlists/${wishlistId}/products/${productId}`);
+        set((state) => ({
+            current: state.current?.id === data?.id ? data : state.current,
+            wishlists: state.wishlists.map((w) => (w.id === data?.id ? data : w)),
+        }));
+        return data;
+    },
+
+    removeProduct: async (wishlistId, productId) => {
+        const {data} = await api.delete(`/wishlists/${wishlistId}/products/${productId}`);
+        set((state) => ({
+            current: state.current?.id === data?.id ? data : state.current,
+            wishlists: state.wishlists.map((w) => (w.id === data?.id ? data : w)),
+        }));
+        return data;
     },
 }));

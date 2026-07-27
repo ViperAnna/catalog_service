@@ -1,20 +1,19 @@
 import React, {useEffect, useState} from 'react';
 import {Link, useNavigate, useParams} from 'react-router-dom';
 import {toast} from 'react-hot-toast';
-import {FiArrowLeft, FiHeart, FiPackage} from 'react-icons/fi';
+import {FiArrowLeft, FiHeart, FiPackage, FiTrash2} from 'react-icons/fi';
 import {useWishlistStore} from '../../store/useWishlistStore';
-import {api} from '../../services/api';
 import LoadingState from '../../components/LoadingState';
 import EmptyImage from '../../components/EmptyImage';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import {formatMoscowDateTime} from '../../utils/formatDate';
-
-const itemKey = (item, idx) => item?.id ?? item?.productId ?? idx;
 
 const WishlistDetailPage = () => {
     const {id} = useParams();
     const navigate = useNavigate();
-    const {current, detailLoading, fetchWishlistById, clearCurrent} = useWishlistStore();
-    const [products, setProducts] = useState({});
+    const {current, detailLoading, fetchWishlistById, clearCurrent, removeProduct} = useWishlistStore();
+    const [removing, setRemoving] = useState(null);
+    const [busy, setBusy] = useState(false);
 
     useEffect(() => {
         fetchWishlistById(id).catch(() => toast.error('Не удалось загрузить список'));
@@ -22,28 +21,21 @@ const WishlistDetailPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
-    useEffect(() => {
-        const items = Array.isArray(current?.items) ? current.items : [];
-        const ids = [...new Set(items.map((it) => it.productId).filter(Boolean))];
-        if (ids.length === 0) return;
+    const products = Array.isArray(current?.products) ? current.products : [];
 
-        let cancelled = false;
-        Promise.all(
-            ids.map((pid) =>
-                api.get(`/products/${pid}`)
-                    .then(({data}) => [pid, data])
-                    .catch(() => [pid, null])
-            )
-        ).then((pairs) => {
-            if (!cancelled) setProducts(Object.fromEntries(pairs));
-        });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [current]);
-
-    const items = Array.isArray(current?.items) ? current.items : [];
+    const handleRemove = async () => {
+        if (busy || !removing) return;
+        setBusy(true);
+        try {
+            await removeProduct(current.id, removing.id);
+            toast.success('Товар удалён из списка');
+            setRemoving(null);
+        } catch (err) {
+            toast.error(err?.message || 'Не удалось удалить товар');
+        } finally {
+            setBusy(false);
+        }
+    };
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-5xl">
@@ -70,65 +62,69 @@ const WishlistDetailPage = () => {
                         <div>
                             <h1 className="text-2xl font-bold text-gray-800">{current.name}</h1>
                             <p className="text-sm text-gray-500">
-                                {items.length > 0 ? `Товаров: ${items.length}` : 'Список пуст'}
+                                {products.length > 0 ? `Товаров: ${products.length}` : 'Список пуст'}
                                 {current.createdAt && ` · создан ${formatMoscowDateTime(current.createdAt, 'DD.MM.YYYY')}`}
                             </p>
                         </div>
                     </div>
 
-                    {items.length === 0 ? (
+                    {products.length === 0 ? (
                         <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
                             <FiPackage className="w-12 h-12 text-gray-300 mx-auto mb-4"/>
                             <p className="text-gray-500 mb-1">В этом списке пока нет товаров</p>
-                            <p className="text-sm text-gray-400">
-                                Добавление товаров не поддерживается бэкендом: у user-service нет ручки для items
-                            </p>
+                            <Link to="/products" className="text-sm text-emerald-600 font-medium hover:underline">
+                                Перейти в каталог
+                            </Link>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                            {items.map((item, idx) => {
-                                const product = item.productId ? products[item.productId] : null;
-                                const firstImage = product?.imagesUrl?.[0];
-                                const title = product?.name || item.name || 'Товар';
+                            {products.map((product) => {
+                                const firstImage = product.imagesUrl?.[0];
+                                const title = product.name || 'Товар';
 
-                                const card = (
-                                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow h-full flex flex-col">
-                                        <div className="h-40 bg-gray-50 flex items-center justify-center overflow-hidden">
-                                            {firstImage ? (
-                                                <img src={firstImage} alt={title} className="w-full h-full object-cover"/>
-                                            ) : (
-                                                <EmptyImage size="sm"/>
-                                            )}
-                                        </div>
-                                        <div className="p-4 flex-1 flex flex-col">
-                                            <h3 className="font-medium text-gray-800 line-clamp-2" title={title}>{title}</h3>
-                                            {product?.brand && (
-                                                <p className="text-sm text-gray-500 mt-1">{product.brand}</p>
-                                            )}
-                                            <div className="mt-auto pt-3">
-                                                {product ? (
+                                return (
+                                    <div key={product.id} className="relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+                                        <button
+                                            onClick={() => setRemoving(product)}
+                                            title="Удалить из списка"
+                                            className="absolute top-2 right-2 z-10 p-2 bg-white/90 text-gray-400 hover:text-red-600 rounded-lg shadow-sm transition-colors">
+                                            <FiTrash2 className="w-4 h-4"/>
+                                        </button>
+                                        <Link to={`/products/${product.id}`} className="flex-1 flex flex-col">
+                                            <div className="h-40 bg-gray-50 flex items-center justify-center overflow-hidden">
+                                                {firstImage ? (
+                                                    <img src={firstImage} alt={title} className="w-full h-full object-cover"/>
+                                                ) : (
+                                                    <EmptyImage size="sm"/>
+                                                )}
+                                            </div>
+                                            <div className="p-4 flex-1 flex flex-col">
+                                                <h3 className="font-medium text-gray-800 line-clamp-2" title={title}>{title}</h3>
+                                                {product.articleNumber && (
+                                                    <p className="text-xs text-gray-400 mt-1">Арт. {product.articleNumber}</p>
+                                                )}
+                                                <div className="mt-auto pt-3">
                                                     <span className="font-semibold text-emerald-600">
                                                         {Number(product.price).toLocaleString('ru-RU')} ₽
                                                     </span>
-                                                ) : (
-                                                    <span className="text-xs text-gray-400">
-                                                        Товар недоступен в каталоге
-                                                    </span>
-                                                )}
+                                                </div>
                                             </div>
-                                        </div>
+                                        </Link>
                                     </div>
-                                );
-
-                                return product ? (
-                                    <Link key={itemKey(item, idx)} to={`/products/${item.productId}`}>{card}</Link>
-                                ) : (
-                                    <div key={itemKey(item, idx)}>{card}</div>
                                 );
                             })}
                         </div>
                     )}
                 </>
+            )}
+
+            {removing && (
+                <ConfirmDialog
+                    title="Удалить товар из списка?"
+                    message={`Товар «${removing.name || removing.id}» будет удалён из списка «${current?.name}».`}
+                    onConfirm={handleRemove}
+                    onCancel={() => setRemoving(null)}
+                />
             )}
         </div>
     );

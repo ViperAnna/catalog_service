@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {toast} from 'react-hot-toast';
 import {FiHeart, FiPlus, FiSearch} from 'react-icons/fi';
 import {useWishlistStore} from '../../store/useWishlistStore';
@@ -8,7 +8,7 @@ import CreateWishlistModal from './components/CreateWishlistModal';
 import WishlistCard from './components/WishlistCard';
 
 const WishlistsPage = () => {
-    const {wishlists, loading, fetchWishlists, searchWishlists, createWishlist, updateWishlist, deleteWishlist} = useWishlistStore();
+    const {wishlists, loading, fetchWishlists, createWishlist, updateWishlist, deleteWishlist} = useWishlistStore();
 
     const [search, setSearch] = useState('');
     const [showCreate, setShowCreate] = useState(false);
@@ -20,14 +20,11 @@ const WishlistsPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        try {
-            await searchWishlists(search);
-        } catch {
-            toast.error('Ошибка поиска');
-        }
-    };
+    const filtered = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        if (!q) return wishlists;
+        return wishlists.filter((w) => String(w.name ?? '').toLowerCase().includes(q));
+    }, [wishlists, search]);
 
     const handleCreate = async (name) => {
         try {
@@ -79,20 +76,15 @@ const WishlistsPage = () => {
                 </button>
             </div>
 
-            <form onSubmit={handleSearch} className="flex gap-2 mb-8">
-                <div className="relative flex-1">
-                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"/>
-                    <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Поиск по названию…"
-                        className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
-                    />
-                </div>
-                <button type="submit" className="px-5 py-3 font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
-                    Найти
-                </button>
-            </form>
+            <div className="relative mb-8">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"/>
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Поиск по названию…"
+                    className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                />
+            </div>
 
             {loading ? (
                 <LoadingState message="Загрузка списков…"/>
@@ -104,9 +96,14 @@ const WishlistsPage = () => {
                         Создать первый список
                     </button>
                 </div>
+            ) : filtered.length === 0 ? (
+                <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+                    <FiHeart className="w-12 h-12 text-gray-300 mx-auto mb-4"/>
+                    <p className="text-gray-500">Ничего не найдено по запросу</p>
+                </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {wishlists.map((w, idx) => (
+                    {filtered.map((w, idx) => (
                         <WishlistCard
                             key={w.id ?? `${w.name}-${idx}`}
                             wishlist={w}
