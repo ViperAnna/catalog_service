@@ -21,6 +21,9 @@ public class Product {
     @Id
     private String id;
 
+    @Field(value = "store_id")
+    private Long storeId;
+
     @Field(value = "name")
     private String name;
 
