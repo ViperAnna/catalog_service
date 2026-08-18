@@ -18,15 +18,10 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
-  eureka:
-    client:
-      service-url:
-        defaultZone: ${DEFAULTZONE}
-
-  grpc:
-    client:
-      user-service:
-        address: ${USER_SERVICE_GRPC_ADDRESS}
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
 
 server:
   port: ${SERVER_PORT}

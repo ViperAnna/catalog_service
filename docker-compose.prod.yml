@@ -70,7 +70,7 @@ services:
     image: viperanna/seller-service:${SELLER_SERVICE_TAG}
     container_name: seller-service
     expose:
-      - "8080"
+      - "8085"
     env_file:
       - .env.seller
       - .env.postgres
