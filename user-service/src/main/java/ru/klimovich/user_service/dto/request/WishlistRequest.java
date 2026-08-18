@@ -12,7 +12,7 @@ import lombok.ToString;
 @ToString
 @NoArgsConstructor
 public class WishlistRequest {
-
+//record
     @NotBlank
     @Size(max = 100)
     private String name;

@@ -7,8 +7,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import ru.klimovich.catalog_service.client.SellerClient;
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
+import ru.klimovich.catalog_service.dto.response.StoreResponse;
+import ru.klimovich.catalog_service.exception.ResourceConflictException;
 import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
 import ru.klimovich.catalog_service.mapper.ProductMapper;
 import ru.klimovich.catalog_service.model.Category;
@@ -37,6 +40,8 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepo;
     private final ProductMapper productMapper;
     private final FileStorageService fileStorageService;
+    private final SellerClient sellerClient;
+    private final CurrentUserService currentUserService;
 
     private ProductResponse buildProductResponse(Product product) {
         Map<String, String> categoryNames = categoryRepo.findAllById(product.getCategories())
@@ -48,11 +53,15 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void createProduct(@NotNull ProductRequest productDetails) {
         productDetails.getCategories().forEach(categoryService::getCategoryById);
+        String accessToken = currentUserService.getAccessToken();
+        StoreResponse store = sellerClient.getMySoreById(productDetails.getStoreId(), accessToken);
 
         List<Image> fileNameList = fileStorageService.uploadProductImage(productDetails.getImages());
 
         Product product = productMapper.toEntity(productDetails);
+        product.setStoreId(store.getId());
         product.setImages(fileNameList);
+
         productRepo.save(product);
         buildProductResponse(product);
     }
@@ -72,6 +81,16 @@ public class ProductServiceImpl implements ProductService {
 
         return productPage
                 .map(p -> productMapper.toDTO(p, categoryInfo));
+    }
+    @Override
+    public List<ProductResponse> getProductsByStore(Long storeId) {
+
+        validateStoreOwnership(storeId);
+
+        return productRepo.findAllByStoreId(storeId)
+                .stream()
+                .map(this::buildProductResponse)
+                .toList();
     }
 
     @Override
@@ -120,6 +139,9 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(String
                         .format(MessageKeys.PRODUCT_NOT_FOUND_ID_KEY, id)));
+
+        validateStoreOwnership(product.getStoreId());
+
         List<MultipartFile> newImages = productDetails.getImages();
         List<Image> existingImages = product.getImages();
         List<Image> updatedImages = new ArrayList<>();
@@ -145,12 +167,17 @@ public class ProductServiceImpl implements ProductService {
 
         buildProductResponse(product);
     }
+    private void validateStoreOwnership(Long id){
+        String accessToken = currentUserService.getAccessToken();
+        sellerClient.getMySoreById(id, accessToken);
+    }
 
     @Override
     public void deleteProductById(String id) {
         Product product = productRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(String
                         .format(MessageKeys.PRODUCT_NOT_FOUND_ID_KEY, id)));
+        validateStoreOwnership(product.getStoreId());
         productRepo.delete(product);
     }
 }

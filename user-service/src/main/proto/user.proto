@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package user;
+
+option java_package = "ru.klimovich.grpc.user";
+option java_multiple_files = true;
+
+service UserService{
+  rpc AssignSellerRole(AssignSellerRoleRequest)
+      returns (Empty);
+
+  rpc RemoveSellerRole(RemoveSellerRoleRequest)
+      returns (Empty);
+}
+message AssignSellerRoleRequest{
+  string keycloakUserId = 1;
+}
+
+message RemoveSellerRoleRequest {
+  string keycloakUserId = 1;
+}
+
+message Empty {
+}

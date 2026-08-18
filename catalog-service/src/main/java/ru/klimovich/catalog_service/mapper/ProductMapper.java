@@ -18,6 +18,7 @@ public interface ProductMapper {
 
     @Mappings({
             @Mapping(target = "id", ignore = true),
+            @Mapping(target = "storeId", ignore = true),
             @Mapping(target = "images", ignore = true),
             @Mapping(target = "articleNumber", expression = "java(java.util.UUID.randomUUID().toString())"),
             @Mapping(target = "status", qualifiedByName = "mapStatusDTO")
@@ -25,6 +26,7 @@ public interface ProductMapper {
     Product toEntity(ProductRequest productDTO);
 
     @Mappings({
+            @Mapping(target = "id", ignore = true),
             @Mapping(source = "images", target = "imagesUrl", qualifiedByName = "mapImage"),
             @Mapping(target = "categories", qualifiedByName = "mapCategories")
     })

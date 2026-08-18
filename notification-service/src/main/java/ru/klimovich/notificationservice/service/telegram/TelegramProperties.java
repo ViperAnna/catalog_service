@@ -1,4 +1,4 @@
-package ru.klimovich.notificationservice.telegram;
+package ru.klimovich.notificationservice.service.telegram;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

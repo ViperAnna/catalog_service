@@ -4,18 +4,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import ru.klimovich.notificationservice.email.EmailService;
+import ru.klimovich.notificationservice.service.email.EmailService;
 import ru.klimovich.notificationservice.event.UserCreatedEvent;
 import ru.klimovich.notificationservice.mapper.EventMapper;
-import ru.klimovich.notificationservice.telegram.TelegramLinkService;
-import ru.klimovich.notificationservice.telegram.TelegramService;
+import ru.klimovich.notificationservice.service.telegram.TelegramLinkService;
+import ru.klimovich.notificationservice.service.telegram.TelegramService;
 
 
 @Component
 @Slf4j
 //@KafkaListener(topics = "user-created-events-topic")
 @RequiredArgsConstructor
-public class UserCreatedEventHandler {
+public class UserCreatedEventConsumer {
     private final EventMapper eventMapper;
     private final EmailService emailService;
     private final TelegramService telegramService;
@@ -26,8 +26,8 @@ public class UserCreatedEventHandler {
             topics = "user-created-events-topic",
             groupId = "notification-group"
     )
-    public void handle(String payload) {
-        log.info("HANDLE START");
+    public void consume(String payload) {
+        log.info("CONSUME START");
         log.info("payload = {}", payload);
 
 

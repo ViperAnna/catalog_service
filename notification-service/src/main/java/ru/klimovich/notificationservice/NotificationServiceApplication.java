@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import ru.klimovich.notificationservice.telegram.TelegramProperties;
+import ru.klimovich.notificationservice.service.telegram.TelegramProperties;
 
 @SpringBootApplication
 @EnableConfigurationProperties(TelegramProperties.class)

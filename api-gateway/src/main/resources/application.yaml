@@ -29,6 +29,15 @@ spring:
               uri: lb://CATALOG-SERVICE
               predicates:
                 - Path=/products/**
+
+            - id: seller-service
+              uri: lb://SELLER-SERVICE
+              predicates:
+                - Path=/sellers/**,/moderator/seller-applications/**,/seller-applications/**,/stores/**
+
+
+
+
           discovery:
             locator:
               enabled: ${GATEWAY_DISCOVERY_LOCATOR_ENABLED}

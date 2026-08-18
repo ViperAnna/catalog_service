@@ -9,7 +9,7 @@ spring:
     name: ${SPRING_APPLICATION_NAME}
     auth-server-url: ${APPLICATION_AUTH_SERVER_URL}
     realm: ${REALM}
-    client-id: ${CLIEND_ID}
+    client-id: ${CLIENT_ID}
 
   datasource:
     url: ${SPRING_DATASOURCE_URL}
@@ -26,6 +26,10 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+  grpc:
+    server:
+      port: 9090
 
   security:
     oauth2:

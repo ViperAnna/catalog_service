@@ -1,4 +1,4 @@
-package ru.klimovich.notificationservice.telegram;
+package ru.klimovich.notificationservice.service.telegram;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
