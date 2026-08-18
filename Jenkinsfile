@@ -15,6 +15,7 @@ pipeline {
         NOTIFICATION_IMAGE = "${DOCKERHUB_USER}/notification-service"
         DISCOVERY_IMAGE = "${DOCKERHUB_USER}/discovery-service"
         GATEWAY_IMAGE = "${DOCKERHUB_USER}/api-gateway"
+        SELLER_IMAGE = "${DOCKERHUB_USER}/seller-service"
 
         SERVER_IP = '144.124.250.82'
         SERVER_PATH = '/home/user/catalog_service'
@@ -53,6 +54,7 @@ pipeline {
                     def services = [
                             "catalog-service"     : "BUILD_CATALOG_SERVICE",
                             "user-service"        : "BUILD_USER_SERVICE",
+                            "seller-service"        : "BUILD_SELLER_SERVICE",
                             "notification-service": "BUILD_NOTIFICATION_SERVICE",
                             "api-gateway"         : "BUILD_API_GATEWAY",
                             "discovery-service"   : "BUILD_DISCOVERY_SERVICE",
@@ -71,6 +73,7 @@ pipeline {
 
                     echo "BUILD_CATALOG_SERVICE = ${env.BUILD_CATALOG_SERVICE}"
                     echo "BUILD_USER_SERVICE = ${env.BUILD_USER_SERVICE}"
+                    echo "BUILD_SELLER_SERVICE = ${env.BUILD_SELLER_SERVICE}"
                     echo "BUILD_NOTIFICATION_SERVICE = ${env.BUILD_NOTIFICATION_SERVICE}"
                     echo "BUILD_API_GATEWAY = ${env.BUILD_API_GATEWAY}"
                     echo "BUILD_DISCOVERY_SERVICE = ${env.BUILD_DISCOVERY_SERVICE}"
@@ -153,6 +156,7 @@ pipeline {
                         def services = [
                                 "catalog-service"     : [tagFile: "current_catalog_tag", image: BACKEND_IMAGE],
                                 "user-service"        : [tagFile: "current_user_tag", image: USER_IMAGE],
+                                "seller-service"      : [tagFile: "current_seller_tag", image: SELLER_IMAGE],
                                 "notification-service": [tagFile: "current_notification_tag", image: NOTIFICATION_IMAGE],
                                 "api-gateway"         : [tagFile: "current_gateway_tag", image: GATEWAY_IMAGE],
                                 "discovery-service"   : [tagFile: "current_discovery_tag", image: DISCOVERY_IMAGE],
@@ -166,6 +170,7 @@ pipeline {
                                 root@${SERVER_IP} '
                                     echo "CATALOG_SERVICE=\$(cat ${SERVER_PATH}/current_catalog_tag 2>/dev/null || true)"
                                     echo "USER_SERVICE=\$(cat ${SERVER_PATH}/current_user_tag 2>/dev/null || true)"
+                                    echo "SELLER_SERVICE=\$(cat ${SERVER_PATH}/current_seller_tag 2>/dev/null || true)"
                                     echo "NOTIFICATION_SERVICE=\$(cat ${SERVER_PATH}/current_notification_tag 2>/dev/null || true)"
                                     echo "API_GATEWAY=\$(cat ${SERVER_PATH}/current_gateway_tag 2>/dev/null || true)"
                                     echo "DISCOVERY_SERVICE=\$(cat ${SERVER_PATH}/current_discovery_tag 2>/dev/null || true)"
@@ -253,6 +258,7 @@ pipeline {
                     env.BUILD_FRONTEND == 'true' ||
                             env.BUILD_CATALOG_SERVICE == 'true' ||
                             env.BUILD_USER_SERVICE == 'true' ||
+                            env.BUILD_SELLER_SERVICE == 'true' ||
                             env.BUILD_NOTIFICATION_SERVICE == 'true' ||
                             env.BUILD_API_GATEWAY == 'true' ||
                             env.BUILD_DISCOVERY_SERVICE == 'true'
@@ -271,6 +277,11 @@ pipeline {
                                     path : "./user-service",
                                     image: "${DOCKERHUB_USER}/user-service",
                                     build: env.BUILD_USER_SERVICE
+                            ],
+                            "seller-service"        : [
+                                    path : "./seller-service",
+                                    image: "${DOCKERHUB_USER}/seller-service",
+                                    build: env.BUILD_SELLER_SERVICE
                             ],
                             "notification-service": [
                                     path : "./notification-service",
@@ -337,6 +348,7 @@ pipeline {
                     env.BUILD_FRONTEND == 'true' ||
                             env.BUILD_CATALOG_SERVICE == 'true' ||
                             env.BUILD_USER_SERVICE == 'true' ||
+                            env.BUILD_SELLER_SERVICE == 'true' ||
                             env.BUILD_NOTIFICATION_SERVICE == 'true' ||
                             env.BUILD_API_GATEWAY == 'true' ||
                             env.BUILD_DISCOVERY_SERVICE == 'true'
@@ -349,6 +361,7 @@ pipeline {
                     def images = [
                             "catalog-service"     : "${DOCKERHUB_USER}/catalog-service",
                             "user-service"        : "${DOCKERHUB_USER}/user-service",
+                            "seller-service"      : "${DOCKERHUB_USER}/seller-service",
                             "notification-service": "${DOCKERHUB_USER}/notification-service",
                             "api-gateway"         : "${DOCKERHUB_USER}/api-gateway",
                             "discovery-service"   : "${DOCKERHUB_USER}/discovery-service",
@@ -389,6 +402,7 @@ pipeline {
                         def services = [
                                 "catalog-service"     : "current_catalog_tag",
                                 "user-service"        : "current_user_tag",
+                                "seller-service"      : "current_seller_tag",
                                 "notification-service": "current_notification_tag",
                                 "api-gateway"         : "current_gateway_tag",
                                 "discovery-service"   : "current_discovery_tag",
@@ -456,6 +470,7 @@ pipeline {
                             file(credentialsId: 'env-mongodb', variable: 'MONGO_ENV'),
                             file(credentialsId: 'env-catalog', variable: 'CATALOG_ENV'),
                             file(credentialsId: 'env-user', variable: 'USER_ENV'),
+                            file(credentialsId: 'env-seller', variable: 'SELLER_ENV'),
                             file(credentialsId: 'env-notification', variable: 'NOTIFICATION_ENV'),
                             file(credentialsId: 'env-postgres', variable: 'POSTGRES_ENV'),
                             file(credentialsId: 'env-kafka', variable: 'KAFKA_ENV'),
@@ -470,6 +485,7 @@ pipeline {
                                     "MONGO_ENV"       : ".env.mongodb",
                                     "CATALOG_ENV"     : ".env.catalog",
                                     "USER_ENV"        : ".env.user",
+                                    "SELLER_ENV"      : ".env.seller",
                                     "NOTIFICATION_ENV": ".env.notification",
                                     "POSTGRES_ENV"    : ".env.postgres",
                                     "KAFKA_ENV"       : ".env.kafka",
@@ -529,6 +545,7 @@ pipeline {
                         def pullNeeded = [
                                 env.BUILD_CATALOG_SERVICE,
                                 env.BUILD_USER_SERVICE,
+                                env.BUILD_SELLER_SERVICE,
                                 env.BUILD_NOTIFICATION_SERVICE,
                                 env.BUILD_API_GATEWAY,
                                 env.BUILD_DISCOVERY_SERVICE,
@@ -553,6 +570,7 @@ pipeline {
                     cat > .env <<EOF
 CATALOG_SERVICE_TAG=${env.DEPLOY_CATALOG_SERVICE}
 USER_SERVICE_TAG=${env.DEPLOY_USER_SERVICE}
+SELLER_SERVICE_TAG=${env.DEPLOY_SELLER_SERVICE}
 NOTIFICATION_SERVICE_TAG=${env.DEPLOY_NOTIFICATION_SERVICE}
 API_GATEWAY_TAG=${env.DEPLOY_API_GATEWAY}
 DISCOVERY_SERVICE_TAG=${env.DEPLOY_DISCOVERY_SERVICE}
@@ -633,6 +651,7 @@ EOF
         always {
             echo "Catalog tag: ${env.DEPLOY_CATALOG_SERVICE}"
             echo "User tag: ${env.DEPLOY_USER_SERVICE}"
+            echo "Seller tag: ${env.DEPLOY_SELLER_SERVICE}"
             echo "Notification tag: ${env.DEPLOY_NOTIFICATION_SERVICE}"
             echo "Gateway tag: ${env.DEPLOY_API_GATEWAY}"
             echo "Discovery tag: ${env.DEPLOY_DISCOVERY_SERVICE}"
