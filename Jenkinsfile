@@ -17,6 +17,7 @@ pipeline {
         GATEWAY_IMAGE = "${DOCKERHUB_USER}/api-gateway"
 
         SERVER_IP = '144.124.250.82'
+        SERVER_PORT='2222'
         SERVER_PATH = '/home/user/catalog_service'
     }
 
@@ -169,7 +170,7 @@ pipeline {
 
                             def serverTag = sh(
                                     script: """
-                                ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \
+                                ssh -p ${SERVER_PORT} -o StrictHostKeyChecking=no root@${SERVER_IP} \
                                 "cat ${SERVER_PATH}/${tagFile} 2>/dev/null || true"
                             """,
                                     returnStdout: true
@@ -404,7 +405,7 @@ pipeline {
                 """
 
                         sh """
-                    ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteScript}'
+                    ssh -p ${SERVER_PORT} -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteScript}'
                 """
                     }
                 }
@@ -459,7 +460,7 @@ pipeline {
                                 def remoteFile = configs[envVar]
 
                                 sh """
-                                  scp -o StrictHostKeyChecking=no \$${envVar} \
+                                  scp -P ${SERVER_PORT} -o StrictHostKeyChecking=no \$${envVar} \
                                       root@${SERVER_IP}:${SERVER_PATH}/${remoteFile}
                               """
 
@@ -469,15 +470,15 @@ pipeline {
                             if (env.UPLOAD_CONFIG == 'true') {
 
                                 sh """
-                                scp -o StrictHostKeyChecking=no \
+                                scp -P ${SERVER_PORT} -o StrictHostKeyChecking=no \
                                     docker-compose.prod.yml \
                                     root@${SERVER_IP}:${SERVER_PATH}/docker-compose.yml
                                 """
                             }
-                              if (env.NGINX_CHANGED == 'true') {
+                            if (env.NGINX_CHANGED == 'true') {
 
-                                  sh """
-                                  scp -o StrictHostKeyChecking=no \
+                                sh """
+                                  scp -P ${SERVER_PORT} -o StrictHostKeyChecking=no \
                                       nginx/nginx.prod.conf \
                                       root@${SERVER_IP}:${SERVER_PATH}/nginx/nginx.prod.conf
                                   """
@@ -593,14 +594,14 @@ EOF
                         echo "========== DEPLOY DONE =========="
                     """
 
-                            echo "Remote deploy command:"
-                            echo remoteCmd
+                        echo "Remote deploy command:"
+                        echo remoteCmd
 
-                            sh """
-                        ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteCmd}'
+                        sh """
+                        ssh -p ${SERVER_PORT} -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteCmd}'
                     """
-                        }
                     }
+                }
             }
         }
 
