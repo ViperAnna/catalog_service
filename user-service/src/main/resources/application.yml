@@ -1,15 +1,14 @@
 
 application:
-  auth-server-url: ${APPLICATION_AUTH_SERVER_URL}
+  server-url: ${APPLICATION_AUTH_SERVER_URL}
   realm: ${APPLICATION_REALM}
+  client-id: ${KEYCLOAK_ADMIN_CLIENT_ID}
+  client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
 
 spring:
 
   application:
     name: ${SPRING_APPLICATION_NAME}
-    auth-server-url: ${APPLICATION_AUTH_SERVER_URL}
-    realm: ${REALM}
-    client-id: ${CLIENT_ID}
 
   datasource:
     url: ${SPRING_DATASOURCE_URL}
