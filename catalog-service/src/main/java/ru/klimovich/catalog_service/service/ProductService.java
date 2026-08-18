@@ -15,6 +15,7 @@ public interface ProductService {
     Page<ProductResponse> getAllProducts(Pageable pageable);
 
     ProductResponse getProductById(String id);
+    List<ProductResponse> getProductsByStore(Long storeId);
 
     List<ProductResponse> getProductByName(String productName);
 

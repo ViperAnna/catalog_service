@@ -1,5 +1,7 @@
 spring:
 
+
+
 #APPLICATION
   application:
     name: catalog_service
@@ -64,3 +66,6 @@ logging:
       max-file-size: 10MB
       max-history: 3
       total-size-cap: 100MB
+
+seller-service:
+  url: lb://CATALOG-SERVICE

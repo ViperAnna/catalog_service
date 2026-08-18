@@ -17,6 +17,10 @@ import java.util.List;
 @Schema(description = "Запрос на создание/обновление продукта")
 public class ProductRequest {
 
+    @NotNull(message = "Store id is required.")
+    @Schema(description = "Id магазина",example = "3")
+    private Long storeId;
+
     @NotBlank(message = "Product name is required.")
     @Schema(description = "Имя продукта", example = "Фотокамера")
     private String name;

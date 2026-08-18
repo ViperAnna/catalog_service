@@ -41,6 +41,8 @@ services:
         condition: service_healthy
       discovery-service:
         condition: service_healthy
+      kafka:
+        condition: service_started
     restart: unless-stopped
 
   #  ----------Notification service----------
@@ -53,7 +55,30 @@ services:
       - .env.notification
       - .env.postgres
       - .env.kafka
+    volumes:
+      - ./logs:/app/logs
     depends_on:
+      kafka:
+        condition: service_started
+      discovery-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  #  ----------Seller service----------
+  seller-service:
+    image: viperanna/seller-service:${SELLER_SERVICE_TAG}
+    container_name: seller-service
+    expose:
+      - "8080"
+    env_file:
+      - .env.seller
+      - .env.postgres
+      - .env.kafka
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
       kafka:
         condition: service_started
       discovery-service:

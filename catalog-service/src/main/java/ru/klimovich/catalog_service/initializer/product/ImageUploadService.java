@@ -56,7 +56,7 @@ public class ImageUploadService {
         for (Result<Item> result : results) {
             Item item = result.get();
             Image image = new Image();
-            image.setUrl(minioEndpoint +"/" + BUCKET_NAME + "/" + item.objectName());
+            image.setUrl(minioEndpoint + "/" + BUCKET_NAME + "/" + item.objectName());
             image.setFileName(item.objectName());
             image.setSize(item.size());
 

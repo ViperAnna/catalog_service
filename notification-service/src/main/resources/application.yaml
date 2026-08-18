@@ -45,5 +45,10 @@ telegram:
     token: ${TELEGRAM_BOT_TOKEN}
     username: ${TELEGRAM_BOT_USERNAME}
 
+
+notification:
+  moderator:
+    email: ${NOTIFICATION_MODERATOR_EMAIL}
+
 server:
   port: ${SERVER_PORT}

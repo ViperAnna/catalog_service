@@ -57,6 +57,10 @@ public class ProductController {
         return productService.getProductById(id);
     }
 
+    @GetMapping("/stores/{storeId}/products")
+    public List<ProductResponse> getProductsByStore(@PathVariable Long storeId) {
+        return productService.getProductsByStore(storeId);
+    }
     @Operation(
             summary = "Получение всех продуктов",
             description = "Возвращает постранично список товаров"
