@@ -158,24 +158,47 @@ pipeline {
                                 "discovery-service"   : [tagFile: "current_discovery_tag", image: DISCOVERY_IMAGE],
                                 "frontend"            : [tagFile: "current_frontend_tag", image: FRONTEND_IMAGE]
                         ]
+                        def tagsOutput = sh(
+                                script: """
+                            timeout 15 ssh \
+                                -o ConnectTimeout=5 \
+                                -o StrictHostKeyChecking=no \
+                                root@${SERVER_IP} '
+                                    echo "CATALOG_SERVICE=\$(cat ${SERVER_PATH}/current_catalog_tag 2>/dev/null || true)"
+                                    echo "USER_SERVICE=\$(cat ${SERVER_PATH}/current_user_tag 2>/dev/null || true)"
+                                    echo "NOTIFICATION_SERVICE=\$(cat ${SERVER_PATH}/current_notification_tag 2>/dev/null || true)"
+                                    echo "API_GATEWAY=\$(cat ${SERVER_PATH}/current_gateway_tag 2>/dev/null || true)"
+                                    echo "DISCOVERY_SERVICE=\$(cat ${SERVER_PATH}/current_discovery_tag 2>/dev/null || true)"
+                                    echo "FRONTEND=\$(cat ${SERVER_PATH}/current_frontend_tag 2>/dev/null || true)"
+                                '
+                        """,
+                                returnStdout: true
+                        ).trim()
+                        echo "SERVER TAGS:"
+                        echo tagsOutput
+                        def serverTags = [:]
+
+                        tagsOutput.readLines().each { line ->
+
+                            def parts = line.split('=', 2)
+
+                            if (parts.size() == 2) {
+                                serverTags[parts[0]] = parts[1].trim()
+                            }
+                        }
 
                         for (String service : services.keySet()) {
 
-
-                            String tagFile = services[service]["tagFile"]
                             String image = services[service]["image"]
 
-                            def serviceName = service.replace('-', '_').toUpperCase()
+                            def serviceName =
+                                    service.replace('-', '_').toUpperCase()
 
-                            def serverTag = sh(
-                                    script: """
-                                ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \
-                                "cat ${SERVER_PATH}/${tagFile} 2>/dev/null || true"
-                            """,
-                                    returnStdout: true
-                            ).trim()
+                            def serverTag =
+                                    serverTags[serviceName]
 
-                            def buildFlag = env["BUILD_${serviceName}"] == "true"
+                            def buildFlag =
+                                    env["BUILD_${serviceName}"] == "true"
 
                             if (!serverTag) {
 
