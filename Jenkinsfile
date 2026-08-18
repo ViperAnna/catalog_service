@@ -465,6 +465,7 @@ pipeline {
 
             steps {
                 sshagent(['server-ssh']) {
+
                     withCredentials([
                             file(credentialsId: 'env-minio', variable: 'MINIO_ENV'),
                             file(credentialsId: 'env-mongodb', variable: 'MONGO_ENV'),
@@ -480,48 +481,52 @@ pipeline {
 
                         script {
 
-                            def configs = [
-                                    "MINIO_ENV"       : ".env.minio",
-                                    "MONGO_ENV"       : ".env.mongodb",
-                                    "CATALOG_ENV"     : ".env.catalog",
-                                    "USER_ENV"        : ".env.user",
-                                    "SELLER_ENV"      : ".env.seller",
-                                    "NOTIFICATION_ENV": ".env.notification",
-                                    "POSTGRES_ENV"    : ".env.postgres",
-                                    "KAFKA_ENV"       : ".env.kafka",
-                                    "KEYCLOAK_ENV"    : ".env.keycloak",
-                                    "GATEWAY_ENV"     : ".env.gateway"
-                            ]
+                            def configDir = "${WORKSPACE}/deploy-config"
 
-                            for (String envVar : configs.keySet()) {
+                            sh """
+                        rm -rf '${configDir}'
+                        mkdir -p '${configDir}/nginx'
 
-                                def remoteFile = configs[envVar]
+                        cp "\$MINIO_ENV"        '${configDir}/.env.minio'
+                        cp "\$MONGO_ENV"        '${configDir}/.env.mongodb'
+                        cp "\$CATALOG_ENV"      '${configDir}/.env.catalog'
+                        cp "\$USER_ENV"         '${configDir}/.env.user'
+                        cp "\$SELLER_ENV"       '${configDir}/.env.seller'
+                        cp "\$NOTIFICATION_ENV" '${configDir}/.env.notification'
+                        cp "\$POSTGRES_ENV"     '${configDir}/.env.postgres'
+                        cp "\$KAFKA_ENV"       '${configDir}/.env.kafka'
+                        cp "\$KEYCLOAK_ENV"     '${configDir}/.env.keycloak'
+                        cp "\$GATEWAY_ENV"      '${configDir}/.env.gateway'
 
-                                sh """
-                                  scp -o StrictHostKeyChecking=no \$${envVar} \
-                                      root@${SERVER_IP}:${SERVER_PATH}/${remoteFile}
-                              """
+                        cp docker-compose.prod.yml '${configDir}/docker-compose.yml'
+                    """
 
-                                echo "Uploaded ${remoteFile}"
-                            }
-
-                            if (env.UPLOAD_CONFIG == 'true') {
+                            if (env.NGINX_CHANGED == 'true') {
 
                                 sh """
-                                scp -o StrictHostKeyChecking=no \
-                                    docker-compose.prod.yml \
-                                    root@${SERVER_IP}:${SERVER_PATH}/docker-compose.yml
-                                """
-                            }
-                              if (env.NGINX_CHANGED == 'true') {
+                            cp nginx/nginx.prod.conf '${configDir}/nginx/nginx.prod.conf'
+                        """
 
-                                  sh """
-                                  scp -o StrictHostKeyChecking=no \
-                                      nginx/nginx.prod.conf \
-                                      root@${SERVER_IP}:${SERVER_PATH}/nginx/nginx.prod.conf
-                                  """
-
+                                echo "Nginx config added to upload archive"
                             }
+
+                            echo "Uploading deployment config in ONE SSH connection"
+
+                            sh """
+                        tar -C '${configDir}' -czf - . | \
+                        timeout 30 ssh \
+                            -o ConnectTimeout=5 \
+                            -o StrictHostKeyChecking=no \
+                            root@${SERVER_IP} \
+                            "mkdir -p '${SERVER_PATH}' '${SERVER_PATH}/nginx' && \
+                             tar -xzf - -C '${SERVER_PATH}'"
+                    """
+
+                            echo "Deployment config uploaded"
+
+                            sh """
+                        rm -rf '${configDir}'
+                    """
                         }
                     }
                 }
