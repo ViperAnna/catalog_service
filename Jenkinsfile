@@ -15,6 +15,7 @@ pipeline {
         NOTIFICATION_IMAGE = "${DOCKERHUB_USER}/notification-service"
         DISCOVERY_IMAGE = "${DOCKERHUB_USER}/discovery-service"
         GATEWAY_IMAGE = "${DOCKERHUB_USER}/api-gateway"
+        SELLER_IMAGE = "${DOCKERHUB_USER}/seller-service"
 
         SERVER_IP = '144.124.250.82'
         SERVER_PATH = '/home/user/catalog_service'
@@ -27,15 +28,26 @@ pipeline {
         stage('Detect changes') {
             steps {
                 script {
-                    def base = env.GIT_PREVIOUS_SUCCESSFUL_COMMIT
-                    boolean baseExists = base && sh(script: "git cat-file -e ${base}^{commit}", returnStatus: true) == 0
 
-                    echo "Diff base: ${baseExists ? base : 'none -> full rebuild'}"
+                    def base = env.GIT_PREVIOUS_SUCCESSFUL_COMMIT
+                    boolean baseExists = base &&
+                            sh(
+                                    script: "git cat-file -e ${base}^{commit}",
+                                    returnStatus: true
+                            ) == 0
+
+                    echo "Changes are calculated from: ${baseExists ? base : 'NONE (full rebuild)'}"
                     echo "CURRENT COMMIT: ${env.GIT_COMMIT}"
 
                     def changes = baseExists
-                            ? sh(script: "git diff --name-only ${base} ${env.GIT_COMMIT}", returnStdout: true).trim()
-                            : sh(script: "git ls-files", returnStdout: true).trim()
+                            ? sh(
+                            script: "git diff --name-only ${base} ${env.GIT_COMMIT}",
+                            returnStdout: true
+                    ).trim()
+                            : sh(
+                            script: "git ls-files",
+                            returnStdout: true
+                    ).trim()
 
                     echo "Changed files:\n${changes}"
 
@@ -50,6 +62,7 @@ pipeline {
                     def services = [
                             "catalog-service"     : "BUILD_CATALOG_SERVICE",
                             "user-service"        : "BUILD_USER_SERVICE",
+                            "seller-service"        : "BUILD_SELLER_SERVICE",
                             "notification-service": "BUILD_NOTIFICATION_SERVICE",
                             "api-gateway"         : "BUILD_API_GATEWAY",
                             "discovery-service"   : "BUILD_DISCOVERY_SERVICE",
@@ -64,10 +77,11 @@ pipeline {
                         echo "${envName} = ${env[envName]}"
                     }
                     env.UPLOAD_CONFIG = changed("docker-compose.prod.yml").toString()
-                    env.NGINX_CHANGED = changed("nginx/nginx.prod.conf").toString()
+                    env.NGINX_CHANGED = changed("frontend/nginx.prod.conf").toString()
 
                     echo "BUILD_CATALOG_SERVICE = ${env.BUILD_CATALOG_SERVICE}"
                     echo "BUILD_USER_SERVICE = ${env.BUILD_USER_SERVICE}"
+                    echo "BUILD_SELLER_SERVICE = ${env.BUILD_SELLER_SERVICE}"
                     echo "BUILD_NOTIFICATION_SERVICE = ${env.BUILD_NOTIFICATION_SERVICE}"
                     echo "BUILD_API_GATEWAY = ${env.BUILD_API_GATEWAY}"
                     echo "BUILD_DISCOVERY_SERVICE = ${env.BUILD_DISCOVERY_SERVICE}"
@@ -150,29 +164,54 @@ pipeline {
                         def services = [
                                 "catalog-service"     : [tagFile: "current_catalog_tag", image: BACKEND_IMAGE],
                                 "user-service"        : [tagFile: "current_user_tag", image: USER_IMAGE],
+                                "seller-service"      : [tagFile: "current_seller_tag", image: SELLER_IMAGE],
                                 "notification-service": [tagFile: "current_notification_tag", image: NOTIFICATION_IMAGE],
                                 "api-gateway"         : [tagFile: "current_gateway_tag", image: GATEWAY_IMAGE],
                                 "discovery-service"   : [tagFile: "current_discovery_tag", image: DISCOVERY_IMAGE],
                                 "frontend"            : [tagFile: "current_frontend_tag", image: FRONTEND_IMAGE]
                         ]
+                        def tagsOutput = sh(
+                                script: """
+                            timeout 15 ssh \
+                                -o ConnectTimeout=5 \
+                                -o StrictHostKeyChecking=no \
+                                root@${SERVER_IP} '
+                                    echo "CATALOG_SERVICE=\$(cat ${SERVER_PATH}/current_catalog_tag 2>/dev/null || true)"
+                                    echo "USER_SERVICE=\$(cat ${SERVER_PATH}/current_user_tag 2>/dev/null || true)"
+                                    echo "SELLER_SERVICE=\$(cat ${SERVER_PATH}/current_seller_tag 2>/dev/null || true)"
+                                    echo "NOTIFICATION_SERVICE=\$(cat ${SERVER_PATH}/current_notification_tag 2>/dev/null || true)"
+                                    echo "API_GATEWAY=\$(cat ${SERVER_PATH}/current_gateway_tag 2>/dev/null || true)"
+                                    echo "DISCOVERY_SERVICE=\$(cat ${SERVER_PATH}/current_discovery_tag 2>/dev/null || true)"
+                                    echo "FRONTEND=\$(cat ${SERVER_PATH}/current_frontend_tag 2>/dev/null || true)"
+                                '
+                        """,
+                                returnStdout: true
+                        ).trim()
+                        echo "SERVER TAGS:"
+                        echo tagsOutput
+                        def serverTags = [:]
+
+                        tagsOutput.readLines().each { line ->
+
+                            def parts = line.split('=', 2)
+
+                            if (parts.size() == 2) {
+                                serverTags[parts[0]] = parts[1].trim()
+                            }
+                        }
 
                         for (String service : services.keySet()) {
 
-
-                            String tagFile = services[service]["tagFile"]
                             String image = services[service]["image"]
 
-                            def serviceName = service.replace('-', '_').toUpperCase()
+                            def serviceName =
+                                    service.replace('-', '_').toUpperCase()
 
-                            def serverTag = sh(
-                                    script: """
-                                ssh -o StrictHostKeyChecking=no root@${SERVER_IP} \
-                                "cat ${SERVER_PATH}/${tagFile} 2>/dev/null || true"
-                            """,
-                                    returnStdout: true
-                            ).trim()
+                            def serverTag =
+                                    serverTags[serviceName]
 
-                            def buildFlag = env["BUILD_${serviceName}"] == "true"
+                            def buildFlag =
+                                    env["BUILD_${serviceName}"] == "true"
 
                             if (!serverTag) {
 
@@ -227,6 +266,7 @@ pipeline {
                     env.BUILD_FRONTEND == 'true' ||
                             env.BUILD_CATALOG_SERVICE == 'true' ||
                             env.BUILD_USER_SERVICE == 'true' ||
+                            env.BUILD_SELLER_SERVICE == 'true' ||
                             env.BUILD_NOTIFICATION_SERVICE == 'true' ||
                             env.BUILD_API_GATEWAY == 'true' ||
                             env.BUILD_DISCOVERY_SERVICE == 'true'
@@ -245,6 +285,11 @@ pipeline {
                                     path : "./user-service",
                                     image: "${DOCKERHUB_USER}/user-service",
                                     build: env.BUILD_USER_SERVICE
+                            ],
+                            "seller-service"        : [
+                                    path : "./seller-service",
+                                    image: "${DOCKERHUB_USER}/seller-service",
+                                    build: env.BUILD_SELLER_SERVICE
                             ],
                             "notification-service": [
                                     path : "./notification-service",
@@ -311,6 +356,7 @@ pipeline {
                     env.BUILD_FRONTEND == 'true' ||
                             env.BUILD_CATALOG_SERVICE == 'true' ||
                             env.BUILD_USER_SERVICE == 'true' ||
+                            env.BUILD_SELLER_SERVICE == 'true' ||
                             env.BUILD_NOTIFICATION_SERVICE == 'true' ||
                             env.BUILD_API_GATEWAY == 'true' ||
                             env.BUILD_DISCOVERY_SERVICE == 'true'
@@ -323,6 +369,7 @@ pipeline {
                     def images = [
                             "catalog-service"     : "${DOCKERHUB_USER}/catalog-service",
                             "user-service"        : "${DOCKERHUB_USER}/user-service",
+                            "seller-service"      : "${DOCKERHUB_USER}/seller-service",
                             "notification-service": "${DOCKERHUB_USER}/notification-service",
                             "api-gateway"         : "${DOCKERHUB_USER}/api-gateway",
                             "discovery-service"   : "${DOCKERHUB_USER}/discovery-service",
@@ -347,66 +394,7 @@ pipeline {
             }
         }
 
-        // =========================================================
-        // Save deployed tags
-        // =========================================================
-        stage('Save Deploy Tags') {
 
-            when {
-                branch 'develop'
-            }
-
-            steps {
-                sshagent(['server-ssh']) {
-                    script {
-
-                        def services = [
-                                "catalog-service"     : "current_catalog_tag",
-                                "user-service"        : "current_user_tag",
-                                "notification-service": "current_notification_tag",
-                                "api-gateway"         : "current_gateway_tag",
-                                "discovery-service"   : "current_discovery_tag",
-                                "frontend"            : "current_frontend_tag"
-                        ]
-
-                        def remoteScript = """
-                    set -e
-                    mkdir -p ${SERVER_PATH}
-                    cd ${SERVER_PATH}
-
-                    TIMESTAMP=\$(date +%F_%T)
-
-                    echo "== SAVE DEPLOY HISTORY =="
-                """
-
-                        for (String service : services.keySet()) {
-
-                            String tagFile = services[service]
-
-                            String serviceName =
-                                    service.replace('-', '_').toUpperCase()
-
-                            String tag =
-                                    env["DEPLOY_${serviceName}"]
-
-                            remoteScript += """
-                            echo "\$TIMESTAMP ${tag}" >> deploy_history_${service}.log
-                            echo "${tag}" > ${tagFile}.tmp
-                            mv ${tagFile}.tmp ${tagFile}
-                            """
-                        }
-
-                        remoteScript += """
-                    echo "== DONE =="
-                """
-
-                        sh """
-                    ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteScript}'
-                """
-                    }
-                }
-            }
-        }
 
 
         // =========================================================
@@ -415,21 +403,18 @@ pipeline {
         stage('Upload Config') {
 
             when {
-                allOf {
                     branch 'develop'
-                    expression {
-                        env.UPLOAD_CONFIG == 'true'
-                    }
-                }
             }
 
             steps {
                 sshagent(['server-ssh']) {
+
                     withCredentials([
                             file(credentialsId: 'env-minio', variable: 'MINIO_ENV'),
                             file(credentialsId: 'env-mongodb', variable: 'MONGO_ENV'),
                             file(credentialsId: 'env-catalog', variable: 'CATALOG_ENV'),
                             file(credentialsId: 'env-user', variable: 'USER_ENV'),
+                            file(credentialsId: 'env-seller', variable: 'SELLER_ENV'),
                             file(credentialsId: 'env-notification', variable: 'NOTIFICATION_ENV'),
                             file(credentialsId: 'env-postgres', variable: 'POSTGRES_ENV'),
                             file(credentialsId: 'env-kafka', variable: 'KAFKA_ENV'),
@@ -439,47 +424,49 @@ pipeline {
 
                         script {
 
-                            def configs = [
-                                    "MINIO_ENV"       : ".env.minio",
-                                    "MONGO_ENV"       : ".env.mongodb",
-                                    "CATALOG_ENV"     : ".env.catalog",
-                                    "USER_ENV"        : ".env.user",
-                                    "NOTIFICATION_ENV": ".env.notification",
-                                    "POSTGRES_ENV"    : ".env.postgres",
-                                    "KAFKA_ENV"       : ".env.kafka",
-                                    "KEYCLOAK_ENV"    : ".env.keycloak",
-                                    "GATEWAY_ENV"     : ".env.gateway"
-                            ]
+                            def configDir = "${WORKSPACE}/deploy-config"
 
-                            for (String envVar : configs.keySet()) {
+                            sh """
+                        rm -rf '${configDir}'
+                        mkdir -p '${configDir}/nginx'
 
-                                def remoteFile = configs[envVar]
+                        cp "\$MINIO_ENV"        '${configDir}/.env.minio'
+                        cp "\$MONGO_ENV"        '${configDir}/.env.mongodb'
+                        cp "\$CATALOG_ENV"      '${configDir}/.env.catalog'
+                        cp "\$USER_ENV"         '${configDir}/.env.user'
+                        cp "\$SELLER_ENV"       '${configDir}/.env.seller'
+                        cp "\$NOTIFICATION_ENV" '${configDir}/.env.notification'
+                        cp "\$POSTGRES_ENV"     '${configDir}/.env.postgres'
+                        cp "\$KAFKA_ENV"       '${configDir}/.env.kafka'
+                        cp "\$KEYCLOAK_ENV"     '${configDir}/.env.keycloak'
+                        cp "\$GATEWAY_ENV"      '${configDir}/.env.gateway'
 
-                                sh """
-                                  scp -o StrictHostKeyChecking=no \$${envVar} \
-                                      root@${SERVER_IP}:${SERVER_PATH}/${remoteFile}
-                              """
+                        cp docker-compose.prod.yml '${configDir}/docker-compose.yml'
+                    """
 
-                                echo "Uploaded ${remoteFile}"
-                            }
+                            sh """
+                                cp frontend/nginx.prod.conf '${configDir}/nginx/nginx.prod.conf'
+                            """
 
-                            if (env.UPLOAD_CONFIG == 'true') {
+                            echo "Nginx config added to upload archive"
 
-                                sh """
-                                scp -o StrictHostKeyChecking=no \
-                                    docker-compose.prod.yml \
-                                    root@${SERVER_IP}:${SERVER_PATH}/docker-compose.yml
-                                """
-                            }
-                              if (env.NGINX_CHANGED == 'true') {
+                            echo "Uploading deployment config in ONE SSH connection"
 
-                                  sh """
-                                  scp -o StrictHostKeyChecking=no \
-                                      nginx/nginx.prod.conf \
-                                      root@${SERVER_IP}:${SERVER_PATH}/nginx/nginx.prod.conf
-                                  """
+                            sh """
+                        tar -C '${configDir}' -czf - . | \
+                        timeout 30 ssh \
+                            -o ConnectTimeout=5 \
+                            -o StrictHostKeyChecking=no \
+                            root@${SERVER_IP} \
+                            "mkdir -p '${SERVER_PATH}' '${SERVER_PATH}/nginx' && \
+                             tar -xzf - -C '${SERVER_PATH}'"
+                    """
 
-                            }
+                            echo "Deployment config uploaded"
+
+                            sh """
+                        rm -rf '${configDir}'
+                    """
                         }
                     }
                 }
@@ -503,6 +490,7 @@ pipeline {
                         def pullNeeded = [
                                 env.BUILD_CATALOG_SERVICE,
                                 env.BUILD_USER_SERVICE,
+                                env.BUILD_SELLER_SERVICE,
                                 env.BUILD_NOTIFICATION_SERVICE,
                                 env.BUILD_API_GATEWAY,
                                 env.BUILD_DISCOVERY_SERVICE,
@@ -527,6 +515,7 @@ pipeline {
                     cat > .env <<EOF
 CATALOG_SERVICE_TAG=${env.DEPLOY_CATALOG_SERVICE}
 USER_SERVICE_TAG=${env.DEPLOY_USER_SERVICE}
+SELLER_SERVICE_TAG=${env.DEPLOY_SELLER_SERVICE}
 NOTIFICATION_SERVICE_TAG=${env.DEPLOY_NOTIFICATION_SERVICE}
 API_GATEWAY_TAG=${env.DEPLOY_API_GATEWAY}
 DISCOVERY_SERVICE_TAG=${env.DEPLOY_DISCOVERY_SERVICE}
@@ -590,14 +579,75 @@ EOF
                         echo "========== DEPLOY DONE =========="
                     """
 
-                            echo "Remote deploy command:"
-                            echo remoteCmd
+                        echo "Remote deploy command:"
+                        echo remoteCmd
 
-                            sh """
+                        sh """
                         ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteCmd}'
                     """
-                        }
                     }
+                }
+            }
+        }
+        // =========================================================
+        // Save deployed tags
+        // =========================================================
+        stage('Save Deploy Tags') {
+
+            when {
+                branch 'develop'
+            }
+
+            steps {
+                sshagent(['server-ssh']) {
+                    script {
+
+                        def services = [
+                                "catalog-service"     : "current_catalog_tag",
+                                "user-service"        : "current_user_tag",
+                                "seller-service"      : "current_seller_tag",
+                                "notification-service": "current_notification_tag",
+                                "api-gateway"         : "current_gateway_tag",
+                                "discovery-service"   : "current_discovery_tag",
+                                "frontend"            : "current_frontend_tag"
+                        ]
+
+                        def remoteScript = """
+                    set -e
+                    mkdir -p ${SERVER_PATH}
+                    cd ${SERVER_PATH}
+
+                    TIMESTAMP=\$(date +%F_%T)
+
+                    echo "== SAVE DEPLOY HISTORY =="
+                """
+
+                        for (String service : services.keySet()) {
+
+                            String tagFile = services[service]
+
+                            String serviceName =
+                                    service.replace('-', '_').toUpperCase()
+
+                            String tag =
+                                    env["DEPLOY_${serviceName}"]
+
+                            remoteScript += """
+                            echo "\$TIMESTAMP ${tag}" >> deploy_history_${service}.log
+                            echo "${tag}" > ${tagFile}.tmp
+                            mv ${tagFile}.tmp ${tagFile}
+                            """
+                        }
+
+                        remoteScript += """
+                    echo "== DONE =="
+                """
+
+                        sh """
+                    ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteScript}'
+                """
+                    }
+                }
             }
         }
 
@@ -607,6 +657,7 @@ EOF
         always {
             echo "Catalog tag: ${env.DEPLOY_CATALOG_SERVICE}"
             echo "User tag: ${env.DEPLOY_USER_SERVICE}"
+            echo "Seller tag: ${env.DEPLOY_SELLER_SERVICE}"
             echo "Notification tag: ${env.DEPLOY_NOTIFICATION_SERVICE}"
             echo "Gateway tag: ${env.DEPLOY_API_GATEWAY}"
             echo "Discovery tag: ${env.DEPLOY_DISCOVERY_SERVICE}"
