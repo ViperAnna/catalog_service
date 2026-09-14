@@ -27,17 +27,14 @@ pipeline {
         stage('Detect changes') {
             steps {
                 script {
+                    def base = env.GIT_PREVIOUS_SUCCESSFUL_COMMIT
+                    boolean baseExists = base && sh(script: "git cat-file -e ${base}^{commit}", returnStatus: true) == 0
 
-                    def previousCommit = sh(
-                            script: "git rev-parse HEAD~1 || echo ''",
-                            returnStdout: true
-                    ).trim()
+                    echo "Diff base: ${baseExists ? base : 'none -> full rebuild'}"
+                    echo "CURRENT COMMIT: ${env.GIT_COMMIT}"
 
-                    echo "PREVIOUS COMMIT: ${previousCommit}"
-                    echo "CURRENT COMMIT : ${env.GIT_COMMIT}"
-
-                    def changes = previousCommit
-                            ? sh(script: "git diff --name-only ${previousCommit} ${env.GIT_COMMIT}", returnStdout: true).trim()
+                    def changes = baseExists
+                            ? sh(script: "git diff --name-only ${base} ${env.GIT_COMMIT}", returnStdout: true).trim()
                             : sh(script: "git ls-files", returnStdout: true).trim()
 
                     echo "Changed files:\n${changes}"
