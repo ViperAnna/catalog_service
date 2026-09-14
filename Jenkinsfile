@@ -29,17 +29,25 @@ pipeline {
             steps {
                 script {
 
-                    def previousCommit = sh(
-                            script: "git rev-parse HEAD~1 || echo ''",
+                    def base = env.GIT_PREVIOUS_SUCCESSFUL_COMMIT
+                    boolean baseExists = base &&
+                            sh(
+                                    script: "git cat-file -e ${base}^{commit}",
+                                    returnStatus: true
+                            ) == 0
+
+                    echo "Changes are calculated from: ${baseExists ? base : 'NONE (full rebuild)'}"
+                    echo "CURRENT COMMIT: ${env.GIT_COMMIT}"
+
+                    def changes = baseExists
+                            ? sh(
+                            script: "git diff --name-only ${base} ${env.GIT_COMMIT}",
                             returnStdout: true
                     ).trim()
-
-                    echo "PREVIOUS COMMIT: ${previousCommit}"
-                    echo "CURRENT COMMIT : ${env.GIT_COMMIT}"
-
-                    def changes = previousCommit
-                            ? sh(script: "git diff --name-only ${previousCommit} ${env.GIT_COMMIT}", returnStdout: true).trim()
-                            : sh(script: "git ls-files", returnStdout: true).trim()
+                            : sh(
+                            script: "git ls-files",
+                            returnStdout: true
+                    ).trim()
 
                     echo "Changed files:\n${changes}"
 
@@ -69,7 +77,7 @@ pipeline {
                         echo "${envName} = ${env[envName]}"
                     }
                     env.UPLOAD_CONFIG = changed("docker-compose.prod.yml").toString()
-                    env.NGINX_CHANGED = changed("nginx/nginx.prod.conf").toString()
+                    env.NGINX_CHANGED = changed("frontend/nginx.prod.conf").toString()
 
                     echo "BUILD_CATALOG_SERVICE = ${env.BUILD_CATALOG_SERVICE}"
                     echo "BUILD_USER_SERVICE = ${env.BUILD_USER_SERVICE}"
@@ -386,67 +394,7 @@ pipeline {
             }
         }
 
-        // =========================================================
-        // Save deployed tags
-        // =========================================================
-        stage('Save Deploy Tags') {
 
-            when {
-                branch 'develop'
-            }
-
-            steps {
-                sshagent(['server-ssh']) {
-                    script {
-
-                        def services = [
-                                "catalog-service"     : "current_catalog_tag",
-                                "user-service"        : "current_user_tag",
-                                "seller-service"      : "current_seller_tag",
-                                "notification-service": "current_notification_tag",
-                                "api-gateway"         : "current_gateway_tag",
-                                "discovery-service"   : "current_discovery_tag",
-                                "frontend"            : "current_frontend_tag"
-                        ]
-
-                        def remoteScript = """
-                    set -e
-                    mkdir -p ${SERVER_PATH}
-                    cd ${SERVER_PATH}
-
-                    TIMESTAMP=\$(date +%F_%T)
-
-                    echo "== SAVE DEPLOY HISTORY =="
-                """
-
-                        for (String service : services.keySet()) {
-
-                            String tagFile = services[service]
-
-                            String serviceName =
-                                    service.replace('-', '_').toUpperCase()
-
-                            String tag =
-                                    env["DEPLOY_${serviceName}"]
-
-                            remoteScript += """
-                            echo "\$TIMESTAMP ${tag}" >> deploy_history_${service}.log
-                            echo "${tag}" > ${tagFile}.tmp
-                            mv ${tagFile}.tmp ${tagFile}
-                            """
-                        }
-
-                        remoteScript += """
-                    echo "== DONE =="
-                """
-
-                        sh """
-                    ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteScript}'
-                """
-                    }
-                }
-            }
-        }
 
 
         // =========================================================
@@ -455,12 +403,7 @@ pipeline {
         stage('Upload Config') {
 
             when {
-                allOf {
                     branch 'develop'
-                    expression {
-                        env.UPLOAD_CONFIG == 'true'
-                    }
-                }
             }
 
             steps {
@@ -501,14 +444,11 @@ pipeline {
                         cp docker-compose.prod.yml '${configDir}/docker-compose.yml'
                     """
 
-                            if (env.NGINX_CHANGED == 'true') {
+                            sh """
+                                cp frontend/nginx.prod.conf '${configDir}/nginx/nginx.prod.conf'
+                            """
 
-                                sh """
-                            cp nginx/nginx.prod.conf '${configDir}/nginx/nginx.prod.conf'
-                        """
-
-                                echo "Nginx config added to upload archive"
-                            }
+                            echo "Nginx config added to upload archive"
 
                             echo "Uploading deployment config in ONE SSH connection"
 
@@ -639,14 +579,75 @@ EOF
                         echo "========== DEPLOY DONE =========="
                     """
 
-                            echo "Remote deploy command:"
-                            echo remoteCmd
+                        echo "Remote deploy command:"
+                        echo remoteCmd
 
-                            sh """
+                        sh """
                         ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteCmd}'
                     """
-                        }
                     }
+                }
+            }
+        }
+        // =========================================================
+        // Save deployed tags
+        // =========================================================
+        stage('Save Deploy Tags') {
+
+            when {
+                branch 'develop'
+            }
+
+            steps {
+                sshagent(['server-ssh']) {
+                    script {
+
+                        def services = [
+                                "catalog-service"     : "current_catalog_tag",
+                                "user-service"        : "current_user_tag",
+                                "seller-service"      : "current_seller_tag",
+                                "notification-service": "current_notification_tag",
+                                "api-gateway"         : "current_gateway_tag",
+                                "discovery-service"   : "current_discovery_tag",
+                                "frontend"            : "current_frontend_tag"
+                        ]
+
+                        def remoteScript = """
+                    set -e
+                    mkdir -p ${SERVER_PATH}
+                    cd ${SERVER_PATH}
+
+                    TIMESTAMP=\$(date +%F_%T)
+
+                    echo "== SAVE DEPLOY HISTORY =="
+                """
+
+                        for (String service : services.keySet()) {
+
+                            String tagFile = services[service]
+
+                            String serviceName =
+                                    service.replace('-', '_').toUpperCase()
+
+                            String tag =
+                                    env["DEPLOY_${serviceName}"]
+
+                            remoteScript += """
+                            echo "\$TIMESTAMP ${tag}" >> deploy_history_${service}.log
+                            echo "${tag}" > ${tagFile}.tmp
+                            mv ${tagFile}.tmp ${tagFile}
+                            """
+                        }
+
+                        remoteScript += """
+                    echo "== DONE =="
+                """
+
+                        sh """
+                    ssh -o StrictHostKeyChecking=no root@${SERVER_IP} '${remoteScript}'
+                """
+                    }
+                }
             }
         }
 
