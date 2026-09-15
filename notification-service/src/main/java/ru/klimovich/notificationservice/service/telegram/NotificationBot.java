@@ -25,12 +25,6 @@ public class NotificationBot implements SpringLongPollingBot, LongPollingSingleT
     private final TelegramClient telegramClient;
     private final TelegramUserRepository repository;
 
-    @PostConstruct
-    public void init() {
-        System.out.println("TOKEN = " + properties.getToken());
-        System.out.println("BOT = " + properties.getUsername());
-    }
-
     @Override
     public String getBotToken() {
         return properties.getToken();
@@ -44,8 +38,6 @@ public class NotificationBot implements SpringLongPollingBot, LongPollingSingleT
     @SneakyThrows
     @Override
     public void consume(Update update) {
-        System.out.println("UPDATE RECEIVED");
-
         if (!update.hasMessage() || !update.getMessage().hasText()) {
             return;
 
@@ -84,14 +76,13 @@ public class NotificationBot implements SpringLongPollingBot, LongPollingSingleT
             }
 
             String token = parts[1];
-            log.info("Token: {}", token);
 
             var optionalUser = repository.findByLinkToken(token);
 
             log.info("User found: {}", optionalUser.isPresent());
 
             if (optionalUser.isEmpty()) {
-                log.warn("No user with token {}", token);
+                log.warn("Invalid link token.");
                 sendMessage(chatId, "Invalid token.");
                 return;
             }
