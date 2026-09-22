@@ -2,6 +2,13 @@ spring:
   application:
     name: ${SPRING_APPLICATION_NAME}
 
+  security:
+    oauth2:
+      resource-server:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI}
+          issuer-uri: ${JWT_ISSUER_URI}
+
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}

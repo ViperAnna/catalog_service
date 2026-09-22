@@ -1,7 +1,7 @@
 package ru.seller_service.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.kafka.common.errors.ResourceNotFoundException;
+import ru.seller_service.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.seller_service.dto.responce.SellerResponse;

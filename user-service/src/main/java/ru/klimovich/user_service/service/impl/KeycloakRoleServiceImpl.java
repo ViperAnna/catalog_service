@@ -19,6 +19,7 @@ public class KeycloakRoleServiceImpl implements KeycloakRoleService {
 
     @Value("${application.realm}")
     private String realm;
+    private static final String SELLER_ROLE = "SELLER";
 
 
     @Override
@@ -27,7 +28,7 @@ public class KeycloakRoleServiceImpl implements KeycloakRoleService {
         RealmResource realmResource = keycloak.realm(realm);
         UserResource userResource = realmResource.users().get(keycloakUserId);
         RoleRepresentation sellerRole = realmResource.roles()
-                .get("seller")
+                .get(SELLER_ROLE)
                 .toRepresentation();
         userResource.roles().realmLevel().add(List.of(sellerRole));
     }
@@ -38,7 +39,7 @@ public class KeycloakRoleServiceImpl implements KeycloakRoleService {
         RealmResource realmResource = keycloak.realm(realm);
         UserResource userResource = realmResource.users().get(keycloakUserId);
         RoleRepresentation sellerRole = realmResource.roles()
-                .get("seller")
+                .get(SELLER_ROLE)
                 .toRepresentation();
         userResource.roles().realmLevel().remove(List.of(sellerRole));
 

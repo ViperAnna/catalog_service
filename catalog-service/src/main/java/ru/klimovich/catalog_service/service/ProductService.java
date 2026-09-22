@@ -4,6 +4,7 @@ package ru.klimovich.catalog_service.service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
+import ru.klimovich.catalog_service.dto.request.ProductUpdateRequest;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
 
 import java.util.List;
@@ -23,7 +24,7 @@ public interface ProductService {
 
     Page<ProductResponse> getProductsByCategory(Pageable pageable, String categoryId);
 
-    void updateProductById(String id, ProductRequest productDetails);
+    void updateProductById(String id, ProductUpdateRequest productDetails);
 
     void deleteProductById(String id);
 }

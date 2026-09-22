@@ -44,6 +44,7 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryMapper.toEntity(categoryDetails);
         category.setName(normalizedName);
         Image image = fileStorageService.uploadCategoryImage(categoryDetails.getImage());
+        category.setImage(image);
         categoryMapper.toDTO(categoryRepo.save(category));
     }
 
@@ -85,7 +86,7 @@ public class CategoryServiceImpl implements CategoryService {
         if (categoryDetails.getImage() != null && !categoryDetails.getImage().isEmpty()) {
             String newHash = fileStorageService.calculateHash(categoryDetails.getImage());
 
-            if (!category.getImage().getHash().equals(newHash)) {
+            if (category.getImage() == null || !category.getImage().getHash().equals(newHash)) {
                 Image newImage = fileStorageService.uploadCategoryImage(categoryDetails.getImage());
                 category.setImage(newImage);
             } else {

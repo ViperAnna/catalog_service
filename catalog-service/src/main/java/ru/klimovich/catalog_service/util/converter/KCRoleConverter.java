@@ -1,4 +1,4 @@
-package ru.klimovich.user_service.util.converter;
+package ru.klimovich.catalog_service.util.converter;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.core.GrantedAuthority;

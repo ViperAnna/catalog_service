@@ -113,7 +113,6 @@ public class UserServiceImpl implements UserService {
 
         outboxRepository.save(
                 OutboxEvent.builder()
-                        .id(UUID.randomUUID())
                         .aggregateType("USER")
                         .aggregateId(user.getId().toString())
                         .eventType("USER_CREATED")

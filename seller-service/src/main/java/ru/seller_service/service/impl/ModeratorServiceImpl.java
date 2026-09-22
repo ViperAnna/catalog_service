@@ -1,13 +1,15 @@
 package ru.seller_service.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.kafka.common.errors.ResourceNotFoundException;
+import ru.seller_service.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.seller_service.client.UserGrpcClient;
 import ru.seller_service.dto.request.application.ReviewSellerApplicationRequest;
 import ru.seller_service.dto.responce.SellerApplicationResponse;
 import ru.seller_service.event.SellerApprovedEvent;
+import ru.seller_service.event.SellerEventType;
+import ru.seller_service.event.SellerRejectedEvent;
 import ru.seller_service.exception.ResourceConflictException;
 import ru.seller_service.mapper.EventMapper;
 import ru.seller_service.mapper.SellerApplicationMapper;
@@ -25,10 +27,10 @@ import ru.seller_service.util.MessageKeys;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ModeratorServiceImpl implements ModeratorService {
 
     private final SellerApplicationRepository sellerApplicationRepo;
@@ -38,6 +40,17 @@ public class ModeratorServiceImpl implements ModeratorService {
     private final UserGrpcClient userGrpcClient;
     private final OutboxRepository outboxRepo;
     private final EventMapper eventMapper;
+
+    private void saveOutbox(SellerApplication application, SellerEventType eventType, Object payload) {
+        outboxRepo.save(OutboxEvent.builder()
+                .aggregateType("SELLER_APPLICATION")
+                .aggregateId(application.getId().toString())
+                .eventType(eventType.name())
+                .payload(eventMapper.toJson(payload))
+                .createdAt(LocalDateTime.now())
+                .processed(false)
+                .build());
+    }
 
 
     @Override
@@ -57,7 +70,6 @@ public class ModeratorServiceImpl implements ModeratorService {
         return sellerApplicationMapper.toDTO(application);
     }
 
-    @Transactional
     @Override
     public void approve(Long applicationId) {
         SellerApplication application = getApplicationById(applicationId);
@@ -76,20 +88,14 @@ public class ModeratorServiceImpl implements ModeratorService {
                 .sellerName(application.getSellerName())
                 .email(application.getEmail())
                 .build();
-        outboxRepo.save(
-                OutboxEvent.builder()
-                        .id(UUID.randomUUID())
-                        .aggregateType("SELLER_APPLICATION")
-                        .aggregateId(application.getId().toString())
-                        .eventType("SELLER_APPROVED")
-                        .payload(eventMapper.toJson(event))
-                        .createdAt(LocalDateTime.now())
-                        .processed(false)
-                        .build()
+
+        saveOutbox(
+                application,
+                SellerEventType.SELLER_APPROVED,
+                event
         );
     }
 
-    @Transactional
     @Override
     public void reject(Long applicationId, ReviewSellerApplicationRequest request) {
 
@@ -100,7 +106,18 @@ public class ModeratorServiceImpl implements ModeratorService {
         application.setSellerApplicationStatus(SellerApplicationStatus.REJECTED);
         application.setModeratorComment(request.moderatorComment());
 
-        sellerApplicationRepo.save(application);
+        SellerRejectedEvent event = SellerRejectedEvent.builder()
+                .applicationId(application.getId())
+                .keycloakUserId(application.getKeycloakUserId())
+                .sellerName(application.getSellerName())
+                .email(application.getEmail())
+                .moderatorComment(request.moderatorComment())
+                .build();
+
+        saveOutbox(
+                application,
+                SellerEventType.SELLER_REJECTED,
+                event);
 
     }
 

@@ -3,6 +3,7 @@ package ru.klimovich.catalog_service.mapper;
 import org.mapstruct.*;
 import ru.klimovich.catalog_service.dto.request.CharacteristicRequest;
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
+import ru.klimovich.catalog_service.dto.request.ProductUpdateRequest;
 import ru.klimovich.catalog_service.dto.response.CategoryShortResponse;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
 import ru.klimovich.catalog_service.model.Characteristic;
@@ -62,6 +63,6 @@ public interface ProductMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "articleNumber", ignore = true)
     @Mapping(target = "images", ignore = true)
-    void updateProductFromDTO(ProductRequest productDetails, @MappingTarget Product product);
+    void updateProductFromDTO(ProductUpdateRequest productDetails, @MappingTarget Product product);
 }
 

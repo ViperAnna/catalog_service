@@ -58,6 +58,15 @@
         "attributes": {}
       },
       {
+        "id": "d76847cd-f6c3-4dee-870a-7e9aa1b1d2f4",
+        "name": "SELLER",
+        "description": "",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "b41064fc-2b03-43cf-a7b8-c886b9abc152",
+        "attributes": {}
+      },
+      {
         "id": "5019393f-f1d8-4711-8969-c1d3b4e531d1",
         "name": "ADMIN",
         "description": "",
@@ -84,6 +93,15 @@
             ]
           }
         },
+        "clientRole": false,
+        "containerId": "b41064fc-2b03-43cf-a7b8-c886b9abc152",
+        "attributes": {}
+      },
+      {
+        "id": "917cd8c8-6ce9-4843-b53f-7d1fcaec370e",
+        "name": "MODERATOR",
+        "description": "",
+        "composite": false,
         "clientRole": false,
         "containerId": "b41064fc-2b03-43cf-a7b8-c886b9abc152",
         "attributes": {}
@@ -323,6 +341,7 @@
       "security-admin-console": [],
       "user-service-client": [],
       "user-manage-client": [],
+      "seller-service-client": [],
       "admin-cli": [],
       "account-console": [],
       "broker": [
@@ -336,6 +355,7 @@
           "attributes": {}
         }
       ],
+      "user-service-admin": [],
       "account": [
         {
           "id": "dbe84da2-7620-4c1e-b5b9-ec86e2c26643",
@@ -499,6 +519,31 @@
       "clientRoles": {
         "realm-management": [
           "manage-users"
+        ]
+      },
+      "notBefore": 0,
+      "groups": []
+    },
+    {
+      "id": "d9ea4e5d-4b47-46fa-a0ac-8a9f4a5bd5f8",
+      "username": "service-account-user-service-admin",
+      "emailVerified": false,
+      "enabled": true,
+      "createdTimestamp": 1786537000852,
+      "totp": false,
+      "serviceAccountClientId": "user-service-admin",
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "realmRoles": [
+        "default-roles-user-service-realm"
+      ],
+      "clientRoles": {
+        "realm-management": [
+          "query-clients",
+          "query-users",
+          "view-users",
+          "manage-users",
+          "view-realm"
         ]
       },
       "notBefore": 0,
@@ -882,6 +927,68 @@
       ]
     },
     {
+      "id": "f2d901fd-d50f-4d99-be2a-bc52ca41029c",
+      "clientId": "seller-service-client",
+      "name": "",
+      "description": "",
+      "rootUrl": "",
+      "adminUrl": "",
+      "baseUrl": "",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${env.KC_SELLER_CLIENT_SECRET}",
+      "redirectUris": [
+        ""
+      ],
+      "webOrigins": [
+        ""
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "logout.confirmation.enabled": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "client.secret.creation.time": "1787040605",
+        "backchannel.logout.session.required": "true",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.jwt.authorization.grant.enabled": "false",
+        "frontchannel.logout.session.required": "true",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "display.on.consent.screen": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "dpop.bound.access.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "roles",
+        "profile",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "organization",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    },
+    {
       "id": "cbf5f86f-b567-4552-ac3a-7dc3874834d9",
       "clientId": "user-manage-client",
       "name": "",
@@ -946,6 +1053,69 @@
       ]
     },
     {
+      "id": "59938cdc-ad7d-45ea-ae9f-ee33c22ca84c",
+      "clientId": "user-service-admin",
+      "name": "",
+      "description": "",
+      "rootUrl": "",
+      "adminUrl": "",
+      "baseUrl": "",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${env.KC_ADMIN_CLIENT_SECRET}",
+      "redirectUris": [
+        ""
+      ],
+      "webOrigins": [
+        ""
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "logout.confirmation.enabled": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "client.secret.creation.time": "1786537000",
+        "backchannel.logout.session.required": "true",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.jwt.authorization.grant.enabled": "false",
+        "frontchannel.logout.session.required": "true",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "display.on.consent.screen": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "dpop.bound.access.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": [
+        "web-origins",
+        "service_account",
+        "acr",
+        "roles",
+        "profile",
+        "basic",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "organization",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    },
+    {
       "id": "c569538e-ec36-48ac-a2dc-bc27e4ad3967",
       "clientId": "user-service-client",
       "name": "",
@@ -957,7 +1127,7 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "${env.KC_USER_SERVICE_SECRET}",
+      "secret": "${env.KC_USER_CLIENT_SECRET}",
       "redirectUris": [
         "https://localhost:8181/redirect"
       ],
@@ -1764,10 +1934,35 @@
   "adminEventsDetailsEnabled": false,
   "identityProviders": [
     {
-      "alias": "vk",
-      "displayName": "VK",
-      "internalId": "b5281376-1c2e-4c9c-bef1-73c23b0dbf0d",
-      "providerId": "oidc",
+      "alias": "google",
+      "displayName": "Google",
+      "internalId": "8957b62e-a70e-44dc-9313-17c917f9d0ba",
+      "providerId": "google",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "linkOnly": false,
+      "hideOnLogin": false,
+      "config": {
+        "clientId": "332042133584-oliniro0m9aidlvadt7leq86qbgotd0e.apps.googleusercontent.com",
+        "acceptsPromptNoneForwardFromClient": "false",
+        "disableUserInfo": "false",
+        "showInAccountConsole": "ALWAYS",
+        "filteredByClaim": "false",
+        "syncMode": "IMPORT",
+        "clientSecret": "**********",
+        "caseSensitiveOriginalUsername": "false",
+        "issuer": "https://accounts.google.com",
+        "jwtAuthorizationGrantMaxAllowedAssertionExpiration": "3600",
+        "defaultScope": "openid profile email"
+      },
+      "types": []
+    },
+    {
+      "alias": "yandex",
+      "displayName": "Яндекс",
+      "internalId": "132f2bdd-c684-44c1-b4b0-e5f9a3d6b0f1",
+      "providerId": "oauth2",
       "enabled": true,
       "trustEmail": false,
       "storeToken": false,
@@ -1775,42 +1970,30 @@
       "linkOnly": false,
       "hideOnLogin": false,
       "config": {
+        "userInfoUrl": "https://login.yandex.ru/info",
+        "givenNameClaim": "first_name",
+        "tokenUrl": "https://oauth.yandex.ru/token",
         "acceptsPromptNoneForwardFromClient": "false",
-        "tokenUrl": "https://id.vk.com/oauth2/token",
-        "isAccessTokenJWT": "false",
+        "clientId": "734a344fd2724cf39f4a10ef2a0a4512",
         "showInAccountConsole": "ALWAYS",
-        "filteredByClaim": "false",
-        "jwtAuthorizationGrantEnabled": "false",
-        "backchannelSupported": "false",
+        "fullNameClaim": "real_name",
+        "userIDClaim": "id",
+        "emailClaim": "default_email",
+        "userNameClaim": "login",
         "caseSensitiveOriginalUsername": "false",
-        "issuer": "https://id.vk.com",
-        "pkceMethod": "plain",
-        "loginHint": "false",
+        "familyNameClaim": "last_name",
+        "pkceEnabled": "false",
         "clientAuthMethod": "client_secret_post",
+        "authorizationUrl": "https://oauth.yandex.ru/authorize",
         "syncMode": "IMPORT",
-        "supportsClientAssertions": "false",
-        "clientSecret": "${env.KC_VK_SECRET}",
+        "clientSecret": "**********",
         "requiresShortStateParameter": "false",
         "allowedClockSkew": "0",
-        "defaultScope": "openid email profile",
-        "userInfoUrl": "https://id.vk.com/oauth2/user_info",
-        "validateSignature": "false",
-        "clientId": "54686483",
-        "uiLocales": "false",
-        "disableNonce": "false",
-        "sendClientIdOnLogout": "false",
-        "pkceEnabled": "false",
-        "authorizationUrl": "https://id.vk.com/authorize",
-        "disableUserInfo": "false",
-        "sendIdTokenOnLogout": "true",
-        "passMaxAge": "false",
-        "disableTypeClaimCheck": "false"
+        "defaultScope": "login:info login:email login:default_phone"
       },
       "types": [
         "USER_AUTHENTICATION",
-        "CLIENT_ASSERTION",
-        "EXCHANGE_EXTERNAL_TOKEN",
-        "JWT_AUTHORIZATION_GRANT"
+        "EXCHANGE_EXTERNAL_TOKEN"
       ]
     }
   ],

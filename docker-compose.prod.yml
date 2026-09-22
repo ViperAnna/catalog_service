@@ -240,8 +240,8 @@ services:
       mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
       mc mb --ignore-existing myminio/categories &&
        mc mb --ignore-existing myminio/products &&
-      mc anonymous set public myminio/categories &&
-      mc anonymous set public myminio/products
+      mc anonymous set download myminio/categories &&
+      mc anonymous set download myminio/products
       "
     restart: "no"
 
