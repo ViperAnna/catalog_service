@@ -31,14 +31,13 @@ public class OutboxPublisher {
 
         for (OutboxEvent event : events) {
             try {
-            KafkaEvent kafkaEvent = new KafkaEvent(
-                    event.getAggregateType(),
-                    SellerEventType.valueOf(event.getEventType()),
-                    event.getPayload()
-            );
+                KafkaEvent kafkaEvent = new KafkaEvent(
+                        event.getAggregateType(),
+                        SellerEventType.valueOf(event.getEventType()),
+                        event.getPayload()
+                );
 
-            String message = eventMapper.toJson(kafkaEvent);
-
+                String message = eventMapper.toJson(kafkaEvent);
 
                 kafkaTemplate
                         .send(
@@ -50,6 +49,14 @@ public class OutboxPublisher {
 
                 event.setProcessed(true);
 
+            } catch (IllegalArgumentException e) {
+                log.error(
+                        "Unknown event type {} in outbox event {}",
+                        event.getEventType(),
+                        event.getId(),
+                        e
+                );
+                event.setProcessed(true);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.error(
