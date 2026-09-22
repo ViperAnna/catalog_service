@@ -70,4 +70,11 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST
         );
     }
+
+    @ExceptionHandler(SellerServiceUnavailableException.class)
+    public ResponseEntity<Object> handleSellerServiceUnavailable(SellerServiceUnavailableException ex) {
+        return createErrorResponse(
+                ex.getMessage(),
+                HttpStatus.SERVICE_UNAVAILABLE);
+    }
 }

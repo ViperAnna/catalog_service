@@ -15,5 +15,6 @@ public class MessageKeys {
     public static final String PRODUCT_CREATED_SUCCESSFULLY = "The product was successfully created.";
     public static final String PRODUCT_UPDATE_SUCCESSFULLY = "The product was successfully updated.";
     public static final String PRODUCT_DELETE_SUCCESSFULLY = "The product was successfully deleted.";
+    public static final String STORE_NOT_FOUND_OR_FORBIDDEN = "Store [%s] not found or does not belong to you.";
 
 }

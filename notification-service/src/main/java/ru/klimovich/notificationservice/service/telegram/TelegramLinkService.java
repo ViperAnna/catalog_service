@@ -25,11 +25,6 @@ public class TelegramLinkService {
 
         log.info("existing.isPresent() = {}", existing.isPresent());
 
-        repository.findAll().forEach(u ->
-                log.info("DB -> id={}, userId='{}'",
-                        u.getId(),
-                        u.getUserId()));
-
         if (existing.isPresent()) {
 
             TelegramUser user = existing.get();

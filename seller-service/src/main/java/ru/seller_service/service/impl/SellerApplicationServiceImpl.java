@@ -1,15 +1,18 @@
 package ru.seller_service.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.kafka.common.errors.ResourceNotFoundException;
+import ru.seller_service.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.seller_service.dto.request.seller.SellerDeletionRequest;
 import ru.seller_service.dto.request.seller.SellerRegistrationRequest;
+import ru.seller_service.dto.request.seller.SellerUpdateRequest;
 import ru.seller_service.dto.responce.SellerApplicationResponse;
 import ru.seller_service.event.SellerApplicationCreatedEvent;
+import ru.seller_service.event.SellerEventType;
 import ru.seller_service.exception.ResourceConflictException;
 import ru.seller_service.mapper.EventMapper;
+import ru.seller_service.mapper.SellerApplicationMapper;
 import ru.seller_service.model.Seller;
 import ru.seller_service.model.SellerApplication;
 import ru.seller_service.model.status.SellerApplicationStatus;
@@ -17,20 +20,18 @@ import ru.seller_service.model.status.SellerApplicationType;
 import ru.seller_service.model.status.SellerStatus;
 import ru.seller_service.outbox.OutboxEvent;
 import ru.seller_service.outbox.OutboxRepository;
-import ru.seller_service.security.CurrentUserService;
-import ru.seller_service.dto.request.seller.SellerUpdateRequest;
-import ru.seller_service.mapper.SellerApplicationMapper;
 import ru.seller_service.repository.SellerApplicationRepository;
 import ru.seller_service.repository.SellerRepository;
+import ru.seller_service.security.CurrentUserService;
 import ru.seller_service.service.SellerApplicationService;
 import ru.seller_service.util.MessageKeys;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class SellerApplicationServiceImpl implements SellerApplicationService {
     private final CurrentUserService currentUserService;
     private final SellerApplicationRepository sellerApplicationRepo;
@@ -40,6 +41,18 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
     private final EventMapper eventMapper;
 
 
+    private void saveOutbox(SellerApplication application, SellerEventType eventType, Object payload) {
+        outboxRepo.save(
+                OutboxEvent.builder()
+                        .aggregateType("SELLER_APPLICATION")
+                        .aggregateId(application.getId().toString())
+                        .eventType(eventType.name())
+                        .payload(eventMapper.toJson(payload))
+                        .createdAt(LocalDateTime.now())
+                        .processed(false)
+                        .build()
+        );
+    }
     private Seller getSellerByKeycloakUserId(String userId) {
 
         return sellerRepo.findByKeycloakUserId(userId)
@@ -71,16 +84,10 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
                 .sellerName(application.getSellerName())
                 .email(application.getEmail())
                 .build();
-        outboxRepo.save(
-                OutboxEvent.builder()
-                        .id(UUID.randomUUID())
-                        .aggregateType("SELLER_APPLICATION")
-                        .aggregateId(application.getId().toString())
-                        .eventType("SELLER_APPLICATION_CREATED")
-                        .payload(eventMapper.toJson(event))
-                        .createdAt(LocalDateTime.now())
-                        .processed(false)
-                        .build()
+        saveOutbox(
+                application,
+                SellerEventType.SELLER_APPLICATION_CREATED,
+                event
         );
 
         return sellerApplicationMapper.toDTO(application);
@@ -108,7 +115,6 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
         return sellerApplicationMapper.toDTO(application);
     }
 
-    @Transactional
     @Override
     public SellerApplicationResponse createDeletionRequest(SellerDeletionRequest sellerDeletionDetails) {
         String userId = currentUserService.getUserId();
@@ -134,6 +140,7 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public SellerApplicationResponse getMyCurrentApplication() {
         String userId = currentUserService.getUserId();
 
@@ -146,6 +153,7 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
 
 
     @Override
+    @Transactional(readOnly = true)
     public List<SellerApplicationResponse> getMyApplicationHistory() {
         String userId = currentUserService.getUserId();
 

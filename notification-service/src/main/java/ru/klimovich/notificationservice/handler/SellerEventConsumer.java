@@ -1,6 +1,7 @@
 package ru.klimovich.notificationservice.handler;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import ru.klimovich.notificationservice.event.KafkaEvent;
@@ -12,6 +13,7 @@ import ru.klimovich.notificationservice.service.seller.SellerNotificationService
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class SellerEventConsumer {
     private final SellerNotificationService notificationService;
     private final EventMapper eventMapper;
@@ -22,7 +24,10 @@ public class SellerEventConsumer {
     )
     public void consume(String message) {
         KafkaEvent kafkaEvent = eventMapper.fromJson(message, KafkaEvent.class);
-
+        if (kafkaEvent.getEventType() == null || kafkaEvent.getPayload() == null) {
+            log.warn("Skipping malformed seller event");
+            return;
+        }
 
         switch (kafkaEvent.getEventType()) {
             case SELLER_APPLICATION_CREATED -> {

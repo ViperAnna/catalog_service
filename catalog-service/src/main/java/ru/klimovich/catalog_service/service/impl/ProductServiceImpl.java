@@ -9,9 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.klimovich.catalog_service.client.SellerClient;
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
+import ru.klimovich.catalog_service.dto.request.ProductUpdateRequest;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
 import ru.klimovich.catalog_service.dto.response.StoreResponse;
-import ru.klimovich.catalog_service.exception.ResourceConflictException;
 import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
 import ru.klimovich.catalog_service.mapper.ProductMapper;
 import ru.klimovich.catalog_service.model.Category;
@@ -54,7 +54,7 @@ public class ProductServiceImpl implements ProductService {
     public void createProduct(@NotNull ProductRequest productDetails) {
         productDetails.getCategories().forEach(categoryService::getCategoryById);
         String accessToken = currentUserService.getAccessToken();
-        StoreResponse store = sellerClient.getMySoreById(productDetails.getStoreId(), accessToken);
+        StoreResponse store = sellerClient.getMyStoreById(productDetails.getStoreId(), accessToken);
 
         List<Image> fileNameList = fileStorageService.uploadProductImage(productDetails.getImages());
 
@@ -135,12 +135,14 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public void updateProductById(String id, ProductRequest productDetails) {
+    public void updateProductById(String id, ProductUpdateRequest productDetails) {
         Product product = productRepo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(String
                         .format(MessageKeys.PRODUCT_NOT_FOUND_ID_KEY, id)));
 
         validateStoreOwnership(product.getStoreId());
+
+        productDetails.getCategories().forEach(categoryService::getCategoryById);
 
         List<MultipartFile> newImages = productDetails.getImages();
         List<Image> existingImages = product.getImages();
@@ -169,7 +171,7 @@ public class ProductServiceImpl implements ProductService {
     }
     private void validateStoreOwnership(Long id){
         String accessToken = currentUserService.getAccessToken();
-        sellerClient.getMySoreById(id, accessToken);
+        sellerClient.getMyStoreById(id, accessToken);
     }
 
     @Override

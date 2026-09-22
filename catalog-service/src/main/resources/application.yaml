@@ -6,6 +6,18 @@ spring:
   application:
     name: catalog_service
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 30MB
+
+  security:
+    oauth2:
+      resource-server:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI}
+          issuer-uri: ${JWT_ISSUER_URI}
+
 #DB
   data:
     mongodb:
@@ -68,4 +80,4 @@ logging:
       total-size-cap: 100MB
 
 seller-service:
-  url: lb://CATALOG-SERVICE
+  url: lb://SELLER-SERVICE

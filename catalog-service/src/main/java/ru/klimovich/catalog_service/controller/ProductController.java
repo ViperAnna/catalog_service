@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.klimovich.catalog_service.dto.Response;
 import ru.klimovich.catalog_service.dto.request.ProductRequest;
+import ru.klimovich.catalog_service.dto.request.ProductUpdateRequest;
 import ru.klimovich.catalog_service.dto.response.ProductResponse;
 import ru.klimovich.catalog_service.service.ProductService;
 import ru.klimovich.catalog_service.util.MessageKeys;
@@ -61,6 +62,7 @@ public class ProductController {
     public List<ProductResponse> getProductsByStore(@PathVariable Long storeId) {
         return productService.getProductsByStore(storeId);
     }
+
     @Operation(
             summary = "Получение всех продуктов",
             description = "Возвращает постранично список товаров"
@@ -88,7 +90,7 @@ public class ProductController {
     })
 
     @PostMapping("/by-ids")
-    public List<ProductResponse> getProductsByIds(@RequestBody List<String> productsIds){
+    public List<ProductResponse> getProductsByIds(@RequestBody List<String> productsIds) {
         return productService.getProductsByIds(productsIds);
     }
 
@@ -113,7 +115,7 @@ public class ProductController {
     })
     @PutMapping(value = "/{id}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Response updateProduct(@PathVariable String id, @Valid @ModelAttribute ProductRequest productDetails) {
+    public Response updateProduct(@PathVariable String id, @Valid @ModelAttribute ProductUpdateRequest productDetails) {
         productService.updateProductById(id, productDetails);
         return new Response(
                 MessageKeys.PRODUCT_UPDATE_SUCCESSFULLY,

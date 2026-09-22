@@ -7,6 +7,8 @@ import ru.klimovich.grpc.user.AssignSellerRoleRequest;
 import ru.klimovich.grpc.user.RemoveSellerRoleRequest;
 import ru.klimovich.grpc.user.UserServiceGrpc;
 
+import java.util.concurrent.TimeUnit;
+
 @Component
 @RequiredArgsConstructor
 public class UserGrpcClient {
@@ -19,7 +21,9 @@ public class UserGrpcClient {
                         .setKeycloakUserId(keycloakUserId)
                         .build();
 
-        userStub.assignSellerRole(request);
+        userStub
+                .withDeadlineAfter(5, TimeUnit.SECONDS)
+                .assignSellerRole(request);
     }
 
     public void removeSellerRole(String keycloakUserId) {
@@ -29,6 +33,8 @@ public class UserGrpcClient {
                         .setKeycloakUserId(keycloakUserId)
                         .build();
 
-        userStub.removeSellerRole(request);
+        userStub
+                .withDeadlineAfter(5, TimeUnit.SECONDS)
+                .removeSellerRole(request);
     }
 }

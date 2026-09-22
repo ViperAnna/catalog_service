@@ -11,8 +11,6 @@ public class TelegramConfig {
 
     @Bean
     public TelegramClient telegramClient(TelegramProperties properties) {
-        System.out.println("TOKEN = " + properties.getToken());
-        System.out.println("USERNAME = " + properties.getUsername());
         return new OkHttpTelegramClient(properties.getToken());
     }
 }

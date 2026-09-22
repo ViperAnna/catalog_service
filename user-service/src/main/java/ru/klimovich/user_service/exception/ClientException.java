@@ -4,6 +4,6 @@ import java.text.MessageFormat;
 
 public class ClientException extends RuntimeException {
     public ClientException(String message, Object... args) {
-        super(MessageFormat.format(message, args));
+        super(args.length == 0 ? message : String.format(message, args));
     }
 }
