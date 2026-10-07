@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.seller_service.dto.request.store.StoreRequest;
+import ru.seller_service.dto.request.store.StoreUpdateRequest;
 import ru.seller_service.dto.responce.StoreResponse;
 import ru.seller_service.service.StoreService;
 
@@ -35,7 +36,7 @@ public class StoreController {
     }
 
     @PutMapping("/{id}")
-    public StoreResponse updateStore(@PathVariable Long id, @Valid @RequestBody StoreRequest request) {
+    public StoreResponse updateStore(@PathVariable Long id, @Valid @RequestBody StoreUpdateRequest request) {
         return storeService.updateStore(id, request);
     }
 

@@ -78,23 +78,60 @@ public class EmailService {
 
         message.setFrom(from);
         message.setTo(event.getEmail());
-        message.setSubject("Seller application approved!");
 
-        message.setText("""
-                Congratulations, %s!
+        // Без типа или с неизвестным типом остается письмо о регистрации, как до появления applicationType.
+        switch (String.valueOf(event.getApplicationType())) {
+            case "UPDATE" -> {
+                message.setSubject("Seller data change approved");
+                message.setText("""
+                        Hello, %s.
 
-                Your seller application has been approved.
+                        Your request to change seller data has been approved.
 
-                Your shop can now be used as a seller shop.
+                        The new data is now in effect.
 
-                ------------------
+                        ------------------
 
-                Thank you for using our service!
-                """
-                .formatted(
-                        event.getSellerName()
-                )
-        );
+                        Thank you for using our service!
+                        """
+                        .formatted(event.getSellerName())
+                );
+            }
+            case "DELETION" -> {
+                message.setSubject("Seller account deletion approved");
+                message.setText("""
+                        Hello, %s.
+
+                        Your request to delete the seller account has been approved.
+
+                        Your seller account is now closed.
+
+                        ------------------
+
+                        Thank you for using our service!
+                        """
+                        .formatted(event.getSellerName())
+                );
+            }
+            default -> {
+                message.setSubject("Seller application approved!");
+                message.setText("""
+                        Congratulations, %s!
+
+                        Your seller application has been approved.
+
+                        Your shop can now be used as a seller shop.
+
+                        ------------------
+
+                        Thank you for using our service!
+                        """
+                        .formatted(
+                                event.getSellerName()
+                        )
+                );
+            }
+        }
 
         send(message);
     }

@@ -12,4 +12,9 @@ public class SellerApprovedEvent{
         String keycloakUserId;
         String sellerName;
         String email;
+        /**
+         * REGISTRATION, UPDATE или DELETION. Строка, а не enum: неизвестный тип не должен ломать разбор события.
+         * Отсутствует в событиях, записанных до появления поля.
+         */
+        String applicationType;
 }

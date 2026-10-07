@@ -2,6 +2,7 @@ package ru.seller_service.service;
 
 import org.springframework.stereotype.Service;
 import ru.seller_service.dto.request.store.StoreRequest;
+import ru.seller_service.dto.request.store.StoreUpdateRequest;
 import ru.seller_service.dto.responce.StoreResponse;
 
 import java.util.List;
@@ -15,7 +16,7 @@ public interface StoreService {
 
     StoreResponse getStoreById(Long storeId);
 
-    StoreResponse updateStore(Long storeId, StoreRequest storeDetails);
+    StoreResponse updateStore(Long storeId, StoreUpdateRequest storeDetails);
 
     void deleteStore(Long storeId);
 }

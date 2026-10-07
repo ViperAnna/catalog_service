@@ -17,8 +17,8 @@ const addressFields = [
 
 const validate = (form) => {
     const errors = {};
-    if (form.phone && !/^\+?[0-9]{7,15}$/.test(form.phone)) {
-        errors.phone = 'Телефон: 7–15 цифр, можно с +';
+    if (form.phone && !/^(\+7|7|8)\d{10}$/.test(form.phone)) {
+        errors.phone = 'Телефон РФ: +7XXXXXXXXXX, 7XXXXXXXXXX или 8XXXXXXXXXX, без пробелов и дефисов';
     }
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
         errors.email = 'Некорректный email';

@@ -25,6 +25,7 @@ import ru.seller_service.repository.SellerRepository;
 import ru.seller_service.security.CurrentUserService;
 import ru.seller_service.service.SellerApplicationService;
 import ru.seller_service.util.MessageKeys;
+import ru.seller_service.util.PhoneNormalizer;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -53,6 +54,21 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
                         .build()
         );
     }
+
+    private void saveApplicationCreatedEvent(SellerApplication application) {
+        SellerApplicationCreatedEvent event = SellerApplicationCreatedEvent.builder()
+                .applicationId(application.getId())
+                .keycloakUserId(application.getKeycloakUserId())
+                .sellerName(application.getSellerName())
+                .email(application.getEmail())
+                .build();
+        saveOutbox(
+                application,
+                SellerEventType.SELLER_APPLICATION_CREATED,
+                event
+        );
+    }
+
     private Seller getSellerByKeycloakUserId(String userId) {
 
         return sellerRepo.findByKeycloakUserId(userId)
@@ -68,8 +84,12 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
         validateSellerNotExist(userId);
         validateNoPendingApplication(userId);
         validateInnUnique(applicationDetails.inn());
+        String sellerName = applicationDetails.sellerName().trim();
+        validateSellerNameUnique(sellerName);
 
         SellerApplication application = sellerApplicationMapper.toEntity(applicationDetails);
+        application.setSellerName(sellerName);
+        application.setPhoneNumber(PhoneNormalizer.normalize(application.getPhoneNumber()));
         application.setKeycloakUserId(userId);
         application.setSellerApplicationStatus(SellerApplicationStatus.PENDING);
         application.setSellerApplicationType(SellerApplicationType.REGISTRATION);
@@ -78,17 +98,7 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
 
         sellerApplicationRepo.save(application);
 
-        SellerApplicationCreatedEvent event = SellerApplicationCreatedEvent.builder()
-                .applicationId(application.getId())
-                .keycloakUserId(application.getKeycloakUserId())
-                .sellerName(application.getSellerName())
-                .email(application.getEmail())
-                .build();
-        saveOutbox(
-                application,
-                SellerEventType.SELLER_APPLICATION_CREATED,
-                event
-        );
+        saveApplicationCreatedEvent(application);
 
         return sellerApplicationMapper.toDTO(application);
     }
@@ -106,11 +116,18 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
         application.setKeycloakUserId(userId);
         application.setSellerName(seller.getSellerName());
         application.setInn(seller.getInn());
+        application.setPhoneNumber(PhoneNormalizer.normalize(application.getPhoneNumber()));
+        // Без email в заявке события и письма остались бы без адреса, поэтому берется текущий email продавца.
+        if (application.getEmail() == null || application.getEmail().isBlank()) {
+            application.setEmail(seller.getEmail());
+        }
         application.setSellerApplicationStatus(SellerApplicationStatus.PENDING);
         application.setSellerApplicationType(SellerApplicationType.UPDATE);
         application.setUpdatedAt(LocalDateTime.now());
 
         sellerApplicationRepo.save(application);
+
+        saveApplicationCreatedEvent(application);
 
         return sellerApplicationMapper.toDTO(application);
     }
@@ -136,6 +153,8 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
                 .build();
         sellerApplicationRepo.save(application);
 
+        saveApplicationCreatedEvent(application);
+
         return sellerApplicationMapper.toDTO(application);
     }
 
@@ -146,7 +165,7 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
 
         SellerApplication application = sellerApplicationRepo.findFirstByKeycloakUserIdOrderByCreatedAtDesc(userId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(MessageKeys.APPLICATION_NOT_FOUND, userId));
+                        new ResourceNotFoundException(MessageKeys.APPLICATION_NOT_FOUND_FOR_USER, userId));
         return sellerApplicationMapper.toDTO(application);
     }
 
@@ -191,6 +210,15 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
             throw new ResourceConflictException(
                     MessageKeys.INN_ALREADY_IN_REVIEW,
                     inn);
+        }
+    }
+
+    private void validateSellerNameUnique(String sellerName) {
+        if (sellerRepo.existsSameName(sellerName)) {
+            throw new ResourceConflictException(MessageKeys.SELLER_NAME_ALREADY_EXISTS, sellerName);
+        }
+        if (sellerApplicationRepo.existsSameNameWithStatus(sellerName, SellerApplicationStatus.PENDING)) {
+            throw new ResourceConflictException(MessageKeys.SELLER_NAME_ALREADY_IN_REVIEW, sellerName);
         }
     }
 

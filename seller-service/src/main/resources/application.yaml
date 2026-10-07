@@ -17,6 +17,13 @@ spring:
     show-sql: ${SPRING_JPA_SHOW_SQL}
     hibernate:
       ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
+    # schema.sql выполняется после ddl-auto: update (таблицы уже существуют)
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      # schema.sql создает уникальный индекс имени магазина, который ddl-auto не создает
+      mode: always
 
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}

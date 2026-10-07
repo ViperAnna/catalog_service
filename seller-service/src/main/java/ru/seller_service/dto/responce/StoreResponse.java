@@ -14,7 +14,7 @@ public class StoreResponse{
        private String storeName;
        private String description;
        private String email;
-       private String phone;
+       private String phoneNumber;
        private LocalDateTime createdAt;
        private LocalDateTime updatedAt;
 }

@@ -9,10 +9,10 @@ public record SellerUpdateRequest(
 
         @NotBlank(message = "Phone is required.")
         @Pattern(
-                regexp = "\\+?[0-9]{7,15}",
-                message = "Phone must contain 7-15 digits."
+                regexp = "^(\\+7|8)\\d{10}$",
+                message = "Phone must be in format +7XXXXXXXXXX or 8XXXXXXXXXX."
         )
-        String phone,
+        String phoneNumber,
 
         @Email(message = "Invalid email.")
         @Size(max = 100, message = "Email can't exceed 100 characters.")
@@ -25,4 +25,3 @@ public record SellerUpdateRequest(
         )
         String paymentAccount) {
 }
-

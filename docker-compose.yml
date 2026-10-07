@@ -145,6 +145,7 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    restart: unless-stopped
 
   #  ----------Keycloak----------
   keycloak:
@@ -165,12 +166,20 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+    #  ----------mailpit----------
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    ports:
+      - "8025:8025"
+    restart: unless-stopped
+
     #  ----------POSTGRES----------
   postgres:
     image: postgres:16
     container_name: postgres
-#    ports:
-#      - "5433:5432"
+    #    ports:
+    #      - "5433:5432"
     env_file:
       - .env.postgres
     volumes:
@@ -209,14 +218,15 @@ services:
 
   # ----------MinIO----------
   minio:
-    image: minio/minio:latest
+    image: bitnamilegacy/minio:2025.4.22-debian-12-r2
     container_name: minio
     ports:
       - "9000:9000"
       - "9001:9001"
     env_file:
       - .env.minio
-    command: server /data --console-address ":9001"
+    environment:
+      MINIO_DEFAULT_BUCKETS: "categories:download,products:download"
     volumes:
       - ./minio/data:/data
     healthcheck:
@@ -227,29 +237,30 @@ services:
     restart: unless-stopped
 
 
-  # ----------Create Buckets----------
-  createbuckets:
-    image: minio/mc
-    env_file:
-      - .env.minio
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
-      mc mb --ignore-existing myminio/categories &&
-       mc mb --ignore-existing myminio/products &&
-      mc anonymous set public myminio/categories &&
-      mc anonymous set public myminio/products
-      
-      "
-    restart: "no"
+#  # ----------Create Buckets----------
+#  createbuckets:
+#    image: quay.io/minio/aistor/mc:latest
+#    env_file:
+#      - .env.minio
+#    depends_on:
+#      minio:
+#        condition: service_healthy
+#    entrypoint: >
+#      /bin/sh -c "
+#      mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+#      mc mb --ignore-existing myminio/categories &&
+#       mc mb --ignore-existing myminio/products &&
+#      mc anonymous set download myminio/categories &&
+#      mc anonymous set download myminio/products
+#
+#      "
+#    restart: "no"
 
 volumes:
   mongodb_data:
   pgdata:
   kafka_data:
+  minio_data:
 
 networks:
   default:

@@ -7,6 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.klimovich.user_service.dto.request.UserUpdateRequest;
 import ru.klimovich.user_service.dto.responce.UserResponse;
 import ru.klimovich.user_service.event.UserCreatedEvent;
+import org.springframework.dao.DataIntegrityViolationException;
+import ru.klimovich.user_service.exception.ContactUniqueViolationTranslator;
+import ru.klimovich.user_service.exception.ResourceConflictException;
 import ru.klimovich.user_service.exception.ResourceNotFoundException;
 import ru.klimovich.user_service.mapper.EventMapper;
 import ru.klimovich.user_service.mapper.UserMapper;
@@ -16,6 +19,7 @@ import ru.klimovich.user_service.repository.OutboxRepository;
 import ru.klimovich.user_service.repository.UserRepository;
 import ru.klimovich.user_service.service.UserService;
 import ru.klimovich.user_service.util.MessageKeys;
+import ru.klimovich.user_service.util.normalizer.ContactNormalizer;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -74,7 +78,7 @@ public class UserServiceImpl implements UserService {
         user.setKeycloakUserId(jwt.getSubject());
         user.setFirstName(jwt.getClaimAsString("given_name"));
         user.setLastName(jwt.getClaimAsString("family_name"));
-        user.setEmail(jwt.getClaimAsString("email"));
+        user.setEmail(ContactNormalizer.email(jwt.getClaimAsString("email")));
 
         user = userRepo.save(user);
 
@@ -130,8 +134,33 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException(String
                                 .format(MessageKeys.USER_NOT_FOUND, keycloakId)));
+        userDetails.setEmail(ContactNormalizer.email(userDetails.getEmail()));
+        userDetails.setPhone(ContactNormalizer.phone(userDetails.getPhone()));
+        validateContactsUnique(keycloakId, user, userDetails);
         userMapper.updateUserFromDTO(userDetails, user);
+        try {
+            userRepo.saveAndFlush(user);
+        } catch (DataIntegrityViolationException e) {
+            throw ContactUniqueViolationTranslator
+                    .translate(e, user.getEmail(), user.getPhone())
+                    .orElseThrow(() -> e);
+        }
         return userMapper.toDTO(user);
+    }
+
+    private void validateContactsUnique(String keycloakId, User user, UserUpdateRequest userDetails) {
+        String email = userDetails.getEmail();
+        if (email != null
+                && !email.equalsIgnoreCase(user.getEmail())
+                && userRepo.existsByEmailIgnoreCaseAndKeycloakUserIdNot(email, keycloakId)) {
+            throw new ResourceConflictException(MessageKeys.USER_EMAIL_ALREADY_EXIST, email);
+        }
+        String phone = userDetails.getPhone();
+        if (phone != null
+                && !phone.equals(user.getPhone())
+                && userRepo.existsByPhoneAndKeycloakUserIdNot(phone, keycloakId)) {
+            throw new ResourceConflictException(MessageKeys.USER_PHONE_ALREADY_EXIST, phone);
+        }
     }
 
     @Override

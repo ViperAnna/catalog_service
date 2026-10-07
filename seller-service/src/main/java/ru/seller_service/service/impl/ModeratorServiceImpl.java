@@ -11,6 +11,8 @@ import ru.seller_service.event.SellerApprovedEvent;
 import ru.seller_service.event.SellerEventType;
 import ru.seller_service.event.SellerRejectedEvent;
 import ru.seller_service.exception.ResourceConflictException;
+import ru.seller_service.exception.ResourceForbiddenException;
+import ru.seller_service.security.CurrentUserService;
 import ru.seller_service.mapper.EventMapper;
 import ru.seller_service.mapper.SellerApplicationMapper;
 import ru.seller_service.mapper.SellerMapper;
@@ -24,6 +26,8 @@ import ru.seller_service.repository.SellerApplicationRepository;
 import ru.seller_service.repository.SellerRepository;
 import ru.seller_service.service.ModeratorService;
 import ru.seller_service.util.MessageKeys;
+import ru.seller_service.util.UniqueViolations;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +37,10 @@ import java.util.List;
 @Transactional
 public class ModeratorServiceImpl implements ModeratorService {
 
+    private static final String SELLER_NAME_UNIQUE_INDEX = "uq_sellers_seller_name";
+    /** Имя ограничения UNIQUE (seller_name), которое генерирует Hibernate для Seller.sellerName. */
+    private static final String SELLER_NAME_HIBERNATE_CONSTRAINT = "uk8757g69e614binmjpvpoeda7d";
+
     private final SellerApplicationRepository sellerApplicationRepo;
     private final SellerApplicationMapper sellerApplicationMapper;
     private final SellerMapper sellerMapper;
@@ -40,6 +48,7 @@ public class ModeratorServiceImpl implements ModeratorService {
     private final UserGrpcClient userGrpcClient;
     private final OutboxRepository outboxRepo;
     private final EventMapper eventMapper;
+    private final CurrentUserService currentUserService;
 
     private void saveOutbox(SellerApplication application, SellerEventType eventType, Object payload) {
         outboxRepo.save(OutboxEvent.builder()
@@ -74,6 +83,7 @@ public class ModeratorServiceImpl implements ModeratorService {
     public void approve(Long applicationId) {
         SellerApplication application = getApplicationById(applicationId);
 
+        validateNotOwnApplication(application);
         validatePending(application);
 
         switch (application.getSellerApplicationType()) {
@@ -87,6 +97,7 @@ public class ModeratorServiceImpl implements ModeratorService {
                 .keycloakUserId(application.getKeycloakUserId())
                 .sellerName(application.getSellerName())
                 .email(application.getEmail())
+                .applicationType(application.getSellerApplicationType())
                 .build();
 
         saveOutbox(
@@ -101,6 +112,7 @@ public class ModeratorServiceImpl implements ModeratorService {
 
         SellerApplication application = getApplicationById(applicationId);
 
+        validateNotOwnApplication(application);
         validatePending(application);
 
         application.setSellerApplicationStatus(SellerApplicationStatus.REJECTED);
@@ -123,12 +135,13 @@ public class ModeratorServiceImpl implements ModeratorService {
 
     private void approveRegistration(SellerApplication application) {
         validateSellerNotExist(application.getKeycloakUserId());
+        validateSellerNameUnique(application.getSellerName());
 
         Seller seller = sellerMapper.toEntity(application);
 
         seller.setSellerStatus(SellerStatus.ACTIVE);
 
-        sellerRepo.save(seller);
+        saveNewSeller(seller);
 
         userGrpcClient.assignSellerRole(application.getKeycloakUserId());
 
@@ -175,6 +188,15 @@ public class ModeratorServiceImpl implements ModeratorService {
                                 .format(MessageKeys.SELLER_NOT_FOUND, userId)));
     }
 
+    /**
+     * Модератор не рассматривает свою заявку: иначе он мог бы сам сделать себя продавцом.
+     */
+    private void validateNotOwnApplication(SellerApplication application) {
+        if (application.getKeycloakUserId().equals(currentUserService.getUserId())) {
+            throw new ResourceForbiddenException(MessageKeys.OWN_APPLICATION_REVIEW_FORBIDDEN);
+        }
+    }
+
     private void validatePending(SellerApplication application) {
         if (application.getSellerApplicationStatus() != SellerApplicationStatus.PENDING) {
             throw new ResourceConflictException(MessageKeys.APPLICATION_ALREADY_REVIEWED, application.getId());
@@ -184,6 +206,27 @@ public class ModeratorServiceImpl implements ModeratorService {
     private void validateSellerNotExist(String userId) {
         if (sellerRepo.existsByKeycloakUserId(userId)) {
             throw new ResourceConflictException(MessageKeys.SELLER_ALREADY_EXIST, userId);
+        }
+    }
+
+    private void validateSellerNameUnique(String sellerName) {
+        if (sellerRepo.existsSameName(sellerName)) {
+            throw new ResourceConflictException(MessageKeys.SELLER_NAME_ALREADY_EXISTS, sellerName);
+        }
+    }
+
+    /**
+     * Сохраняет Seller сразу (flush) до gRPC-вызова, чтобы нарушение уникальности имени
+     * при гонке стало 409, а роль в Keycloak не назначалась.
+     */
+    private void saveNewSeller(Seller seller) {
+        try {
+            sellerRepo.saveAndFlush(seller);
+        } catch (DataIntegrityViolationException e) {
+            if (UniqueViolations.isUniqueViolation(e, SELLER_NAME_UNIQUE_INDEX, SELLER_NAME_HIBERNATE_CONSTRAINT)) {
+                throw new ResourceConflictException(MessageKeys.SELLER_NAME_ALREADY_EXISTS, seller.getSellerName());
+            }
+            throw e;
         }
     }
 }
