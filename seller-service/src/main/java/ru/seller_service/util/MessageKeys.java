@@ -24,6 +24,13 @@ public class MessageKeys {
 
     public static final String APPLICATION_NOT_FOUND = "Application not found with id: [%s].";
     public static final String APPLICATION_ALREADY_REVIEWED = "Application with id: [%s] already reviewed.";
+    public static final String SELLER_NOT_FOUND_BY_ID = "Seller not found with id: [%s].";
+    public static final String SELLER_STATUS_CONFLICT = "Seller with id: [%s] has status [%s].";
+    public static final String STORE_STATUS_CONFLICT = "Store with id: [%s] has status [%s].";
+    public static final String STORE_IS_BLOCKED = "Store with id: [%s] is blocked.";
+    public static final String STORE_CHANGE_REQUEST_PENDING = "Store with id: [%s] already has a pending change request.";
+    public static final String STORE_CHANGE_REQUEST_NOT_FOUND = "Store change request not found with id: [%s].";
+    public static final String STORE_CHANGE_REQUEST_ALREADY_REVIEWED = "Store change request with id: [%s] already reviewed.";
     public static final String OWN_APPLICATION_REVIEW_FORBIDDEN = "Moderator can't review own application.";
     public static final String APPLICATION_NOT_FOUND_FOR_USER = "No applications found for user [%s].";
 

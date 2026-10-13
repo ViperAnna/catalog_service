@@ -136,6 +136,23 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     @Override
+    public void deleteProductImage(Image image) {
+        String url = image.getUrl();
+        String objectKey = url.substring(url.lastIndexOf('/') + 1);
+        try {
+            // S3 removeObject для отсутствующего ключа завершается успешно, повтор безопасен.
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(ImageBucket.PRODUCTS.getName())
+                            .object(objectKey)
+                            .build()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete product image " + objectKey + " from MinIO", e);
+        }
+    }
+
+    @Override
     public void deleteAllProductImages() {
         try {
             log.info("Deleting all category image from MinIO bucket [{}]", ImageBucket.PRODUCTS);

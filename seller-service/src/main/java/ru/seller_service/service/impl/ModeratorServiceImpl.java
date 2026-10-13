@@ -13,6 +13,7 @@ import ru.seller_service.event.SellerRejectedEvent;
 import ru.seller_service.exception.ResourceConflictException;
 import ru.seller_service.exception.ResourceForbiddenException;
 import ru.seller_service.security.CurrentUserService;
+import ru.seller_service.service.SellerModerationService;
 import ru.seller_service.mapper.EventMapper;
 import ru.seller_service.mapper.SellerApplicationMapper;
 import ru.seller_service.mapper.SellerMapper;
@@ -21,6 +22,7 @@ import ru.seller_service.model.SellerApplication;
 import ru.seller_service.model.status.SellerApplicationStatus;
 import ru.seller_service.model.status.SellerStatus;
 import ru.seller_service.outbox.OutboxEvent;
+import ru.seller_service.outbox.OutboxRedaction;
 import ru.seller_service.outbox.OutboxRepository;
 import ru.seller_service.repository.SellerApplicationRepository;
 import ru.seller_service.repository.SellerRepository;
@@ -37,6 +39,8 @@ import java.util.List;
 @Transactional
 public class ModeratorServiceImpl implements ModeratorService {
 
+    private static final String SELLER_APPLICATION = "SELLER_APPLICATION";
+
     private static final String SELLER_NAME_UNIQUE_INDEX = "uq_sellers_seller_name";
     /** Имя ограничения UNIQUE (seller_name), которое генерирует Hibernate для Seller.sellerName. */
     private static final String SELLER_NAME_HIBERNATE_CONSTRAINT = "uk8757g69e614binmjpvpoeda7d";
@@ -49,10 +53,11 @@ public class ModeratorServiceImpl implements ModeratorService {
     private final OutboxRepository outboxRepo;
     private final EventMapper eventMapper;
     private final CurrentUserService currentUserService;
+    private final SellerModerationService sellerModerationService;
 
     private void saveOutbox(SellerApplication application, SellerEventType eventType, Object payload) {
         outboxRepo.save(OutboxEvent.builder()
-                .aggregateType("SELLER_APPLICATION")
+                .aggregateType(SELLER_APPLICATION)
                 .aggregateId(application.getId().toString())
                 .eventType(eventType.name())
                 .payload(eventMapper.toJson(payload))
@@ -90,6 +95,7 @@ public class ModeratorServiceImpl implements ModeratorService {
             case REGISTRATION -> approveRegistration(application);
             case UPDATE -> approveUpdate(application);
             case DELETION -> approveDeletion(application);
+            case UNBLOCK -> approveUnblock(application);
         }
 
         SellerApprovedEvent event = SellerApprovedEvent.builder()
@@ -151,6 +157,10 @@ public class ModeratorServiceImpl implements ModeratorService {
 
     private void approveUpdate(SellerApplication application) {
         Seller seller = getSellerByKeycloakUserId(application.getKeycloakUserId());
+        // Текущий статус, а не статус при подаче: заявка заблокированного продавца остается PENDING.
+        if (seller.getSellerStatus() == SellerStatus.BLOCKED) {
+            throw new ResourceConflictException(MessageKeys.SELLER_IS_NOT_ACTIVE, seller.getSellerStatus().name());
+        }
 
         sellerMapper.updateFromApplication(application, seller);
         sellerRepo.save(seller);
@@ -159,16 +169,51 @@ public class ModeratorServiceImpl implements ModeratorService {
         sellerApplicationRepo.save(application);
     }
 
-    private void approveDeletion(SellerApplication application) {
+    /**
+     * Разблокировка тем же путем, что и действием модератора: проверка BLOCKED (иначе 409)
+     * и SELLER_UNBLOCKED для каждого магазина. Отдельные блокировки магазинов не снимаются.
+     */
+    private void approveUnblock(SellerApplication application) {
         Seller seller = getSellerByKeycloakUserId(application.getKeycloakUserId());
 
-        seller.setSellerStatus(SellerStatus.DELETED);
-        sellerRepo.save(seller);
-
-        userGrpcClient.removeSellerRole(application.getKeycloakUserId());
+        sellerModerationService.unblockSeller(seller.getId());
 
         application.setSellerApplicationStatus(SellerApplicationStatus.APPROVED);
         sellerApplicationRepo.save(application);
+    }
+
+    /**
+     * Окончательное удаление продавца (ACTIVE или BLOCKED) в одной транзакции:
+     * STORE_PURGED на каждый магазин (товары и изображения удалит catalog-service),
+     * обезличивание уже опубликованных записей outbox его заявок, физическое удаление
+     * заявок и Seller (магазины удаляются каскадом). SELLER_APPROVED записывается после
+     * в approve() и сохраняет payload до публикации, чтобы письмо дошло.
+     * Ошибка gRPC откатывает все изменения.
+     */
+    private void approveDeletion(SellerApplication application) {
+        String keycloakUserId = application.getKeycloakUserId();
+        Seller seller = getSellerByKeycloakUserId(keycloakUserId);
+        List<SellerApplication> applications =
+                sellerApplicationRepo.findAllByKeycloakUserIdOrderByCreatedAtDesc(keycloakUserId);
+
+        sellerModerationService.writeStorePurgedEvents(seller.getId());
+        redactPublishedOutbox(applications);
+
+        sellerApplicationRepo.deleteAll(applications);
+        sellerRepo.delete(seller);
+
+        userGrpcClient.removeSellerRole(keycloakUserId);
+    }
+
+    private void redactPublishedOutbox(List<SellerApplication> applications) {
+        List<String> applicationIds = applications.stream()
+                .map(a -> String.valueOf(a.getId()))
+                .toList();
+        if (applicationIds.isEmpty()) {
+            return;
+        }
+        outboxRepo.findByAggregateTypeAndAggregateIdInAndProcessedTrue(SELLER_APPLICATION, applicationIds)
+                .forEach(event -> OutboxRedaction.redact(event, eventMapper));
     }
 
     private SellerApplication getApplicationById(Long applicationId) {

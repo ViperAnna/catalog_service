@@ -18,6 +18,8 @@ public class StoreResponse {
        private String description;
        private String email;
        private String phoneNumber;
+       private String status;
+       private String sellerStatus;
        private LocalDateTime createdAt;
        private LocalDateTime updatedAt;
 }

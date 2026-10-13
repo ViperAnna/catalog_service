@@ -53,7 +53,7 @@ public class OutboxPublisher {
                         )
                         .get(10, TimeUnit.SECONDS);
 
-                event.setProcessed(true);
+                markProcessed(event);
 
             } catch (IllegalArgumentException e) {
                 log.error(
@@ -62,7 +62,7 @@ public class OutboxPublisher {
                         event.getId(),
                         e
                 );
-                event.setProcessed(true);
+                markProcessed(event);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.error(
@@ -82,6 +82,18 @@ public class OutboxPublisher {
             }
 
         }
+    }
+
+    /**
+     * Вызывается только после подтверждения Kafka (или когда публикация не требуется).
+     * Обезличивание в той же транзакции: если commit не пройдет, запись останется
+     * processed = false с исходным payload и будет отправлена снова.
+     */
+    private void markProcessed(OutboxEvent event) {
+        if (OutboxRedaction.containsPersonalData(event)) {
+            OutboxRedaction.redact(event, eventMapper);
+        }
+        event.setProcessed(true);
     }
 
     /**

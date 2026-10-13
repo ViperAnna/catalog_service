@@ -103,4 +103,48 @@ class EmailServiceTest {
         assertThat(message.getSubject()).isEqualTo("Seller application approved!");
         assertThat(message.getText()).contains("Your shop can now be used as a seller shop.");
     }
+    // --- UNBLOCK и логирование без адреса (change seller-store-lifecycle) ---
+
+    @Test
+    @DisplayName("UNBLOCK: письмо о разблокировке без лишних персональных данных")
+    void unblock() {
+        SimpleMailMessage message = sendApproved("UNBLOCK");
+
+        assertThat(message.getSubject()).isEqualTo("Seller account unblocked");
+        assertThat(message.getText())
+                .contains("Hello, Shop.")
+                .contains("Your request to unblock the seller account has been approved.")
+                .contains("You can manage your stores and products again.")
+                .contains("Stores blocked separately")
+                .doesNotContain("shop@example.com")
+                .doesNotContain("Your shop can now be used");
+    }
+
+    @Test
+    @DisplayName("Ошибка отправки письма продавцу: в логе applicationId и eventType, без email")
+    void mailFailure_loggedWithoutAddress() {
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(EmailService.class);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            org.mockito.Mockito.doThrow(new org.springframework.mail.MailSendException("smtp down"))
+                    .when(mailSender).send(org.mockito.ArgumentMatchers.any(SimpleMailMessage.class));
+            SellerApprovedEvent event = new SellerApprovedEvent();
+            event.setApplicationId(7L);
+            event.setSellerName("Shop");
+            event.setEmail("shop@example.com");
+            event.setApplicationType("UPDATE");
+
+            emailService.sendSellerApprovedEmail(event);
+
+            assertThat(appender.list).isNotEmpty();
+            String logged = appender.list.get(0).getFormattedMessage();
+            assertThat(logged).contains("7").contains("SELLER_APPROVED").doesNotContain("shop@example.com");
+        } finally {
+            logger.detachAppender(appender);
+        }
+    }
 }

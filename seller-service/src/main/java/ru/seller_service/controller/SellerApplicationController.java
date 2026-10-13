@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.seller_service.dto.request.seller.SellerDeletionRequest;
+import ru.seller_service.dto.request.seller.SellerUnblockRequest;
 import ru.seller_service.dto.request.seller.SellerRegistrationRequest;
 import ru.seller_service.dto.responce.SellerApplicationResponse;
 import ru.seller_service.dto.request.seller.SellerUpdateRequest;
@@ -43,6 +44,13 @@ public class SellerApplicationController {
     public ResponseEntity<List<SellerApplicationResponse>> getMyHistory() {
         return ResponseEntity.ok(
                 sellerApplicationService.getMyApplicationHistory()
+        );
+    }
+
+    @PostMapping("/unblock")
+    public ResponseEntity<SellerApplicationResponse> createUnblockRequest(@RequestBody @Valid SellerUnblockRequest applicationDetails) {
+        return ResponseEntity.ok(
+                sellerApplicationService.createUnblockRequest(applicationDetails)
         );
     }
 

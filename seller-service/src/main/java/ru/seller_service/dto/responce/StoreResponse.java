@@ -1,6 +1,8 @@
 package ru.seller_service.dto.responce;
 
 import lombok.*;
+import ru.seller_service.model.status.SellerStatus;
+import ru.seller_service.model.status.StoreStatus;
 
 import java.time.LocalDateTime;
 
@@ -15,6 +17,8 @@ public class StoreResponse{
        private String description;
        private String email;
        private String phoneNumber;
+       private StoreStatus status;
+       private SellerStatus sellerStatus;
        private LocalDateTime createdAt;
        private LocalDateTime updatedAt;
 }

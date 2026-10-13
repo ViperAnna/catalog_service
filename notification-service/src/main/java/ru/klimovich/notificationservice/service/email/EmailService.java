@@ -64,11 +64,7 @@ public class EmailService {
                 """
                 .formatted(event.getSellerName(), event.getEmail())
         );
-        try {
-            mailSender.send(message);
-        } catch (MailException e) {
-            log.error("Unable to send email", e);
-        }
+        send(message, "SELLER_APPLICATION_CREATED", event.getApplicationId());
     }
 
     public void sendSellerApprovedEmail(
@@ -89,6 +85,23 @@ public class EmailService {
                         Your request to change seller data has been approved.
 
                         The new data is now in effect.
+
+                        ------------------
+
+                        Thank you for using our service!
+                        """
+                        .formatted(event.getSellerName())
+                );
+            }
+            case "UNBLOCK" -> {
+                message.setSubject("Seller account unblocked");
+                message.setText("""
+                        Hello, %s.
+
+                        Your request to unblock the seller account has been approved.
+
+                        You can manage your stores and products again. Stores blocked separately
+                        remain blocked until a moderator unblocks them.
 
                         ------------------
 
@@ -133,7 +146,7 @@ public class EmailService {
             }
         }
 
-        send(message);
+        send(message, "SELLER_APPROVED", event.getApplicationId());
     }
 
 
@@ -161,19 +174,22 @@ public class EmailService {
                 )
         );
 
-        send(message);
+        send(message, "SELLER_REJECTED", event.getApplicationId());
     }
 
     private void send(SimpleMailMessage message) {
+        send(message, "USER_CREATED", null);
+    }
 
+    /**
+     * Ошибка отправки логируется с типом события и applicationId, без адреса получателя
+     * (персональные данные не пишутся в лог).
+     */
+    private void send(SimpleMailMessage message, String eventType, Long applicationId) {
         try {
             mailSender.send(message);
         } catch (MailException e) {
-            log.error(
-                    "Unable to send email to {}",
-                    message.getTo(),
-                    e
-            );
+            log.error("Unable to send email for event {} (application {})", eventType, applicationId, e);
         }
     }
 }

@@ -24,10 +24,12 @@ import ru.seller_service.outbox.OutboxRepository;
 import ru.seller_service.repository.SellerApplicationRepository;
 import ru.seller_service.repository.SellerRepository;
 import ru.seller_service.security.CurrentUserService;
+import ru.seller_service.service.SellerModerationService;
 import ru.seller_service.dto.request.application.ReviewSellerApplicationRequest;
 import ru.seller_service.exception.ResourceForbiddenException;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,6 +60,8 @@ class ModeratorServiceImplTest {
     private OutboxRepository outboxRepo;
     @Mock
     private CurrentUserService currentUserService;
+    @Mock
+    private SellerModerationService sellerModerationService;
 
     private static final String MODERATOR_ID = "kc-moderator-1";
 
@@ -73,7 +77,8 @@ class ModeratorServiceImplTest {
                 userGrpcClient,
                 outboxRepo,
                 new EventMapper(new ObjectMapper()),
-                currentUserService
+                currentUserService,
+                sellerModerationService
         );
         lenient().when(currentUserService.getUserId()).thenReturn(MODERATOR_ID);
         SellerApplication application = SellerApplication.builder()
@@ -126,6 +131,104 @@ class ModeratorServiceImplTest {
         assertThat(new ObjectMapper().readTree(captor.getValue().getPayload()).path("applicationType").asText())
                 .isEqualTo("UPDATE");
         verifyNoInteractions(userGrpcClient);
+    }
+
+    // --- Update application approval при блокировке (change seller-store-lifecycle) ---
+
+    private SellerApplication pendingUpdate() {
+        return SellerApplication.builder()
+                .id(44L)
+                .keycloakUserId(USER_ID)
+                .sellerName("Shop")
+                .inn("1234567890")
+                .phoneNumber("+79990001122")
+                .email("shop@example.com")
+                .paymentAccount("09876543210987654321")
+                .sellerApplicationStatus(SellerApplicationStatus.PENDING)
+                .sellerApplicationType(SellerApplicationType.UPDATE)
+                .build();
+    }
+
+    @Test
+    @DisplayName("UPDATE заблокированного продавца: 409, данные не меняются, заявка PENDING")
+    void approveUpdate_blockedSeller_conflict() {
+        SellerApplication update = pendingUpdate();
+        Seller seller = new Seller();
+        seller.setKeycloakUserId(USER_ID);
+        seller.setPhoneNumber("+79990000000");
+        seller.setSellerStatus(SellerStatus.BLOCKED);
+        when(sellerApplicationRepo.findById(44L)).thenReturn(Optional.of(update));
+        when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(seller));
+
+        assertThatThrownBy(() -> service.approve(44L)).isInstanceOf(ResourceConflictException.class);
+        assertThat(seller.getPhoneNumber()).isEqualTo("+79990000000");
+        assertThat(update.getSellerApplicationStatus()).isEqualTo(SellerApplicationStatus.PENDING);
+        verifyNoInteractions(outboxRepo);
+    }
+
+    @Test
+    @DisplayName("UPDATE заблокированного продавца можно отклонить")
+    void rejectUpdate_blockedSeller_allowed() {
+        SellerApplication update = pendingUpdate();
+        when(sellerApplicationRepo.findById(44L)).thenReturn(Optional.of(update));
+
+        service.reject(44L, new ReviewSellerApplicationRequest("Seller is blocked"));
+
+        assertThat(update.getSellerApplicationStatus()).isEqualTo(SellerApplicationStatus.REJECTED);
+    }
+
+    // --- Seller unblock application (change seller-store-lifecycle) ---
+
+    private SellerApplication pendingUnblock() {
+        return SellerApplication.builder()
+                .id(45L)
+                .keycloakUserId(USER_ID)
+                .sellerName("Shop")
+                .email("shop@example.com")
+                .sellerApplicationStatus(SellerApplicationStatus.PENDING)
+                .sellerApplicationType(SellerApplicationType.UNBLOCK)
+                .build();
+    }
+
+    @Test
+    @DisplayName("Одобрение UNBLOCK: продавец разблокируется, SELLER_APPROVED с типом UNBLOCK")
+    void approveUnblock() throws Exception {
+        SellerApplication unblock = pendingUnblock();
+        Seller seller = new Seller();
+        seller.setId(7L);
+        seller.setKeycloakUserId(USER_ID);
+        seller.setSellerStatus(SellerStatus.BLOCKED);
+        when(sellerApplicationRepo.findById(45L)).thenReturn(Optional.of(unblock));
+        when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(seller));
+
+        service.approve(45L);
+
+        verify(sellerModerationService).unblockSeller(7L);
+        assertThat(unblock.getSellerApplicationStatus()).isEqualTo(SellerApplicationStatus.APPROVED);
+        ArgumentCaptor<OutboxEvent> captor = ArgumentCaptor.forClass(OutboxEvent.class);
+        verify(outboxRepo).save(captor.capture());
+        assertThat(captor.getValue().getEventType()).isEqualTo("SELLER_APPROVED");
+        assertThat(new ObjectMapper().readTree(captor.getValue().getPayload()).path("applicationType").asText())
+                .isEqualTo("UNBLOCK");
+        verifyNoInteractions(userGrpcClient);
+    }
+
+    @Test
+    @DisplayName("Одобрение UNBLOCK для уже разблокированного продавца: 409, заявка PENDING")
+    void approveUnblock_sellerAlreadyActive_conflict() {
+        SellerApplication unblock = pendingUnblock();
+        Seller seller = new Seller();
+        seller.setId(7L);
+        seller.setKeycloakUserId(USER_ID);
+        seller.setSellerStatus(SellerStatus.ACTIVE);
+        when(sellerApplicationRepo.findById(45L)).thenReturn(Optional.of(unblock));
+        when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(seller));
+        org.mockito.Mockito.doThrow(new ResourceConflictException("Seller with id: [7] has status [ACTIVE]."))
+                .when(sellerModerationService).unblockSeller(7L);
+
+        assertThatThrownBy(() -> service.approve(45L)).isInstanceOf(ResourceConflictException.class);
+        assertThat(unblock.getSellerApplicationStatus()).isEqualTo(SellerApplicationStatus.PENDING);
+        verifyNoInteractions(outboxRepo);
     }
 
     private static DataIntegrityViolationException violation(String sqlState, String constraint) {
@@ -257,5 +360,86 @@ class ModeratorServiceImplTest {
         assertThat(captor.getValue().getEventType()).isEqualTo("SELLER_REJECTED");
         assertThat(new ObjectMapper().readTree(captor.getValue().getPayload()).get("moderatorComment").asText())
                 .isEqualTo("Invalid INN");
+    }
+    // --- Deletion application approval (change seller-store-lifecycle) ---
+
+    private SellerApplication pendingDeletion() {
+        return SellerApplication.builder()
+                .id(46L)
+                .keycloakUserId(USER_ID)
+                .sellerName("Shop")
+                .inn("1234567890")
+                .email("shop@example.com")
+                .sellerApplicationStatus(SellerApplicationStatus.PENDING)
+                .sellerApplicationType(SellerApplicationType.DELETION)
+                .build();
+    }
+
+    private Seller sellerWithStatus(SellerStatus status) {
+        Seller seller = new Seller();
+        seller.setId(7L);
+        seller.setKeycloakUserId(USER_ID);
+        seller.setSellerStatus(status);
+        return seller;
+    }
+
+    @Test
+    @DisplayName("Одобрение DELETION: STORE_PURGED, обезличка опубликованных записей, удаление заявок и Seller, снятие роли")
+    void approveDeletion_purgesSeller() throws Exception {
+        SellerApplication deletion = pendingDeletion();
+        SellerApplication oldRegistration = SellerApplication.builder().id(40L).keycloakUserId(USER_ID).build();
+        Seller seller = sellerWithStatus(SellerStatus.ACTIVE);
+        OutboxEvent published = OutboxEvent.builder()
+                .aggregateType("SELLER_APPLICATION").aggregateId("40").eventType("SELLER_APPROVED")
+                .payload("{\"applicationId\":40,\"sellerName\":\"Shop\",\"email\":\"shop@example.com\"}")
+                .processed(true).build();
+        when(sellerApplicationRepo.findById(46L)).thenReturn(Optional.of(deletion));
+        when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(seller));
+        when(sellerApplicationRepo.findAllByKeycloakUserIdOrderByCreatedAtDesc(USER_ID))
+                .thenReturn(List.of(deletion, oldRegistration));
+        when(outboxRepo.findByAggregateTypeAndAggregateIdInAndProcessedTrue(any(), any()))
+                .thenReturn(List.of(published));
+
+        service.approve(46L);
+
+        verify(sellerModerationService).writeStorePurgedEvents(7L);
+        assertThat(new ObjectMapper().readTree(published.getPayload()).get("redacted").asBoolean()).isTrue();
+        assertThat(published.getPayload()).doesNotContain("shop@example.com");
+        verify(sellerApplicationRepo).deleteAll(List.of(deletion, oldRegistration));
+        verify(sellerRepo).delete(seller);
+        verify(userGrpcClient).removeSellerRole(USER_ID);
+        ArgumentCaptor<OutboxEvent> captor = ArgumentCaptor.forClass(OutboxEvent.class);
+        verify(outboxRepo).save(captor.capture());
+        assertThat(captor.getValue().getEventType()).isEqualTo("SELLER_APPROVED");
+        assertThat(captor.getValue().getPayload()).contains("shop@example.com").contains("DELETION");
+    }
+
+    @Test
+    @DisplayName("Одобрение DELETION заблокированного продавца выполняет то же удаление")
+    void approveDeletion_blockedSeller() {
+        SellerApplication deletion = pendingDeletion();
+        Seller seller = sellerWithStatus(SellerStatus.BLOCKED);
+        when(sellerApplicationRepo.findById(46L)).thenReturn(Optional.of(deletion));
+        when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(seller));
+        when(sellerApplicationRepo.findAllByKeycloakUserIdOrderByCreatedAtDesc(USER_ID)).thenReturn(List.of(deletion));
+
+        service.approve(46L);
+
+        verify(sellerModerationService).writeStorePurgedEvents(7L);
+        verify(sellerRepo).delete(seller);
+    }
+
+    @Test
+    @DisplayName("Ошибка снятия роли: исключение, SELLER_APPROVED не записан (транзакция откатывается)")
+    void approveDeletion_grpcFailure() {
+        SellerApplication deletion = pendingDeletion();
+        when(sellerApplicationRepo.findById(46L)).thenReturn(Optional.of(deletion));
+        when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(sellerWithStatus(SellerStatus.ACTIVE)));
+        when(sellerApplicationRepo.findAllByKeycloakUserIdOrderByCreatedAtDesc(USER_ID)).thenReturn(List.of(deletion));
+        org.mockito.Mockito.doThrow(new RuntimeException("UNAVAILABLE"))
+                .when(userGrpcClient).removeSellerRole(USER_ID);
+
+        assertThatThrownBy(() -> service.approve(46L)).hasMessage("UNAVAILABLE");
+        verify(outboxRepo, never()).save(any());
     }
 }

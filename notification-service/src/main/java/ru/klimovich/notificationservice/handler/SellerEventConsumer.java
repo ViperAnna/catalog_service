@@ -18,7 +18,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 @Slf4j
 public class SellerEventConsumer {
-    private static final Set<String> KNOWN_APPLICATION_TYPES = Set.of("REGISTRATION", "UPDATE", "DELETION");
+    private static final Set<String> KNOWN_APPLICATION_TYPES = Set.of("REGISTRATION", "UPDATE", "DELETION", "UNBLOCK");
 
     private final SellerNotificationService notificationService;
     private final EventMapper eventMapper;

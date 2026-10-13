@@ -11,6 +11,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.seller_service.dto.request.seller.SellerDeletionRequest;
+import ru.seller_service.dto.request.seller.SellerUnblockRequest;
+import ru.seller_service.model.status.SellerApplicationType;
 import ru.seller_service.dto.request.seller.SellerRegistrationRequest;
 import ru.seller_service.dto.request.seller.SellerUpdateRequest;
 import ru.seller_service.event.SellerEventType;
@@ -248,6 +250,77 @@ class SellerApplicationServiceImplTest {
         verifyNoInteractions(outboxRepo);
     }
 
+    // --- Blocked seller restrictions (change seller-store-lifecycle) ---
+
+    @Test
+    void deletion_blockedSeller_allowed() throws Exception {
+        when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(seller(SellerStatus.BLOCKED)));
+        stubApplicationSaveAssignsId();
+
+        service.createDeletionRequest(new SellerDeletionRequest("Closing the shop"));
+
+        assertApplicationCreatedEvent(captureSingleOutboxEvent(), "Shop", "shop@example.com");
+    }
+
+    @Test
+    void update_blockedSeller_conflict() {
+        when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(seller(SellerStatus.BLOCKED)));
+
+        assertThatThrownBy(() -> service.createUpdateRequest(new SellerUpdateRequest(
+                "+79991111111", "new@example.com", "09876543210987654321")))
+                .isInstanceOf(ResourceConflictException.class);
+        verifyNoInteractions(outboxRepo);
+    }
+
+    // --- Seller unblock application (change seller-store-lifecycle) ---
+
+    @Test
+    void unblock_blockedSeller_createsPendingApplication() throws Exception {
+        when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(seller(SellerStatus.BLOCKED)));
+        stubApplicationSaveAssignsId();
+
+        service.createUnblockRequest(new SellerUnblockRequest("Issue fixed"));
+
+        ArgumentCaptor<SellerApplication> captor = ArgumentCaptor.forClass(SellerApplication.class);
+        verify(sellerApplicationRepo).save(captor.capture());
+        assertThat(captor.getValue().getSellerApplicationType()).isEqualTo(SellerApplicationType.UNBLOCK);
+        assertThat(captor.getValue().getSellerApplicationStatus()).isEqualTo(SellerApplicationStatus.PENDING);
+        assertThat(captor.getValue().getRequestReason()).isEqualTo("Issue fixed");
+        assertApplicationCreatedEvent(captureSingleOutboxEvent(), "Shop", "shop@example.com");
+    }
+
+    @Test
+    void unblock_activeSeller_conflict() {
+        when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(seller(SellerStatus.ACTIVE)));
+
+        assertThatThrownBy(() -> service.createUnblockRequest(new SellerUnblockRequest("Issue fixed")))
+                .isInstanceOf(ResourceConflictException.class);
+        verifyNoInteractions(outboxRepo);
+    }
+
+    @Test
+    void unblock_pendingUpdateExists_conflict() {
+        when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(seller(SellerStatus.BLOCKED)));
+        when(sellerApplicationRepo.existsByKeycloakUserIdAndSellerApplicationStatus(USER_ID, SellerApplicationStatus.PENDING))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> service.createUnblockRequest(new SellerUnblockRequest("Issue fixed")))
+                .isInstanceOf(ResourceConflictException.class)
+                .hasMessage("User already has a pending application.");
+        verifyNoInteractions(outboxRepo);
+    }
+
+    @Test
+    void deletion_blockedSellerWithPendingUpdate_conflict() {
+        when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(seller(SellerStatus.BLOCKED)));
+        when(sellerApplicationRepo.existsByKeycloakUserIdAndSellerApplicationStatus(USER_ID, SellerApplicationStatus.PENDING))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> service.createDeletionRequest(new SellerDeletionRequest("Closing the shop")))
+                .isInstanceOf(ResourceConflictException.class);
+        verifyNoInteractions(outboxRepo);
+    }
+
     @Test
     void deletion_pendingApplicationExists_writesNoEvent() {
         when(sellerRepo.findByKeycloakUserId(USER_ID)).thenReturn(Optional.of(seller(SellerStatus.ACTIVE)));
@@ -325,5 +398,16 @@ class SellerApplicationServiceImplTest {
         assertThatThrownBy(() -> service.getMyCurrentApplication())
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("No applications found for user [" + USER_ID + "].");
+    }
+    @Test
+    void registration_afterSellerPurged_accepted() {
+        when(sellerRepo.existsByKeycloakUserId(USER_ID)).thenReturn(false);
+        when(sellerRepo.existsByInn("1234567890")).thenReturn(false);
+        stubApplicationSaveAssignsId();
+
+        service.createRegistrationRequest(new SellerRegistrationRequest(
+                "Shop", "1234567890", "+79990000000", "shop@example.com", "12345678901234567890"));
+
+        verify(sellerApplicationRepo).save(any(SellerApplication.class));
     }
 }

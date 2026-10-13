@@ -57,8 +57,25 @@ public class Product {
     @Field(value = "status")
     private Status status;
 
+    /**
+     * Признаки блокировки магазина и продавца. Меняются только событиями store-events-topic
+     * (ProductBlockingFlags); отсутствие поля = не заблокирован. Создание и изменение товара их не пишут.
+     */
+    @Field(value = "store_blocked")
+    private Boolean storeBlocked;
+
+    @Field(value = "seller_blocked")
+    private Boolean sellerBlocked;
+
     @Field(value = "date_create")
     private LocalDateTime dateCreate;
+
+    /** Доступен покупателю: ACTIVE и магазин и продавец не заблокированы. */
+    public boolean isAvailable() {
+        return status == Status.ACTIVE
+                && !Boolean.TRUE.equals(storeBlocked)
+                && !Boolean.TRUE.equals(sellerBlocked);
+    }
 
     @Field(value = "date_update")
     private LocalDateTime dateUpdate;

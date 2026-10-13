@@ -72,7 +72,7 @@ class SellerEventConsumerTest {
 
     @ParameterizedTest
     @NullSource
-    @ValueSource(strings = {"", "   ", "REGISTRATION", "UPDATE", "DELETION"})
+    @ValueSource(strings = {"", "   ", "REGISTRATION", "UPDATE", "DELETION", "UNBLOCK"})
     void knownOrMissingApplicationType_notifiesSeller(String applicationType) throws Exception {
         consumer.consume(approvedMessage(applicationType));
 

@@ -1,6 +1,7 @@
 package ru.seller_service.service;
 
 import ru.seller_service.dto.request.seller.SellerDeletionRequest;
+import ru.seller_service.dto.request.seller.SellerUnblockRequest;
 import ru.seller_service.dto.request.seller.SellerRegistrationRequest;
 import ru.seller_service.dto.responce.SellerApplicationResponse;
 import ru.seller_service.dto.request.seller.SellerUpdateRequest;
@@ -14,6 +15,8 @@ public interface SellerApplicationService {
 
     SellerApplicationResponse createUpdateRequest(SellerUpdateRequest sellerUpdateDetails);
     SellerApplicationResponse createDeletionRequest(SellerDeletionRequest sellerDeletionDetails);
+
+    SellerApplicationResponse createUnblockRequest(SellerUnblockRequest unblockDetails);
     SellerApplicationResponse getMyCurrentApplication();
     List<SellerApplicationResponse> getMyApplicationHistory();
 

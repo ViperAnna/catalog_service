@@ -75,8 +75,8 @@ factor 1) — в seller-service. Топики `*.DLT` SHALL NOT объявлят
 строковое значение — обертку `{aggregateType, eventType, payload}`:
 aggregateType = `SELLER_APPLICATION`, eventType — SELLER_APPLICATION_CREATED,
 SELLER_APPROVED или SELLER_REJECTED, payload — JSON события строкой. Payload
-SELLER_APPROVED SHALL содержать applicationType (REGISTRATION, UPDATE или
-DELETION); consumer SHALL допускать его отсутствие.
+SELLER_APPROVED SHALL содержать applicationType (REGISTRATION, UPDATE,
+DELETION или UNBLOCK); consumer SHALL допускать его отсутствие.
 
 #### Scenario: Сообщение об одобрении
 - **WHEN** seller-service публикует SELLER_APPROVED для заявки 7 типа DELETION
@@ -90,18 +90,35 @@ DELETION); consumer SHALL допускать его отсутствие.
 - **WHEN** notification-service получает SELLER_APPROVED с applicationType "FOO"
 - **THEN** сообщение сразу уходит в `seller-events-topic.DLT`, без повторов
 
+#### Scenario: Одобрение разблокировки
+- **WHEN** notification-service получает SELLER_APPROVED с applicationType "UNBLOCK"
+- **THEN** сообщение обрабатывается без DLT
+
 **Observation**: OBS-01, OBS-04, OBS-05, OBS-10
 
 ### Requirement: Transactional outbox recording
 user-service и seller-service SHALL записывать событие в собственную таблицу
-outbox (`outbox_event` и `outbox_events` соответственно) в той же транзакции
-БД, что и бизнес-изменение, с полями aggregateType, aggregateId, eventType,
-payload, createdAt и processed = false. Обработанные записи SHALL NOT
-удаляться.
+outbox (`outbox_event` и `outbox_events`) в той же транзакции БД, что и
+бизнес-изменение, с полями aggregateType, aggregateId, eventType, payload,
+createdAt и processed = false. Обработанные записи SHALL NOT удаляться. Payload
+записей `SELLER_APPLICATION` seller-service SHALL обезличиваться только после
+подтверждения публикации Kafka, в одной транзакции с processed = true.
 
 #### Scenario: Откат бизнес-операции
 - **WHEN** транзакция бизнес-операции откатывается
 - **THEN** запись outbox не сохраняется и сообщение не публикуется
+
+#### Scenario: Обезличивание после публикации
+- **WHEN** seller-service получил подтверждение Kafka для SELLER_APPROVED
+- **THEN** запись помечена processed = true, ее payload содержит только applicationId и redacted
+
+#### Scenario: Публикация не подтверждена
+- **WHEN** отправка в Kafka завершилась ошибкой или таймаутом
+- **THEN** запись остается processed = false с исходным payload и отправляется повторно
+
+#### Scenario: События магазинов
+- **WHEN** опубликовано событие с aggregateType STORE
+- **THEN** его payload не меняется
 
 **Observation**: OBS-03, OBS-06
 
@@ -202,13 +219,18 @@ SHALL NOT потреблять сообщения. Consumer-настройки s
 Сообщение в `store-events-topic` SHALL иметь строковый ключ, равный id
 магазина, и строковое значение — конверт `{aggregateType, eventType, payload}`
 того же формата, что в `seller-events-topic`, где aggregateType = `STORE`,
-eventType = `STORE_DELETED`, а payload — JSON `{storeId, sellerId}`,
-сериализованный в строку. Producer SHALL быть seller-service, consumer —
-catalog-service.
+eventType — STORE_PURGED, STORE_BLOCKED, STORE_UNBLOCKED, SELLER_BLOCKED,
+SELLER_UNBLOCKED или устаревший STORE_DELETED, а payload — JSON
+`{storeId, sellerId}` строкой без персональных данных. Producer —
+seller-service, consumer — catalog-service.
 
 #### Scenario: Сообщение об удалении магазина
-- **WHEN** seller-service публикует STORE_DELETED для магазина 3 продавца 7
-- **THEN** ключ `3`, значение — конверт с aggregateType "STORE", eventType "STORE_DELETED" и payload-строкой с JSON `{"storeId":3,"sellerId":7}`
+- **WHEN** seller-service удаляет магазин 3 продавца 7
+- **THEN** ключ `3`, значение — конверт с aggregateType "STORE", eventType "STORE_PURGED" и payload-строкой с JSON `{"storeId":3,"sellerId":7}`
+
+#### Scenario: Блокировка продавца
+- **WHEN** seller-service блокирует продавца 7 с магазином 3
+- **THEN** публикуется конверт с ключом `3`, eventType "SELLER_BLOCKED" и payload `{"storeId":3,"sellerId":7}`
 
 ## Event Catalog (informative)
 
@@ -218,7 +240,44 @@ catalog-service.
 | `seller-events-topic` | applicationId | SELLER_APPLICATION_CREATED | seller-service | подача заявки любого типа | `{applicationId, keycloakUserId, sellerName, email}` | notification: письмо модератору |
 | `seller-events-topic` | applicationId | SELLER_APPROVED | seller-service | approve заявки любого типа | `{applicationId, keycloakUserId, sellerName, email, applicationType}` | notification: письмо продавцу по applicationType; неизвестный непустой тип — без письма, в DLT без повторов |
 | `seller-events-topic` | applicationId | SELLER_REJECTED | seller-service | reject | `{..., moderatorComment}` | notification: письмо продавцу |
+| `store-events-topic` | storeId | STORE_PURGED | seller-service | удаление магазина владельцем, одобрение удаления продавца | `{storeId, sellerId}` | catalog: удаление неиспользуемых изображений и документов товаров магазина |
+| `store-events-topic` | storeId | STORE_BLOCKED, STORE_UNBLOCKED | seller-service | блокировка и разблокировка магазина модератором | `{storeId, sellerId}` | catalog: признак storeBlocked в товарах магазина |
+| `store-events-topic` | storeId | SELLER_BLOCKED, SELLER_UNBLOCKED | seller-service | блокировка и разблокировка продавца (по событию на магазин) | `{storeId, sellerId}` | catalog: признак sellerBlocked в товарах магазина |
+| `store-events-topic` | storeId | STORE_DELETED (устарело, не публикуется) | seller-service до change `seller-store-lifecycle` | удаление магазина | `{storeId, sellerId}` | catalog: товары магазина -> ARCHIVED |
 | `<topic>.DLT` | исходный | исходный | notification (recoverer) | после 3 повторов; для неизвестного applicationType — сразу | исходное значение | нет |
+
+## Operational Procedures (informative)
+
+Ручные операции из change `seller-store-lifecycle`; инструментов для них нет.
+
+**Повторная отправка события магазина из `store-events-topic.DLT`.** После DLT
+следующие события того же магазина продолжают обрабатываться, поэтому
+переотправка старого сообщения может откатить более новое состояние.
+1. Найти исходную запись `outbox_events` seller-service (aggregateId =
+   storeId, eventType, processed = true) и записи того же aggregateId с более
+   поздним `created_at` (id записи — UUID и порядка не задает).
+2. Проверить текущее состояние в seller-service: статус магазина и продавца,
+   существует ли магазин.
+3. `STORE_PURGED` переотправлять всегда. Событие блокировки или
+   разблокировки — только если после него нет записей того же признака и оно
+   совпадает с текущим статусом; иначе переотправить последнее по
+   `created_at` событие этого признака, если оно совпадает с текущим статусом.
+   Для удаленного магазина — только `STORE_PURGED`.
+4. Переотправка: `processed = false` у выбранной записи outbox (payload
+   событий STORE не обезличивается) или отправка сообщения из DLT в
+   `store-events-topic` с тем же ключом.
+5. Проверить, что признаки товаров магазина в MongoDB совпадают со
+   статусами в seller-service.
+
+**Записи Seller в статусе DELETED, созданные до change `seller-store-lifecycle`.** Не
+очищаются автоматически. 1) Проверка: такие продавцы, их магазины, товары в
+MongoDB (`store_id`), заявки. 2) Резервная копия: `pg_dump` таблиц
+`sellers`, `stores`, `seller_applications`, `outbox_events`, `mongodump`
+коллекции `products`, список объектов MinIO. 3) Очистка в транзакции на
+продавца: `STORE_PURGED` в outbox на каждый магазин, обезличивание его
+записей outbox, удаление магазинов, заявок и Seller; повторный запуск ничего
+не находит. 4) Проверка: записей нет, товаров этих `store_id` нет, записи
+outbox обработаны, DLT пуст.
 
 ## Observations (non-normative)
 Подтверждено кодом, конфигурацией или наблюдением на стенде. Это потенциальные

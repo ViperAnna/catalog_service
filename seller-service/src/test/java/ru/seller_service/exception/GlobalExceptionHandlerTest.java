@@ -234,4 +234,14 @@ class GlobalExceptionHandlerTest {
                 .andExpect(status().isOk());
         verify(moderatorService).reject(eq(5L), eq(new ReviewSellerApplicationRequest("Invalid INN")));
     }
+    @Test
+    @DisplayName("400: заявка UNBLOCK без причины, сервис не вызывается")
+    void unblockApplication_withoutReason_badRequest() throws Exception {
+        mockMvc.perform(post("/seller-applications/unblock")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", startsWith("Validation failed: ")));
+        verifyNoInteractions(sellerApplicationService);
+    }
 }

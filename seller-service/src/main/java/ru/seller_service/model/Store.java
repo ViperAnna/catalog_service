@@ -5,8 +5,10 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import ru.seller_service.model.status.StoreStatus;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "stores")
@@ -28,6 +30,18 @@ public class Store {
 
     @Column(name = "store_name", nullable = false)
     private String storeName;
+
+    /**
+     * ACTIVE или BLOCKED. DELETED не хранится: удаленный магазин физически отсутствует.
+     * Колонку добавляет ddl-auto (nullable), значение и NOT NULL задает schema.sql.
+     */
+    @Column(name = "status")
+    @Enumerated(EnumType.STRING)
+    private StoreStatus status;
+
+    /** Заявки на изменение удаляются вместе с магазином (удаление владельцем и каскад от Seller). */
+    @OneToMany(mappedBy = "store", cascade = CascadeType.REMOVE)
+    private List<StoreChangeRequest> changeRequests;
 
     @Column(name = "description")
     private String description;

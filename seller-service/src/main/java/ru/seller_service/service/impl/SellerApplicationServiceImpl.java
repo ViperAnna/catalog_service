@@ -5,6 +5,7 @@ import ru.seller_service.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.seller_service.dto.request.seller.SellerDeletionRequest;
+import ru.seller_service.dto.request.seller.SellerUnblockRequest;
 import ru.seller_service.dto.request.seller.SellerRegistrationRequest;
 import ru.seller_service.dto.request.seller.SellerUpdateRequest;
 import ru.seller_service.dto.responce.SellerApplicationResponse;
@@ -137,7 +138,7 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
         String userId = currentUserService.getUserId();
         Seller seller = getSellerByKeycloakUserId(userId);
 
-        validateSellerActive(seller);
+        validateSellerActiveOrBlocked(seller);
         validateNoPendingApplication(userId);
 
         SellerApplication application = SellerApplication.builder()
@@ -150,6 +151,34 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
                 .sellerApplicationStatus(SellerApplicationStatus.PENDING)
                 .sellerApplicationType(SellerApplicationType.DELETION)
                 .requestReason(sellerDeletionDetails.reason())
+                .build();
+        sellerApplicationRepo.save(application);
+
+        saveApplicationCreatedEvent(application);
+
+        return sellerApplicationMapper.toDTO(application);
+    }
+
+    @Override
+    public SellerApplicationResponse createUnblockRequest(SellerUnblockRequest unblockDetails) {
+        String userId = currentUserService.getUserId();
+        Seller seller = getSellerByKeycloakUserId(userId);
+
+        if (seller.getSellerStatus() != SellerStatus.BLOCKED) {
+            throw new ResourceConflictException(MessageKeys.SELLER_STATUS_CONFLICT, seller.getId(), seller.getSellerStatus());
+        }
+        validateNoPendingApplication(userId);
+
+        SellerApplication application = SellerApplication.builder()
+                .keycloakUserId(userId)
+                .sellerName(seller.getSellerName())
+                .inn(seller.getInn())
+                .phoneNumber(seller.getPhoneNumber())
+                .email(seller.getEmail())
+                .paymentAccount(seller.getPaymentAccount())
+                .sellerApplicationStatus(SellerApplicationStatus.PENDING)
+                .sellerApplicationType(SellerApplicationType.UNBLOCK)
+                .requestReason(unblockDetails.reason())
                 .build();
         sellerApplicationRepo.save(application);
 
@@ -219,6 +248,13 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
         }
         if (sellerApplicationRepo.existsSameNameWithStatus(sellerName, SellerApplicationStatus.PENDING)) {
             throw new ResourceConflictException(MessageKeys.SELLER_NAME_ALREADY_IN_REVIEW, sellerName);
+        }
+    }
+
+    /** Заявку на удаление может подать и заблокированный продавец. */
+    private void validateSellerActiveOrBlocked(Seller seller) {
+        if (seller.getSellerStatus() != SellerStatus.ACTIVE && seller.getSellerStatus() != SellerStatus.BLOCKED) {
+            throw new ResourceConflictException(MessageKeys.SELLER_IS_NOT_ACTIVE, seller.getSellerStatus().name());
         }
     }
 
