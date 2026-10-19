@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME}
+
+  security:
+    oauth2:
+      resource-server:
+        jwt:
+          jwk-set-uri: ${JWT_JWK_SET_URI}
+          issuer-uri: ${JWT_ISSUER_URI}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    show-sql: ${SPRING_JPA_SHOW_SQL}
+    open-in-view: false
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
+    # schema.sql выполняется после ddl-auto: update (таблицы уже существуют)
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      # schema.sql создает CHECK-ограничения и индексы, которые ddl-auto не создает
+      mode: always
+
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+
+server:
+  port: ${SERVER_PORT}
+
+catalog-service:
+  url: ${CATALOG_SERVICE_URL}
