@@ -1,6 +1,8 @@
 package ru.seller_service.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import ru.seller_service.model.SellerApplication;
 import ru.seller_service.model.status.SellerApplicationStatus;
@@ -25,6 +27,11 @@ public interface SellerApplicationRepository extends JpaRepository<SellerApplica
     Optional<SellerApplication> findByKeycloakUserId(String keycloakUserId);
 
     boolean existsByInnAndSellerApplicationStatus(String inn, SellerApplicationStatus status);
+
+    @Query("select count(a) > 0 from SellerApplication a where a.sellerApplicationStatus = :status "
+            + "and lower(trim(a.sellerName)) = lower(trim(:name))")
+    boolean existsSameNameWithStatus(@Param("name") String name,
+                                     @Param("status") SellerApplicationStatus status);
 
 
 

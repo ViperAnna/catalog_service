@@ -8,13 +8,18 @@ import ru.klimovich.notificationservice.event.KafkaEvent;
 import ru.klimovich.notificationservice.event.SellerApplicationCreatedEvent;
 import ru.klimovich.notificationservice.event.SellerApprovedEvent;
 import ru.klimovich.notificationservice.event.SellerRejectedEvent;
+import ru.klimovich.notificationservice.exception.UnknownApplicationTypeException;
 import ru.klimovich.notificationservice.mapper.EventMapper;
 import ru.klimovich.notificationservice.service.seller.SellerNotificationService;
+
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class SellerEventConsumer {
+    private static final Set<String> KNOWN_APPLICATION_TYPES = Set.of("REGISTRATION", "UPDATE", "DELETION", "UNBLOCK");
+
     private final SellerNotificationService notificationService;
     private final EventMapper eventMapper;
 
@@ -36,6 +41,7 @@ public class SellerEventConsumer {
             }
             case SELLER_APPROVED -> {
                 SellerApprovedEvent event = eventMapper.fromJson(kafkaEvent.getPayload(), SellerApprovedEvent.class);
+                validateApplicationType(event);
                 notificationService.notifySellerApproved(event);
             }
 
@@ -44,5 +50,19 @@ public class SellerEventConsumer {
                 notificationService.notifySellerRejected(event);
             }
         }
+    }
+
+    /**
+     * Пустой тип допустим (события до появления applicationType). Неизвестный непустой тип
+     * не должен приводить к неверному письму: сообщение уходит в DLT.
+     */
+    private void validateApplicationType(SellerApprovedEvent event) {
+        String applicationType = event.getApplicationType();
+        if (applicationType == null || applicationType.isBlank() || KNOWN_APPLICATION_TYPES.contains(applicationType)) {
+            return;
+        }
+        log.error("Unknown applicationType [{}] in SELLER_APPROVED for application [{}], email is not sent",
+                applicationType, event.getApplicationId());
+        throw new UnknownApplicationTypeException(event.getApplicationId(), applicationType);
     }
 }

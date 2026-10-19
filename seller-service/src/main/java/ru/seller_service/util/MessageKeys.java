@@ -4,16 +4,19 @@ public class MessageKeys {
     public static final String _EMAIL_ALREADY_EXIST = "User with email [%s] already exist";
     public static final String USER_PHONE_ALREADY_EXIST = "User with phone [%s] already exist";
     public static final String USER_KEYCLOAK_ACCOUNT_EXIST = "User already exist for this Keycloak account";
-    public static final String SELLER_NOT_FOUND = "User not found with id: [%s].";
-    public static final String SELLER_ALREADY_EXIST = "User not found with id: [%s].";
+    public static final String SELLER_NOT_FOUND = "Seller not found for user [%s].";
+    public static final String SELLER_ALREADY_EXIST = "Seller already exists for user [%s].";
+    public static final String SELLER_EMAIL_ALREADY_USED = "Email [%s] is already used by another account.";
+    public static final String SELLER_NAME_ALREADY_EXISTS = "Seller with name [%s] already exists.";
+    public static final String SELLER_NAME_ALREADY_IN_REVIEW = "Seller name [%s] is already in review.";
     public static final String STORE_ALREADY_EXISTS = "Store with name [%s] already exists.";
-    public static final String STORE_NOT_FOUND = "Store notfound with id: [%s].";
-    public static final String INN_ALREADY_IN_REVIEW = "Inn already in review";
+    public static final String STORE_NOT_FOUND = "Store not found with id: [%s].";
+    public static final String INN_ALREADY_IN_REVIEW = "Inn [%s] already in review.";
 
     public static final String SELLER_IS_NOT_ACTIVE = "Seller with status: [%s]. Seller is not active";
 //    public static final String INN_NOT_FOUND = "Inn not found with number: [%s].";
     public static final String INN_ALREADY_EXIST = "Inn with number: [%s] already exist.";
-    public static final String APPLICATION_ALREADY_EXISTS = "Application with email [%s] already exist";
+    public static final String APPLICATION_ALREADY_EXISTS = "User already has a pending application.";
 
     public static final String USER_CREATED_SUCCESSFULLY = "The user was successfully created.";
     public static final String USER_UPDATE_SUCCESSFULLY = "The user was successfully updated.";
@@ -21,7 +24,16 @@ public class MessageKeys {
 
 
     public static final String APPLICATION_NOT_FOUND = "Application not found with id: [%s].";
-    public static final String APPLICATION_ALREADY_REVIEWED = "Application with id: [%s] already_reviewed.";
+    public static final String APPLICATION_ALREADY_REVIEWED = "Application with id: [%s] already reviewed.";
+    public static final String SELLER_NOT_FOUND_BY_ID = "Seller not found with id: [%s].";
+    public static final String SELLER_STATUS_CONFLICT = "Seller with id: [%s] has status [%s].";
+    public static final String STORE_STATUS_CONFLICT = "Store with id: [%s] has status [%s].";
+    public static final String STORE_IS_BLOCKED = "Store with id: [%s] is blocked.";
+    public static final String STORE_CHANGE_REQUEST_PENDING = "Store with id: [%s] already has a pending change request.";
+    public static final String STORE_CHANGE_REQUEST_NOT_FOUND = "Store change request not found with id: [%s].";
+    public static final String STORE_CHANGE_REQUEST_ALREADY_REVIEWED = "Store change request with id: [%s] already reviewed.";
+    public static final String OWN_APPLICATION_REVIEW_FORBIDDEN = "Moderator can't review own application.";
+    public static final String APPLICATION_NOT_FOUND_FOR_USER = "No applications found for user [%s].";
 
 
     public static final String WISHLIST_CREATED_SUCCESSFULLY = "The wishlist was successfully created";

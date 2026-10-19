@@ -2,7 +2,7 @@ import React, {useEffect} from 'react';
 import {useAuthStore} from '../store/useAuthStore';
 import LoadingState from './LoadingState';
 
-const ProtectedRoute = ({children, requiredRole}) => {
+const ProtectedRoute = ({children, requiredRole, forbiddenRole}) => {
     const authEnabled = useAuthStore((s) => s.authEnabled);
     const authenticated = useAuthStore((s) => s.authenticated);
     const hasRole = useAuthStore((s) => s.hasRole);
@@ -22,6 +22,15 @@ const ProtectedRoute = ({children, requiredRole}) => {
             <div className="container mx-auto px-4 py-16 text-center">
                 <h1 className="text-2xl font-bold text-gray-800 mb-2">Доступ запрещён</h1>
                 <p className="text-gray-500">Эта страница доступна только пользователям с ролью {requiredRole}.</p>
+            </div>
+        );
+    }
+
+    if (forbiddenRole && hasRole(forbiddenRole)) {
+        return (
+            <div className="container mx-auto px-4 py-16 text-center">
+                <h1 className="text-2xl font-bold text-gray-800 mb-2">Недоступно</h1>
+                <p className="text-gray-500">Эта страница недоступна для аккаунта с ролью {forbiddenRole}.</p>
             </div>
         );
     }

@@ -22,8 +22,8 @@ public class UserUpdateRequest {
     private String lastName;
 
 
-    @Pattern(regexp = "\\+?[0-9]{7,15}",
-            message = "Phone must contain 7-15 digits.")
+    @Pattern(regexp = "^(\\+7|7|8)\\d{10}$",
+            message = "Phone must be a Russian number in format +7XXXXXXXXXX, 7XXXXXXXXXX or 8XXXXXXXXXX.")
     private String phone;
 
     @Size(max = 20, message = "NicknameTelegram can't exceed 20 characters.")

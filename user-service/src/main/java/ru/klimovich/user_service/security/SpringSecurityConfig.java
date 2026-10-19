@@ -10,6 +10,14 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
+
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import ru.klimovich.user_service.util.converter.KCRoleConverter;
 
 @Configuration
@@ -32,7 +40,8 @@ public class SpringSecurityConfig {
                                 .requestMatchers("/auth/**").permitAll()
                                 .requestMatchers("/users/me").hasRole("USER")
                                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                                .requestMatchers("/wishlists/**").hasAnyRole("USER", "ADMIN")
+                                // Вишлисты — функция покупателя: роль SELLER запрещает доступ при любых других ролях.
+                                .requestMatchers("/wishlists/**").access(SpringSecurityConfig::wishlistAccess)
 
                                 .anyRequest().authenticated())
                 .oauth2ResourceServer(configurer -> configurer
@@ -40,5 +49,17 @@ public class SpringSecurityConfig {
                 );
 
         return http.build();
+    }
+
+    /**
+     * USER или ADMIN и без SELLER (change wishlist-access-and-limits).
+     */
+    private static AuthorizationDecision wishlistAccess(Supplier<Authentication> authentication,
+                                                        RequestAuthorizationContext context) {
+        Set<String> roles = authentication.get().getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toSet());
+        boolean buyer = roles.contains("ROLE_USER") || roles.contains("ROLE_ADMIN");
+        return new AuthorizationDecision(buyer && !roles.contains("ROLE_SELLER"));
     }
 }

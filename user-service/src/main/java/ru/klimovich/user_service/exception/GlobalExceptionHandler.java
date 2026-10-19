@@ -52,4 +52,20 @@ public class GlobalExceptionHandler {
                 HttpStatus.CONFLICT
         );
     }
+
+    @ExceptionHandler(ProductNotFoundException.class)
+    protected ResponseEntity<Object> handleProductNotFound(ProductNotFoundException ex) {
+        return createErrorResponse(
+                ex.getMessage(),
+                HttpStatus.NOT_FOUND
+        );
+    }
+
+    @ExceptionHandler(CatalogServiceException.class)
+    protected ResponseEntity<Object> handleCatalogUnavailable(CatalogServiceException ex) {
+        return createErrorResponse(
+                ex.getMessage(),
+                HttpStatus.SERVICE_UNAVAILABLE
+        );
+    }
 }

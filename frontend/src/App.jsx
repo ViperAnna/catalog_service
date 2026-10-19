@@ -27,7 +27,7 @@ const App = () => {
                         <Route
                             path="/profile"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute requiredRole="USER">
                                     <ProfilePage/>
                                 </ProtectedRoute>
                             }
@@ -35,7 +35,7 @@ const App = () => {
                         <Route
                             path="/wishlists"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute requiredRole="USER" forbiddenRole="SELLER">
                                     <WishlistsPage/>
                                 </ProtectedRoute>
                             }
@@ -43,7 +43,7 @@ const App = () => {
                         <Route
                             path="/wishlists/:id"
                             element={
-                                <ProtectedRoute>
+                                <ProtectedRoute requiredRole="USER" forbiddenRole="SELLER">
                                     <WishlistDetailPage/>
                                 </ProtectedRoute>
                             }

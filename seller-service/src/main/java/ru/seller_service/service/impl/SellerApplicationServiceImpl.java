@@ -1,10 +1,12 @@
 package ru.seller_service.service.impl;
 
+import ru.seller_service.client.UserGrpcClient;
 import lombok.RequiredArgsConstructor;
 import ru.seller_service.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.seller_service.dto.request.seller.SellerDeletionRequest;
+import ru.seller_service.dto.request.seller.SellerUnblockRequest;
 import ru.seller_service.dto.request.seller.SellerRegistrationRequest;
 import ru.seller_service.dto.request.seller.SellerUpdateRequest;
 import ru.seller_service.dto.responce.SellerApplicationResponse;
@@ -25,6 +27,7 @@ import ru.seller_service.repository.SellerRepository;
 import ru.seller_service.security.CurrentUserService;
 import ru.seller_service.service.SellerApplicationService;
 import ru.seller_service.util.MessageKeys;
+import ru.seller_service.util.PhoneNormalizer;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,6 +42,7 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
     private final SellerRepository sellerRepo;
     private final OutboxRepository outboxRepo;
     private final EventMapper eventMapper;
+    private final UserGrpcClient userGrpcClient;
 
 
     private void saveOutbox(SellerApplication application, SellerEventType eventType, Object payload) {
@@ -53,6 +57,21 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
                         .build()
         );
     }
+
+    private void saveApplicationCreatedEvent(SellerApplication application) {
+        SellerApplicationCreatedEvent event = SellerApplicationCreatedEvent.builder()
+                .applicationId(application.getId())
+                .keycloakUserId(application.getKeycloakUserId())
+                .sellerName(application.getSellerName())
+                .email(application.getEmail())
+                .build();
+        saveOutbox(
+                application,
+                SellerEventType.SELLER_APPLICATION_CREATED,
+                event
+        );
+    }
+
     private Seller getSellerByKeycloakUserId(String userId) {
 
         return sellerRepo.findByKeycloakUserId(userId)
@@ -68,8 +87,13 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
         validateSellerNotExist(userId);
         validateNoPendingApplication(userId);
         validateInnUnique(applicationDetails.inn());
+        String sellerName = applicationDetails.sellerName().trim();
+        validateSellerNameUnique(sellerName);
+        validateEmailAvailable(applicationDetails.email());
 
         SellerApplication application = sellerApplicationMapper.toEntity(applicationDetails);
+        application.setSellerName(sellerName);
+        application.setPhoneNumber(PhoneNormalizer.normalize(application.getPhoneNumber()));
         application.setKeycloakUserId(userId);
         application.setSellerApplicationStatus(SellerApplicationStatus.PENDING);
         application.setSellerApplicationType(SellerApplicationType.REGISTRATION);
@@ -78,17 +102,7 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
 
         sellerApplicationRepo.save(application);
 
-        SellerApplicationCreatedEvent event = SellerApplicationCreatedEvent.builder()
-                .applicationId(application.getId())
-                .keycloakUserId(application.getKeycloakUserId())
-                .sellerName(application.getSellerName())
-                .email(application.getEmail())
-                .build();
-        saveOutbox(
-                application,
-                SellerEventType.SELLER_APPLICATION_CREATED,
-                event
-        );
+        saveApplicationCreatedEvent(application);
 
         return sellerApplicationMapper.toDTO(application);
     }
@@ -106,11 +120,18 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
         application.setKeycloakUserId(userId);
         application.setSellerName(seller.getSellerName());
         application.setInn(seller.getInn());
+        application.setPhoneNumber(PhoneNormalizer.normalize(application.getPhoneNumber()));
+        // Без email в заявке события и письма остались бы без адреса, поэтому берется текущий email продавца.
+        if (application.getEmail() == null || application.getEmail().isBlank()) {
+            application.setEmail(seller.getEmail());
+        }
         application.setSellerApplicationStatus(SellerApplicationStatus.PENDING);
         application.setSellerApplicationType(SellerApplicationType.UPDATE);
         application.setUpdatedAt(LocalDateTime.now());
 
         sellerApplicationRepo.save(application);
+
+        saveApplicationCreatedEvent(application);
 
         return sellerApplicationMapper.toDTO(application);
     }
@@ -120,7 +141,7 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
         String userId = currentUserService.getUserId();
         Seller seller = getSellerByKeycloakUserId(userId);
 
-        validateSellerActive(seller);
+        validateSellerActiveOrBlocked(seller);
         validateNoPendingApplication(userId);
 
         SellerApplication application = SellerApplication.builder()
@@ -136,6 +157,36 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
                 .build();
         sellerApplicationRepo.save(application);
 
+        saveApplicationCreatedEvent(application);
+
+        return sellerApplicationMapper.toDTO(application);
+    }
+
+    @Override
+    public SellerApplicationResponse createUnblockRequest(SellerUnblockRequest unblockDetails) {
+        String userId = currentUserService.getUserId();
+        Seller seller = getSellerByKeycloakUserId(userId);
+
+        if (seller.getSellerStatus() != SellerStatus.BLOCKED) {
+            throw new ResourceConflictException(MessageKeys.SELLER_STATUS_CONFLICT, seller.getId(), seller.getSellerStatus());
+        }
+        validateNoPendingApplication(userId);
+
+        SellerApplication application = SellerApplication.builder()
+                .keycloakUserId(userId)
+                .sellerName(seller.getSellerName())
+                .inn(seller.getInn())
+                .phoneNumber(seller.getPhoneNumber())
+                .email(seller.getEmail())
+                .paymentAccount(seller.getPaymentAccount())
+                .sellerApplicationStatus(SellerApplicationStatus.PENDING)
+                .sellerApplicationType(SellerApplicationType.UNBLOCK)
+                .requestReason(unblockDetails.reason())
+                .build();
+        sellerApplicationRepo.save(application);
+
+        saveApplicationCreatedEvent(application);
+
         return sellerApplicationMapper.toDTO(application);
     }
 
@@ -146,7 +197,7 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
 
         SellerApplication application = sellerApplicationRepo.findFirstByKeycloakUserIdOrderByCreatedAtDesc(userId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(MessageKeys.APPLICATION_NOT_FOUND, userId));
+                        new ResourceNotFoundException(MessageKeys.APPLICATION_NOT_FOUND_FOR_USER, userId));
         return sellerApplicationMapper.toDTO(application);
     }
 
@@ -169,8 +220,18 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
 //    }
 
     private void validateSellerNotExist(String userId) {
-        if (sellerRepo.existsByKeycloakUserId(userId)) {
+        if (sellerRepo.existsByKeycloakUserIdOrApplicantKeycloakUserId(userId, userId)) {
             throw new ResourceConflictException(MessageKeys.SELLER_ALREADY_EXIST, userId);
+        }
+    }
+
+    /**
+     * Email заявки станет логином отдельного аккаунта продавца: он не должен принадлежать
+     * ни одному аккаунту Keycloak, в том числе аккаунту заявителя (change separate-seller-account).
+     */
+    private void validateEmailAvailable(String email) {
+        if (!userGrpcClient.isEmailAvailable(email)) {
+            throw new ResourceConflictException(MessageKeys.SELLER_EMAIL_ALREADY_USED, email);
         }
     }
 
@@ -191,6 +252,22 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
             throw new ResourceConflictException(
                     MessageKeys.INN_ALREADY_IN_REVIEW,
                     inn);
+        }
+    }
+
+    private void validateSellerNameUnique(String sellerName) {
+        if (sellerRepo.existsSameName(sellerName)) {
+            throw new ResourceConflictException(MessageKeys.SELLER_NAME_ALREADY_EXISTS, sellerName);
+        }
+        if (sellerApplicationRepo.existsSameNameWithStatus(sellerName, SellerApplicationStatus.PENDING)) {
+            throw new ResourceConflictException(MessageKeys.SELLER_NAME_ALREADY_IN_REVIEW, sellerName);
+        }
+    }
+
+    /** Заявку на удаление может подать и заблокированный продавец. */
+    private void validateSellerActiveOrBlocked(Seller seller) {
+        if (seller.getSellerStatus() != SellerStatus.ACTIVE && seller.getSellerStatus() != SellerStatus.BLOCKED) {
+            throw new ResourceConflictException(MessageKeys.SELLER_IS_NOT_ACTIVE, seller.getSellerStatus().name());
         }
     }
 

@@ -11,6 +11,17 @@ service UserService{
 
   rpc RemoveSellerRole(RemoveSellerRoleRequest)
       returns (Empty);
+
+  // Отдельный аккаунт продавца только с ролью SELLER (change separate-seller-account).
+  rpc CreateSellerAccount(CreateSellerAccountRequest)
+      returns (CreateSellerAccountResponse);
+
+  // Удаляет только аккаунт продавца (атрибут account_type=seller).
+  rpc DeleteSellerAccount(DeleteSellerAccountRequest)
+      returns (Empty);
+
+  rpc IsEmailAvailable(IsEmailAvailableRequest)
+      returns (IsEmailAvailableResponse);
 }
 message AssignSellerRoleRequest{
   string keycloakUserId = 1;
@@ -18,6 +29,27 @@ message AssignSellerRoleRequest{
 
 message RemoveSellerRoleRequest {
   string keycloakUserId = 1;
+}
+
+message CreateSellerAccountRequest {
+  string email = 1;
+  string sellerName = 2;
+}
+
+message CreateSellerAccountResponse {
+  string keycloakUserId = 1;
+}
+
+message DeleteSellerAccountRequest {
+  string keycloakUserId = 1;
+}
+
+message IsEmailAvailableRequest {
+  string email = 1;
+}
+
+message IsEmailAvailableResponse {
+  bool available = 1;
 }
 
 message Empty {

@@ -11,6 +11,21 @@ spring:
       max-file-size: 5MB
       max-request-size: 30MB
 
+#KAFKA (store-events-topic -> архивация товаров удаленного магазина)
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # новая группа catalog-group читает топик с начала, чтобы не пропустить события до первого подключения
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    listener:
+      # потребителя запускает StoreEventListenerStarter с повторами, чтобы старт без Kafka не падал
+      auto-startup: false
+
   security:
     oauth2:
       resource-server:

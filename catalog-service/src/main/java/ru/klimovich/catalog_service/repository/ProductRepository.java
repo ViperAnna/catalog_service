@@ -25,5 +25,19 @@ public interface ProductRepository extends MongoRepository<Product, String> {
 
     List<Product> findProductByStatus(Status status);
     List<Product> findAllByStoreId(Long storeId);
+
+    // Публичная выдача: только доступные товары. "Not" дает $ne, поэтому документы
+    // без признаков блокировки (созданные до их появления) тоже считаются доступными.
+    Page<Product> findByStatusAndStoreBlockedNotAndSellerBlockedNot(
+            Status status, Boolean storeBlocked, Boolean sellerBlocked, Pageable pageable);
+
+    Page<Product> findByCategoriesContainingAndStatusAndStoreBlockedNotAndSellerBlockedNot(
+            String categoryId, Status status, Boolean storeBlocked, Boolean sellerBlocked, Pageable pageable);
+
+    List<Product> findByNameIgnoreCaseAndStatusAndStoreBlockedNotAndSellerBlockedNot(
+            String name, Status status, Boolean storeBlocked, Boolean sellerBlocked);
+
+    List<Product> findAllByIdInAndStatusAndStoreBlockedNotAndSellerBlockedNot(
+            List<String> productsIds, Status status, Boolean storeBlocked, Boolean sellerBlocked);
     Page<Product> findAllByStoreId(Long storeId, Pageable pageable);
 }

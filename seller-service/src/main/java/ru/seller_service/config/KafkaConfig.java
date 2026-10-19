@@ -18,4 +18,13 @@ public class KafkaConfig {
 //                .configs(Map.of("min.insync.replicas", "2"))
                 .build();
     }
+
+    @Bean
+    public NewTopic storeEventsTopic() {
+        return TopicBuilder
+                .name("store-events-topic")
+                .partitions(3)
+                .replicas(1)
+                .build();
+    }
 }

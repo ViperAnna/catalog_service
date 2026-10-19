@@ -10,6 +10,6 @@ import lombok.*;
 @Builder
 public class KafkaEvent {
     private String aggregateType;
-    private SellerEventType eventType;
+    private String eventType;
     private String payload;
 }

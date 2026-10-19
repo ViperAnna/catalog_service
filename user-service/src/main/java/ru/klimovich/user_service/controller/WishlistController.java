@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.klimovich.user_service.dto.Response;
 import ru.klimovich.user_service.dto.request.WishlistRequest;
+import ru.klimovich.user_service.dto.responce.WishlistCreatedResponse;
 import ru.klimovich.user_service.dto.responce.WishlistResponse;
 import ru.klimovich.user_service.dto.responce.WishlistShortResponse;
 import ru.klimovich.user_service.service.WishlistService;
@@ -24,11 +25,12 @@ public class WishlistController {
 
     @PostMapping()
     @ResponseStatus(HttpStatus.CREATED)
-    public Response createWishList(@Valid @RequestBody WishlistRequest wishlistDetails) {
-        wishlistService.createWishlist(wishlistDetails);
-        return new Response(
+    public WishlistCreatedResponse createWishList(@Valid @RequestBody WishlistRequest wishlistDetails) {
+        WishlistResponse created = wishlistService.createWishlist(wishlistDetails);
+        return new WishlistCreatedResponse(
                 WISHLIST_CREATED_SUCCESSFULLY,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                created.getId()
         );
     }
 

@@ -21,6 +21,15 @@ public class CurrentUserService {
         return getJwt().getSubject();
     }
 
+    /** true, если запрос с JWT и ролью SELLER; анонимный запрос — false. */
+    public boolean isSeller() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null
+                && authentication.getPrincipal() instanceof Jwt
+                && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_SELLER".equals(a.getAuthority()));
+    }
+
     public String getAccessToken() {
         return getJwt().getTokenValue();
     }

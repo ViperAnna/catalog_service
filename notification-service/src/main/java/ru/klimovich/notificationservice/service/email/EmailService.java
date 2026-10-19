@@ -7,6 +7,7 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import ru.klimovich.notificationservice.event.OrderEvent;
 import ru.klimovich.notificationservice.event.SellerApplicationCreatedEvent;
 import ru.klimovich.notificationservice.event.SellerApprovedEvent;
 import ru.klimovich.notificationservice.event.SellerRejectedEvent;
@@ -64,11 +65,7 @@ public class EmailService {
                 """
                 .formatted(event.getSellerName(), event.getEmail())
         );
-        try {
-            mailSender.send(message);
-        } catch (MailException e) {
-            log.error("Unable to send email", e);
-        }
+        send(message, "SELLER_APPLICATION_CREATED", event.getApplicationId());
     }
 
     public void sendSellerApprovedEmail(
@@ -78,25 +75,79 @@ public class EmailService {
 
         message.setFrom(from);
         message.setTo(event.getEmail());
-        message.setSubject("Seller application approved!");
 
-        message.setText("""
-                Congratulations, %s!
+        // Без типа или с неизвестным типом остается письмо о регистрации, как до появления applicationType.
+        switch (String.valueOf(event.getApplicationType())) {
+            case "UPDATE" -> {
+                message.setSubject("Seller data change approved");
+                message.setText("""
+                        Hello, %s.
 
-                Your seller application has been approved.
+                        Your request to change seller data has been approved.
 
-                Your shop can now be used as a seller shop.
+                        The new data is now in effect.
 
-                ------------------
+                        ------------------
 
-                Thank you for using our service!
-                """
-                .formatted(
-                        event.getSellerName()
-                )
-        );
+                        Thank you for using our service!
+                        """
+                        .formatted(event.getSellerName())
+                );
+            }
+            case "UNBLOCK" -> {
+                message.setSubject("Seller account unblocked");
+                message.setText("""
+                        Hello, %s.
 
-        send(message);
+                        Your request to unblock the seller account has been approved.
+
+                        You can manage your stores and products again. Stores blocked separately
+                        remain blocked until a moderator unblocks them.
+
+                        ------------------
+
+                        Thank you for using our service!
+                        """
+                        .formatted(event.getSellerName())
+                );
+            }
+            case "DELETION" -> {
+                message.setSubject("Seller account deletion approved");
+                message.setText("""
+                        Hello, %s.
+
+                        Your request to delete the seller account has been approved.
+
+                        Your seller account is now closed.
+
+                        ------------------
+
+                        Thank you for using our service!
+                        """
+                        .formatted(event.getSellerName())
+                );
+            }
+            default -> {
+                message.setSubject("Seller application approved!");
+                message.setText("""
+                        Congratulations, %s!
+
+                        Your seller application has been approved.
+
+                        Your shop can now be used as a seller shop.
+
+                        ------------------
+
+                        Thank you for using our service!
+                        """
+                        .formatted(
+                                event.getSellerName()
+                        )
+                );
+            }
+        }
+
+        send(message, "SELLER_APPROVED", event.getApplicationId());
     }
 
 
@@ -124,19 +175,71 @@ public class EmailService {
                 )
         );
 
-        send(message);
+        send(message, "SELLER_REJECTED", event.getApplicationId());
+    }
+
+    /**
+     * Письмо о создании заказа. Ошибка SMTP пробрасывается: для событий заказа она повторяется
+     * и после исчерпания повторов сообщение уходит в DLT (в отличие от остальных писем).
+     */
+    public void sendOrderCreatedEmail(OrderEvent event) {
+        SimpleMailMessage message = new SimpleMailMessage();
+
+        message.setFrom(from);
+        message.setTo(event.getEmail());
+        message.setSubject("Order %s created".formatted(event.getOrderId()));
+        message.setText("""
+                Your order has been created.
+
+                Order: %s
+                Total: %s
+                Items: %s
+
+                ------------------
+
+                Thank you for your purchase!
+                """
+                .formatted(event.getOrderId(), event.getTotalAmount(), event.getItemsCount())
+        );
+        mailSender.send(message);
+    }
+
+    /**
+     * Письмо об отмене заказа. Ошибка SMTP пробрасывается (см. sendOrderCreatedEmail).
+     */
+    public void sendOrderCancelledEmail(OrderEvent event) {
+        SimpleMailMessage message = new SimpleMailMessage();
+
+        message.setFrom(from);
+        message.setTo(event.getEmail());
+        message.setSubject("Order %s cancelled".formatted(event.getOrderId()));
+        message.setText("""
+                Your order has been cancelled.
+
+                Order: %s
+
+                ------------------
+
+                Thank you for using our service!
+                """
+                .formatted(event.getOrderId())
+        );
+        mailSender.send(message);
     }
 
     private void send(SimpleMailMessage message) {
+        send(message, "USER_CREATED", null);
+    }
 
+    /**
+     * Ошибка отправки логируется с типом события и applicationId, без адреса получателя
+     * (персональные данные не пишутся в лог).
+     */
+    private void send(SimpleMailMessage message, String eventType, Long applicationId) {
         try {
             mailSender.send(message);
         } catch (MailException e) {
-            log.error(
-                    "Unable to send email to {}",
-                    message.getTo(),
-                    e
-            );
+            log.error("Unable to send email for event {} (application {})", eventType, applicationId, e);
         }
     }
 }

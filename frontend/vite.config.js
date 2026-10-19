@@ -1,7 +1,7 @@
 import {defineConfig} from 'vite'
 import react from '@vitejs/plugin-react-swc'
 
-const SERVER_IP = '144.124.250.82';
+const SERVER_IP = '89.124.123.188';
 
 export default defineConfig(({mode}) => {
     const isDev = mode === 'development'
@@ -22,7 +22,7 @@ export default defineConfig(({mode}) => {
                 hmr: {
                     overlay: false,
                     clientPort: 3000,
-                    host: 'v693663.hosted-by-vdsina.com'
+                    host: 'v1079980.hosted-by-vdsina.com'
                 },
 
                 watch: {
@@ -36,7 +36,7 @@ export default defineConfig(({mode}) => {
                     'localhost',
                     '127.0.0.1',
                     '0.0.0.0',
-                    'v693663.hosted-by-vdsina.com'
+                    'v1079980.hosted-by-vdsina.com'
                 ]
             }
             : undefined,

@@ -18,5 +18,8 @@ public interface FileStorageService {
 
     void deleteAllProductImages();
 
+    /** Удаляет объект изображения товара из бакета products; отсутствующий объект — не ошибка. */
+    void deleteProductImage(Image image);
+
     void deleteAllCategoryImage();
 }

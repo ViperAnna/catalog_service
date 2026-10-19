@@ -27,7 +27,6 @@ public interface ProductMapper {
     Product toEntity(ProductRequest productDTO);
 
     @Mappings({
-            @Mapping(target = "id", ignore = true),
             @Mapping(source = "images", target = "imagesUrl", qualifiedByName = "mapImage"),
             @Mapping(target = "categories", qualifiedByName = "mapCategories")
     })

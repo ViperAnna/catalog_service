@@ -29,6 +29,13 @@ public class Seller {
     @Column(name = "keycloak_user_id", nullable = false, unique = true)
     private String keycloakUserId;
 
+    /**
+     * Аккаунт покупателя, подавшего заявку REGISTRATION; keycloakUserId — отдельный аккаунт продавца
+     * (change separate-seller-account). NULL у продавцов, созданных до него (они работают на аккаунте покупателя).
+     */
+    @Column(name = "applicant_keycloak_user_id")
+    private String applicantKeycloakUserId;
+
     @Column(name = "seller_name", nullable = false, unique = true)
     private String sellerName;
 

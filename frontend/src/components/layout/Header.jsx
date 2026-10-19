@@ -14,13 +14,16 @@ const Header = () => {
 
     const displayName = profile?.firstName || profile?.username || 'Профиль';
 
-    const showAuthedLinks = !authEnabled || authenticated;
+    const isBuyer = useAuthStore((s) => s.isBuyer);
+
+    const showBuyerLinks = !authEnabled || (authenticated && isBuyer());
+    const showProfileLink = authenticated && hasRole('USER');
     const showAdminLinks = !authEnabled || (authenticated && hasRole('ADMIN'));
 
     const navLinks = [
         {to: '/', label: 'Категории', icon: FiGrid},
         {to: '/products', label: 'Товары', icon: FiPackage},
-        ...(showAuthedLinks ? [{to: '/wishlists', label: 'Списки желаний', icon: FiHeart}] : []),
+        ...(showBuyerLinks ? [{to: '/wishlists', label: 'Списки желаний', icon: FiHeart}] : []),
         ...(showAdminLinks ? [{to: '/admin/users', label: 'Пользователи', icon: FiUsers}] : []),
     ];
 
@@ -65,12 +68,19 @@ const Header = () => {
 
                     {authEnabled && authenticated ? (
                         <div className="flex items-center gap-2">
-                            <Link
-                                to="/profile"
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-100 transition-colors">
-                                <FiUser className="w-4 h-4"/>
-                                <span className="hidden sm:inline max-w-[140px] truncate">{displayName}</span>
-                            </Link>
+                            {showProfileLink ? (
+                                <Link
+                                    to="/profile"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                                    <FiUser className="w-4 h-4"/>
+                                    <span className="hidden sm:inline max-w-[140px] truncate">{displayName}</span>
+                                </Link>
+                            ) : (
+                                <span className="flex items-center gap-2 px-4 py-2 font-medium text-gray-700">
+                                    <FiUser className="w-4 h-4"/>
+                                    <span className="hidden sm:inline max-w-[140px] truncate">{displayName}</span>
+                                </span>
+                            )}
                             <button
                                 onClick={logout}
                                 title="Выйти"
