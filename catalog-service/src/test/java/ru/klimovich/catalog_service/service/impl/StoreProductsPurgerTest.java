@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import ru.klimovich.catalog_service.model.Image;
 import ru.klimovich.catalog_service.model.Product;
+import ru.klimovich.catalog_service.outbox.ProductDeletionEventWriter;
 import ru.klimovich.catalog_service.service.FileStorageService;
 
 import java.util.List;
@@ -27,6 +28,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -40,6 +42,8 @@ class StoreProductsPurgerTest {
     private MongoTemplate mongoTemplate;
     @Mock
     private FileStorageService fileStorageService;
+    @Mock
+    private ProductDeletionEventWriter deletionEventWriter;
 
     @InjectMocks
     private StoreProductsPurger purger;
@@ -106,5 +110,28 @@ class StoreProductsPurgerTest {
 
         assertThatThrownBy(() -> purger.purgeProductsOfStore(3L)).hasMessage("minio down");
         verify(mongoTemplate, never()).remove(any(Query.class), eq(Product.class));
+        verifyNoInteractions(deletionEventWriter);
+    }
+
+    // ---------- change product-deletion-sync ----------
+
+    @Test
+    @DisplayName("STORE_PURGED: PRODUCT_DELETED для каждого товара после изображений и до удаления документов")
+    void purge_writesDeletionEventsBeforeRemove() {
+        Image own = image("h1");
+        Product first = product(own);
+        first.setId("p-1");
+        Product second = product();
+        second.setId("p-2");
+        when(mongoTemplate.find(any(Query.class), eq(Product.class))).thenReturn(List.of(first, second));
+        when(mongoTemplate.exists(any(Query.class), eq(Product.class))).thenReturn(false);
+
+        purger.purgeProductsOfStore(3L);
+
+        InOrder order = inOrder(fileStorageService, deletionEventWriter, mongoTemplate);
+        order.verify(fileStorageService).deleteProductImage(own);
+        order.verify(deletionEventWriter).record("p-1", 3L);
+        order.verify(deletionEventWriter).record("p-2", 3L);
+        order.verify(mongoTemplate).remove(any(Query.class), eq(Product.class));
     }
 }

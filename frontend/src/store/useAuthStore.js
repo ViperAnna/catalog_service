@@ -37,6 +37,10 @@ export const useAuthStore = create((set, get) => ({
 
     hasRole: (role) => Boolean(keycloak?.hasRealmRole?.(role)),
 
+    // Покупатель: роль USER без SELLER. Аккаунт продавца (только SELLER) и продавцы,
+    // созданные до отдельных аккаунтов (USER + SELLER), вишлисты не используют.
+    isBuyer: () => Boolean(keycloak?.hasRealmRole?.('USER')) && !keycloak?.hasRealmRole?.('SELLER'),
+
     fetchMe: async () => {
         if (!AUTH_ENABLED) return null;
         set({loadingProfile: true});

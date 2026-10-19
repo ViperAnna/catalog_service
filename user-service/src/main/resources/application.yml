@@ -19,12 +19,23 @@ spring:
     show-sql: true
     hibernate:
       ddl-auto: update
+    # schema.sql выполняется после ddl-auto: update (таблицы уже существуют)
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      # schema.sql создает уникальные индексы, которые ddl-auto не добавляет к существующим таблицам
+      mode: always
 
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    # product-events-topic (change product-deletion-sync); группа задана в @KafkaListener
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
   grpc:
     server:

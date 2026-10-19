@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -64,6 +66,7 @@ class ModeratorServiceImplTest {
     private SellerModerationService sellerModerationService;
 
     private static final String MODERATOR_ID = "kc-moderator-1";
+    private static final String SELLER_ACCOUNT_ID = "kc-seller-account-9";
 
     private ModeratorServiceImpl service;
 
@@ -237,13 +240,19 @@ class ModeratorServiceImplTest {
     }
 
     @Test
-    @DisplayName("Успешное одобрение: Seller сохраняется через saveAndFlush до gRPC")
+    @DisplayName("Успешное одобрение: Seller до gRPC, отдельный аккаунт продавца, заявитель сохранен")
     void approve_success() throws Exception {
+        when(userGrpcClient.createSellerAccount("shop@example.com", "Shop")).thenReturn(SELLER_ACCOUNT_ID);
+
         service.approve(APPLICATION_ID);
 
         verify(sellerRepo).existsSameName("Shop");
-        verify(sellerRepo).saveAndFlush(any(Seller.class));
-        verify(userGrpcClient).assignSellerRole(USER_ID);
+        ArgumentCaptor<Seller> saved = ArgumentCaptor.forClass(Seller.class);
+        verify(sellerRepo).saveAndFlush(saved.capture());
+        assertThat(saved.getValue().getKeycloakUserId()).isEqualTo(SELLER_ACCOUNT_ID);
+        assertThat(saved.getValue().getApplicantKeycloakUserId()).isEqualTo(USER_ID);
+        verify(userGrpcClient).createSellerAccount("shop@example.com", "Shop");
+        verify(userGrpcClient, never()).assignSellerRole(any());
         ArgumentCaptor<OutboxEvent> captor = ArgumentCaptor.forClass(OutboxEvent.class);
         verify(outboxRepo).save(captor.capture());
         assertThat(new ObjectMapper().readTree(captor.getValue().getPayload()).path("applicationType").asText())
@@ -441,5 +450,65 @@ class ModeratorServiceImplTest {
 
         assertThatThrownBy(() -> service.approve(46L)).hasMessage("UNAVAILABLE");
         verify(outboxRepo, never()).save(any());
+    }
+
+    // ---------- change separate-seller-account ----------
+
+    @Test
+    @DisplayName("Одобрение: email занят к моменту одобрения -> 409, заявка не одобрена, событий нет")
+    void approve_emailTaken_conflict() {
+        when(userGrpcClient.createSellerAccount("shop@example.com", "Shop"))
+                .thenThrow(new ResourceConflictException("Email [shop@example.com] is already used by another account."));
+
+        assertThatThrownBy(() -> service.approve(APPLICATION_ID)).isInstanceOf(ResourceConflictException.class);
+        verify(outboxRepo, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Откат после создания аккаунта: созданный аккаунт продавца удаляется (компенсация)")
+    void approve_rollbackAfterAccountCreated_compensates() {
+        when(userGrpcClient.createSellerAccount("shop@example.com", "Shop")).thenReturn(SELLER_ACCOUNT_ID);
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.approve(APPLICATION_ID);
+
+            List<TransactionSynchronization> synchronizations = TransactionSynchronizationManager.getSynchronizations();
+            assertThat(synchronizations).hasSize(1);
+            synchronizations.get(0).afterCompletion(TransactionSynchronization.STATUS_COMMITTED);
+            verify(userGrpcClient, never()).deleteSellerAccount(any());
+
+            synchronizations.get(0).afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK);
+            verify(userGrpcClient).deleteSellerAccount(SELLER_ACCOUNT_ID);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    @DisplayName("Удаление продавца с отдельным аккаунтом: аккаунт удаляется, удаляются и регистрационные заявки заявителя")
+    void approveDeletion_separateAccount_deletesAccount() {
+        SellerApplication deletion = SellerApplication.builder()
+                .id(47L).keycloakUserId(SELLER_ACCOUNT_ID).email("shop@example.com").sellerName("Shop")
+                .sellerApplicationStatus(SellerApplicationStatus.PENDING)
+                .sellerApplicationType(SellerApplicationType.DELETION)
+                .build();
+        SellerApplication registration = SellerApplication.builder()
+                .id(40L).keycloakUserId(USER_ID).sellerApplicationType(SellerApplicationType.REGISTRATION).build();
+        Seller seller = new Seller();
+        seller.setId(7L);
+        seller.setKeycloakUserId(SELLER_ACCOUNT_ID);
+        seller.setApplicantKeycloakUserId(USER_ID);
+        seller.setSellerStatus(SellerStatus.ACTIVE);
+        when(sellerApplicationRepo.findById(47L)).thenReturn(Optional.of(deletion));
+        when(sellerRepo.findByKeycloakUserId(SELLER_ACCOUNT_ID)).thenReturn(Optional.of(seller));
+        when(sellerApplicationRepo.findAllByKeycloakUserIdOrderByCreatedAtDesc(SELLER_ACCOUNT_ID)).thenReturn(List.of(deletion));
+        when(sellerApplicationRepo.findAllByKeycloakUserIdOrderByCreatedAtDesc(USER_ID)).thenReturn(List.of(registration));
+
+        service.approve(47L);
+
+        verify(sellerApplicationRepo).deleteAll(List.of(deletion, registration));
+        verify(sellerRepo).delete(seller);
+        verify(userGrpcClient).deleteSellerAccount(SELLER_ACCOUNT_ID);
+        verify(userGrpcClient, never()).removeSellerRole(any());
     }
 }

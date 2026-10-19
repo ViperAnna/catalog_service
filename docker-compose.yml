@@ -85,6 +85,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  #  ----------Order service----------
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    expose:
+      - "8080"
+    env_file:
+      - .env.order
+      - .env.postgres
+      - .env.kafka
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    restart: unless-stopped
+
   # ----------Frontend----------
   front:
     build: ./frontend
@@ -133,6 +154,7 @@ services:
       - "9092:9092"
     volumes:
       - kafka_data:/var/lib/kafka
+    restart: unless-stopped
 
   #  ----------Kafka UI----------
   kafka-ui:

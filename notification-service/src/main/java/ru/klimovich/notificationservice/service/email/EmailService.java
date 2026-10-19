@@ -7,6 +7,7 @@ import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import ru.klimovich.notificationservice.event.OrderEvent;
 import ru.klimovich.notificationservice.event.SellerApplicationCreatedEvent;
 import ru.klimovich.notificationservice.event.SellerApprovedEvent;
 import ru.klimovich.notificationservice.event.SellerRejectedEvent;
@@ -175,6 +176,55 @@ public class EmailService {
         );
 
         send(message, "SELLER_REJECTED", event.getApplicationId());
+    }
+
+    /**
+     * Письмо о создании заказа. Ошибка SMTP пробрасывается: для событий заказа она повторяется
+     * и после исчерпания повторов сообщение уходит в DLT (в отличие от остальных писем).
+     */
+    public void sendOrderCreatedEmail(OrderEvent event) {
+        SimpleMailMessage message = new SimpleMailMessage();
+
+        message.setFrom(from);
+        message.setTo(event.getEmail());
+        message.setSubject("Order %s created".formatted(event.getOrderId()));
+        message.setText("""
+                Your order has been created.
+
+                Order: %s
+                Total: %s
+                Items: %s
+
+                ------------------
+
+                Thank you for your purchase!
+                """
+                .formatted(event.getOrderId(), event.getTotalAmount(), event.getItemsCount())
+        );
+        mailSender.send(message);
+    }
+
+    /**
+     * Письмо об отмене заказа. Ошибка SMTP пробрасывается (см. sendOrderCreatedEmail).
+     */
+    public void sendOrderCancelledEmail(OrderEvent event) {
+        SimpleMailMessage message = new SimpleMailMessage();
+
+        message.setFrom(from);
+        message.setTo(event.getEmail());
+        message.setSubject("Order %s cancelled".formatted(event.getOrderId()));
+        message.setText("""
+                Your order has been cancelled.
+
+                Order: %s
+
+                ------------------
+
+                Thank you for using our service!
+                """
+                .formatted(event.getOrderId())
+        );
+        mailSender.send(message);
     }
 
     private void send(SimpleMailMessage message) {

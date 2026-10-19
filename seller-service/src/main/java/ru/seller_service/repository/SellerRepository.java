@@ -12,7 +12,11 @@ public interface SellerRepository extends JpaRepository<Seller, Long> {
 
     boolean existsByInn(String inn);
 
-    boolean existsByKeycloakUserId(String keycloakUserId);
+    /**
+     * У пользователя есть продавец: на его аккаунте (продавцы до change separate-seller-account)
+     * или созданный по его заявке в отдельном аккаунте.
+     */
+    boolean existsByKeycloakUserIdOrApplicantKeycloakUserId(String keycloakUserId, String applicantKeycloakUserId);
 
     /**
      * Имя продавца уникально без учета регистра и пробелов по краям,

@@ -33,7 +33,14 @@ public class SpringSecurityConfig {
                                 .requestMatchers("/actuator/health").permitAll()
                                 .requestMatchers("/moderator/**").hasRole("MODERATOR")
                                 .requestMatchers("/sellers/**", "/stores/**").hasRole("SELLER")
-                                .requestMatchers("/seller-applications/**").hasRole("USER")
+                                // Регистрацию подает покупатель; заявки действующего продавца — его аккаунт
+                                // продавца (change separate-seller-account). Остальные пути — deny all.
+                                .requestMatchers(HttpMethod.POST, "/seller-applications/registration").hasRole("USER")
+                                .requestMatchers(HttpMethod.GET, "/seller-applications/me", "/seller-applications/history")
+                                .hasAnyRole("USER", "SELLER")
+                                .requestMatchers(HttpMethod.PUT, "/seller-applications/update").hasRole("SELLER")
+                                .requestMatchers(HttpMethod.DELETE, "/seller-applications/deletion").hasRole("SELLER")
+                                .requestMatchers(HttpMethod.POST, "/seller-applications/unblock").hasRole("SELLER")
                                 .anyRequest().denyAll())
                 .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(jwtAuthenticationConverter)));
 

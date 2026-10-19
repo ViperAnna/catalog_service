@@ -24,6 +24,7 @@ import ru.klimovich.catalog_service.model.Category;
 import ru.klimovich.catalog_service.model.Image;
 import ru.klimovich.catalog_service.model.Product;
 import ru.klimovich.catalog_service.model.Status;
+import ru.klimovich.catalog_service.outbox.ProductDeletionEventWriter;
 import ru.klimovich.catalog_service.repository.CategoryRepository;
 import ru.klimovich.catalog_service.repository.ProductRepository;
 import ru.klimovich.catalog_service.service.CategoryService;
@@ -52,6 +53,7 @@ public class ProductServiceImpl implements ProductService {
     private final SellerClient sellerClient;
     private final CurrentUserService currentUserService;
     private final MongoTemplate mongoTemplate;
+    private final ProductDeletionEventWriter deletionEventWriter;
 
     private ProductResponse buildProductResponse(Product product) {
         Map<String, String> categoryNames = categoryRepo.findAllById(product.getCategories())
@@ -245,6 +247,8 @@ public class ProductServiceImpl implements ProductService {
         Product product = productRepo.findById(id)
                 .orElseThrow(() -> productNotFound(id));
         getModifiableStore(product.getStoreId());
+        // До удаления документа: публикатор отправит событие, только когда товара не станет (product-deletion-sync).
+        deletionEventWriter.record(product.getId(), product.getStoreId());
         productRepo.delete(product);
     }
 }

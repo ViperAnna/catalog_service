@@ -140,16 +140,19 @@ const AddToWishlistModal = ({productId, onClose}) => {
 
 const AddToWishlistButton = ({productId, variant = 'icon'}) => {
     const authenticated = useAuthStore((s) => s.authenticated);
+    const isBuyer = useAuthStore((s) => s.isBuyer);
+    const buyer = authenticated && isBuyer();
     const wishlists = useWishlistStore((s) => s.wishlists);
     const ensureWishlists = useWishlistStore((s) => s.ensureWishlists);
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
-        if (authenticated) ensureWishlists();
+        if (buyer) ensureWishlists();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [authenticated]);
+    }, [buyer]);
 
-    if (!authenticated) return null;
+    // Вишлисты — функция покупателя: аккаунту продавца кнопка не показывается.
+    if (!buyer) return null;
 
     const inAny = wishlists.some(
         (w) => Array.isArray(w.products) && w.products.some((p) => p.id === productId)

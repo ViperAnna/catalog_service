@@ -42,14 +42,17 @@
 
 ### Requirement: Realm roles
 Модель доступа SHALL строиться на realm-ролях USER, SELLER, MODERATOR и ADMIN.
-USER SHALL выдаваться каждому пользователю через составную роль
-`default-roles-user-service-realm`. SELLER SHALL назначаться и сниматься только
-при модерации заявок (`seller-onboarding`). MODERATOR и ADMIN SHALL назначаться
-вне приложения. Клиентские роли SHALL NOT использоваться для доступа к API.
+USER SHALL выдаваться каждому зарегистрировавшемуся пользователю через
+составную роль `default-roles-user-service-realm`. Аккаунт продавца SHALL
+создаваться user-service при одобрении регистрации и SHALL иметь только
+realm-роль SELLER, без USER. Существующие продавцы на аккаунте покупателя SHALL
+сохранять USER и SELLER; роль SELLER у них снимается только при удалении
+продавца. MODERATOR и ADMIN SHALL назначаться вне приложения. Клиентские роли
+SHALL NOT использоваться для доступа к API.
 
 #### Scenario: Роль SELLER
 - **WHEN** модератор одобряет заявку на регистрацию продавца
-- **THEN** пользователю назначается realm-роль SELLER через user-service
+- **THEN** создается отдельный аккаунт продавца с realm-ролью SELLER через user-service, аккаунт заявителя сохраняет только свои роли
 
 ### Requirement: Role to authority conversion
 catalog-service, seller-service и user-service SHALL преобразовывать каждую роль
@@ -145,11 +148,16 @@ frontend SHALL входить через публичный клиент `fronte
 Authorization Code с PKCE S256 (keycloak-js, `check-sso`) и SHALL обновлять
 токен, если до истечения меньше 30 секунд, перед каждым запросом к API.
 user-service SHALL вызывать Keycloak Admin API через конфиденциальный клиент
-`user-service-admin` (client credentials, роли `realm-management`).
+`user-service-admin` (client credentials, роли `realm-management`) — в том числе
+для создания и удаления аккаунтов продавцов и отправки писем с действиями.
 
 #### Scenario: Запрос frontend к API
 - **WHEN** frontend выполняет запрос к API с действующей сессией
 - **THEN** он подставляет актуальный access token клиента `frontend-client` в `Authorization`
+
+#### Scenario: Создание аккаунта продавца
+- **WHEN** user-service создает аккаунт продавца
+- **THEN** вызов Admin API выполняется от имени `user-service-admin`
 
 ### Requirement: Keycloak clients not used by code
 Клиенты `user-manage-client` (direct access grants и service account с
@@ -219,14 +227,16 @@ SHALL показываться.
 | catalog | `GET /products`, `/products/{id}`, `/products/productByName/{n}`, `POST /products/by-ids` | все | catalog-products |
 | catalog | `POST /products`, `PUT`, `DELETE /products/{id}`, `GET /products/stores/{id}/products` | SELLER + владение магазином | catalog-products, seller-stores |
 | catalog | прочее | запрещено | — |
-| seller | `/seller-applications/**` | USER | seller-onboarding |
+| seller | `POST /seller-applications/registration` | USER | seller-onboarding |
+| seller | `GET /seller-applications/me`, `/history` | USER или SELLER | seller-onboarding |
+| seller | `PUT /update`, `DELETE /deletion`, `POST /unblock` (`/seller-applications`) | SELLER | seller-onboarding |
 | seller | `/moderator/seller-applications/**` | MODERATOR | seller-onboarding |
 | seller | `/sellers/**` | SELLER | seller-onboarding |
 | seller | `/stores/**` | SELLER + владение | seller-stores |
 | seller | прочее | запрещено | — |
 | user | `/users/me` | USER | user-profile |
 | user | `/admin/**` | ADMIN | user-profile |
-| user | `/wishlists/**` | USER или ADMIN + владение | wishlists |
+| user | `/wishlists/**` | USER или ADMIN без SELLER + владение | wishlists |
 | user | `OPTIONS /**`, `/auth/**` | все | — |
 | user | прочее | любой аутентифицированный | — |
 | user | gRPC `user.UserService/*` (:9090) | без аутентификации | seller-onboarding |

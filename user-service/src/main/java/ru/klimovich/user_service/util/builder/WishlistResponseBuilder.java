@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import ru.klimovich.user_service.client.CatalogClient;
 import ru.klimovich.user_service.dto.responce.ProductResponse;
 import ru.klimovich.user_service.dto.responce.WishlistResponse;
+import ru.klimovich.user_service.exception.CatalogServiceException;
 import ru.klimovich.user_service.mapper.WishlistMapper;
 import ru.klimovich.user_service.model.Wishlist;
 
@@ -46,5 +47,19 @@ public class WishlistResponseBuilder {
         response.setProducts(wishlistProducts);
 
         return response;
+    }
+
+    /**
+     * Как buildWishlistResponse, но при недоступности каталога возвращает вишлист без данных товаров
+     * (products = []), не меняя сохраненные id. Для операций, которые не должны зависеть от каталога.
+     */
+    public WishlistResponse buildWishlistResponseOrWithoutProducts(Wishlist wishlist, String accessToken) {
+        try {
+            return buildWishlistResponse(wishlist, accessToken);
+        } catch (CatalogServiceException e) {
+            WishlistResponse response = wishlistMapper.toDTO(wishlist);
+            response.setProducts(Collections.emptySet());
+            return response;
+        }
     }
 }

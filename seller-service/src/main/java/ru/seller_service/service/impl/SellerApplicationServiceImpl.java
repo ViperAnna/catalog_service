@@ -1,5 +1,6 @@
 package ru.seller_service.service.impl;
 
+import ru.seller_service.client.UserGrpcClient;
 import lombok.RequiredArgsConstructor;
 import ru.seller_service.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
     private final SellerRepository sellerRepo;
     private final OutboxRepository outboxRepo;
     private final EventMapper eventMapper;
+    private final UserGrpcClient userGrpcClient;
 
 
     private void saveOutbox(SellerApplication application, SellerEventType eventType, Object payload) {
@@ -87,6 +89,7 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
         validateInnUnique(applicationDetails.inn());
         String sellerName = applicationDetails.sellerName().trim();
         validateSellerNameUnique(sellerName);
+        validateEmailAvailable(applicationDetails.email());
 
         SellerApplication application = sellerApplicationMapper.toEntity(applicationDetails);
         application.setSellerName(sellerName);
@@ -217,8 +220,18 @@ public class SellerApplicationServiceImpl implements SellerApplicationService {
 //    }
 
     private void validateSellerNotExist(String userId) {
-        if (sellerRepo.existsByKeycloakUserId(userId)) {
+        if (sellerRepo.existsByKeycloakUserIdOrApplicantKeycloakUserId(userId, userId)) {
             throw new ResourceConflictException(MessageKeys.SELLER_ALREADY_EXIST, userId);
+        }
+    }
+
+    /**
+     * Email заявки станет логином отдельного аккаунта продавца: он не должен принадлежать
+     * ни одному аккаунту Keycloak, в том числе аккаунту заявителя (change separate-seller-account).
+     */
+    private void validateEmailAvailable(String email) {
+        if (!userGrpcClient.isEmailAvailable(email)) {
+            throw new ResourceConflictException(MessageKeys.SELLER_EMAIL_ALREADY_USED, email);
         }
     }
 

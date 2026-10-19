@@ -35,6 +35,11 @@ spring:
               predicates:
                 - Path=/sellers/**,/moderator/seller-applications/**,/moderator/sellers/**,/moderator/stores/**,/moderator/store-change-requests/**,/seller-applications/**,/stores/**
 
+            - id: order-service
+              uri: lb://ORDER-SERVICE
+              predicates:
+                - Path=/cart,/cart/**,/orders,/orders/**
+
 
 
 

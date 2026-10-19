@@ -1,9 +1,12 @@
 package ru.seller_service.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import ru.seller_service.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import ru.seller_service.client.UserGrpcClient;
 import ru.seller_service.dto.request.application.ReviewSellerApplicationRequest;
 import ru.seller_service.dto.responce.SellerApplicationResponse;
@@ -20,6 +23,7 @@ import ru.seller_service.mapper.SellerMapper;
 import ru.seller_service.model.Seller;
 import ru.seller_service.model.SellerApplication;
 import ru.seller_service.model.status.SellerApplicationStatus;
+import ru.seller_service.model.status.SellerApplicationType;
 import ru.seller_service.model.status.SellerStatus;
 import ru.seller_service.outbox.OutboxEvent;
 import ru.seller_service.outbox.OutboxRedaction;
@@ -32,8 +36,10 @@ import ru.seller_service.util.UniqueViolations;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -139,20 +145,53 @@ public class ModeratorServiceImpl implements ModeratorService {
 
     }
 
+    /**
+     * Продавец получает отдельный аккаунт только с ролью SELLER (change separate-seller-account):
+     * Seller записывается до gRPC (keycloakUserId временно — заявитель), затем user-service создает
+     * аккаунт, и keycloakUserId указывает на него. Аккаунт заявителя не меняется. Если транзакция
+     * после создания аккаунта откатится, аккаунт удаляется (компенсация).
+     */
     private void approveRegistration(SellerApplication application) {
-        validateSellerNotExist(application.getKeycloakUserId());
+        String applicantId = application.getKeycloakUserId();
+        validateSellerNotExist(applicantId);
         validateSellerNameUnique(application.getSellerName());
 
         Seller seller = sellerMapper.toEntity(application);
-
+        seller.setApplicantKeycloakUserId(applicantId);
         seller.setSellerStatus(SellerStatus.ACTIVE);
 
         saveNewSeller(seller);
 
-        userGrpcClient.assignSellerRole(application.getKeycloakUserId());
+        String sellerAccountId = userGrpcClient.createSellerAccount(application.getEmail(), application.getSellerName());
+        compensateOnRollback(sellerAccountId);
+        seller.setKeycloakUserId(sellerAccountId);
+        sellerRepo.save(seller);
 
         application.setSellerApplicationStatus(SellerApplicationStatus.APPROVED);
         sellerApplicationRepo.save(application);
+    }
+
+    /**
+     * Удаление созданного аккаунта продавца, если транзакция одобрения не зафиксирована.
+     * Ошибка компенсации пишется в лог: повтор одобрения переиспользует незавершенный аккаунт.
+     */
+    private void compensateOnRollback(String sellerAccountId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status != STATUS_ROLLED_BACK) {
+                    return;
+                }
+                try {
+                    userGrpcClient.deleteSellerAccount(sellerAccountId);
+                } catch (RuntimeException e) {
+                    log.error("Compensation failed: seller account {} was not deleted", sellerAccountId, e);
+                }
+            }
+        });
     }
 
     private void approveUpdate(SellerApplication application) {
@@ -193,8 +232,17 @@ public class ModeratorServiceImpl implements ModeratorService {
     private void approveDeletion(SellerApplication application) {
         String keycloakUserId = application.getKeycloakUserId();
         Seller seller = getSellerByKeycloakUserId(keycloakUserId);
-        List<SellerApplication> applications =
-                sellerApplicationRepo.findAllByKeycloakUserIdOrderByCreatedAtDesc(keycloakUserId);
+        boolean separateAccount = hasSeparateAccount(seller);
+
+        List<SellerApplication> applications = new ArrayList<>(
+                sellerApplicationRepo.findAllByKeycloakUserIdOrderByCreatedAtDesc(keycloakUserId));
+        if (separateAccount) {
+            // Регистрационные заявки заявителя содержат персональные данные продавца.
+            sellerApplicationRepo.findAllByKeycloakUserIdOrderByCreatedAtDesc(seller.getApplicantKeycloakUserId())
+                    .stream()
+                    .filter(a -> a.getSellerApplicationType() == SellerApplicationType.REGISTRATION)
+                    .forEach(applications::add);
+        }
 
         sellerModerationService.writeStorePurgedEvents(seller.getId());
         redactPublishedOutbox(applications);
@@ -202,7 +250,17 @@ public class ModeratorServiceImpl implements ModeratorService {
         sellerApplicationRepo.deleteAll(applications);
         sellerRepo.delete(seller);
 
-        userGrpcClient.removeSellerRole(keycloakUserId);
+        if (separateAccount) {
+            userGrpcClient.deleteSellerAccount(keycloakUserId);
+        } else {
+            // Продавец, созданный до change separate-seller-account, работает на аккаунте покупателя.
+            userGrpcClient.removeSellerRole(keycloakUserId);
+        }
+    }
+
+    private static boolean hasSeparateAccount(Seller seller) {
+        return seller.getApplicantKeycloakUserId() != null
+                && !seller.getApplicantKeycloakUserId().equals(seller.getKeycloakUserId());
     }
 
     private void redactPublishedOutbox(List<SellerApplication> applications) {
@@ -249,7 +307,7 @@ public class ModeratorServiceImpl implements ModeratorService {
     }
 
     private void validateSellerNotExist(String userId) {
-        if (sellerRepo.existsByKeycloakUserId(userId)) {
+        if (sellerRepo.existsByKeycloakUserIdOrApplicantKeycloakUserId(userId, userId)) {
             throw new ResourceConflictException(MessageKeys.SELLER_ALREADY_EXIST, userId);
         }
     }

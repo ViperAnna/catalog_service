@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import ru.klimovich.catalog_service.model.Image;
 import ru.klimovich.catalog_service.model.Product;
+import ru.klimovich.catalog_service.outbox.ProductDeletionEventWriter;
 import ru.klimovich.catalog_service.service.FileStorageService;
 
 import java.util.LinkedHashMap;
@@ -27,6 +28,7 @@ public class StoreProductsPurger {
 
     private final MongoTemplate mongoTemplate;
     private final FileStorageService fileStorageService;
+    private final ProductDeletionEventWriter deletionEventWriter;
 
     public void purgeProductsOfStore(Long storeId) {
         List<Product> products = mongoTemplate.find(
@@ -46,6 +48,10 @@ public class StoreProductsPurger {
                 deletedImages++;
             }
         }
+
+        // После изображений и непосредственно перед удалением документов (product-deletion-sync, D2):
+        // долгое удаление изображений не расходует окно публикации.
+        products.forEach(product -> deletionEventWriter.record(product.getId(), storeId));
 
         mongoTemplate.remove(new Query(Criteria.where("storeId").is(storeId)), Product.class);
         log.info("Purged {} products and {} images of store {}", products.size(), deletedImages, storeId);

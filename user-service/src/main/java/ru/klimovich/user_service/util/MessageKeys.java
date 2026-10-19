@@ -13,11 +13,14 @@ public class MessageKeys {
     public static final String WISHLIST_CREATED_SUCCESSFULLY = "The wishlist was successfully created";
     public static final String WISHLIST_NAME_ALREADY_EXIST = "The wishlist with name [%s] already exist";
     public static final String WISHLIST_NOT_FOUND = "The wishlist with id [%s] not found.";
+    public static final String WISHLIST_LIMIT_REACHED = "Wishlist limit reached: at most %d wishlists per user.";
+    public static final String WISHLIST_PRODUCT_LIMIT_REACHED = "Wishlist product limit reached: at most %d products per wishlist.";
     public static final String WISHLIST_UPDATE_SUCCESSFULLY = "The wishlist was successfully updated.";
     public static final String WISHLIST_DELETE_SUCCESSFULLY = "The wishlist was successfully deleted.";
 
 
     public static final String PRODUCT_NOT_FOUND = "Product with id [%s] not found.";
+    public static final String PRODUCTS_NOT_FOUND = "Products not found in catalog.";
     public static final String PRODUCT_ALREADY_IN_WISHLIST = "Product with id [%s] already exists in wishlist.";
     public static final String WISHLIST_ITEM_NOT_FOUND = "Product with id [%s] not found in wishlist.";
     public static final String CATALOG_SERVICE_UNAVAILABLE = "Catalog service is unavailable.";

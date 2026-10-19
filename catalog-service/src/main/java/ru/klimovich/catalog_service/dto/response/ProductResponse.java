@@ -16,4 +16,7 @@ public class ProductResponse extends TemplateProduct {
 
     @Schema(description = "ID продукта", example = "698c08f7569bbd7a36602fe5")
     private String id;
+
+    @Schema(description = "ID магазина товара", example = "3")
+    private Long storeId;
 }

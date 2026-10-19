@@ -766,7 +766,7 @@
       "id": "98515aa5-f106-4874-8597-5d1bd7670633",
       "clientId": "frontend-client",
       "name": "Frontend SPA",
-      "rootUrl": "https://v693663.hosted-by-vdsina.com",
+      "rootUrl": "https://v1079980.hosted-by-vdsina.com",
       "baseUrl": "/",
       "surrogateAuthRequired": false,
       "enabled": true,
@@ -774,10 +774,10 @@
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
         "http://localhost:3000/*",
-        "https://v693663.hosted-by-vdsina.com/*"
+        "https://v1079980.hosted-by-vdsina.com/*"
       ],
       "webOrigins": [
-        "https://v693663.hosted-by-vdsina.com",
+        "https://v1079980.hosted-by-vdsina.com",
         "http://localhost:3000"
       ],
       "notBefore": 0,
@@ -792,7 +792,7 @@
       "protocol": "openid-connect",
       "attributes": {
         "realm_client": "false",
-        "post.logout.redirect.uris": "https://v693663.hosted-by-vdsina.com/*##http://localhost:3000/*",
+        "post.logout.redirect.uris": "https://v1079980.hosted-by-vdsina.com/*##http://localhost:3000/*",
         "pkce.code.challenge.method": "S256"
       },
       "authenticationFlowBindingOverrides": {},

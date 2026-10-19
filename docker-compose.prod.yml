@@ -86,6 +86,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  #  ----------Order service----------
+  order-service:
+    image: viperanna/order-service:${ORDER_SERVICE_TAG}
+    container_name: order-service
+    expose:
+      - "8086"
+    env_file:
+      - .env.order
+      - .env.postgres
+      - .env.kafka
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      discovery-service:
+        condition: service_healthy
+    restart: unless-stopped
+
   # ----------Frontend----------
   front:
     image: viperanna/front:${FRONTEND_TAG}
@@ -163,7 +184,8 @@ services:
     volumes:
       - ./keycloak:/opt/keycloak/data/import
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   #  ----------POSTGRES----------
@@ -210,15 +232,14 @@ services:
 
   # ----------MinIO----------
   minio:
-    image: quay.io/minio/minio:latest
+    image: bitnamilegacy/minio:2025.4.22-debian-12-r2
     container_name: minio
     ports:
       - "127.0.0.1:9001:9001"
     env_file:
       - .env.minio
-    command: server /data --console-address ":9001"
     volumes:
-      - ./minio/data:/data
+      - ./minio/data:/bitnami/minio/data
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 10s

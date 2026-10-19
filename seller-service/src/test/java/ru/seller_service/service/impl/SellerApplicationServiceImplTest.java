@@ -1,8 +1,10 @@
 package ru.seller_service.service.impl;
 
+import ru.seller_service.client.UserGrpcClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,6 +40,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,6 +57,8 @@ class SellerApplicationServiceImplTest {
     private SellerRepository sellerRepo;
     @Mock
     private OutboxRepository outboxRepo;
+    @Mock
+    private UserGrpcClient userGrpcClient;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -67,9 +72,11 @@ class SellerApplicationServiceImplTest {
                 new SellerApplicationMapperImpl(),
                 sellerRepo,
                 outboxRepo,
-                new EventMapper(objectMapper)
+                new EventMapper(objectMapper),
+                userGrpcClient
         );
         when(currentUserService.getUserId()).thenReturn(USER_ID);
+        lenient().when(userGrpcClient.isEmailAvailable(any())).thenReturn(true);
     }
 
     private void stubApplicationSaveAssignsId() {
@@ -374,11 +381,33 @@ class SellerApplicationServiceImplTest {
 
     @Test
     void registration_sellerExists_message() {
-        when(sellerRepo.existsByKeycloakUserId(USER_ID)).thenReturn(true);
+        when(sellerRepo.existsByKeycloakUserIdOrApplicantKeycloakUserId(USER_ID, USER_ID)).thenReturn(true);
 
         assertThatThrownBy(() -> service.createRegistrationRequest(registration("Shop")))
                 .isInstanceOf(ResourceConflictException.class)
                 .hasMessage("Seller already exists for user [" + USER_ID + "].");
+    }
+
+    @Test
+    @DisplayName("Покупатель, по заявке которого уже создан продавец в отдельном аккаунте: 409")
+    void registration_applicantAlreadyHasSeller_conflict() {
+        when(sellerRepo.existsByKeycloakUserIdOrApplicantKeycloakUserId(USER_ID, USER_ID)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.createRegistrationRequest(registration("Shop")))
+                .isInstanceOf(ResourceConflictException.class);
+        verify(sellerApplicationRepo, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Email заявки занят аккаунтом Keycloak: 409, заявка не сохраняется")
+    void registration_emailTaken_conflict() {
+        when(userGrpcClient.isEmailAvailable("shop@example.com")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.createRegistrationRequest(new SellerRegistrationRequest(
+                "Shop", "1234567890", "+79990000000", "shop@example.com", "12345678901234567890")))
+                .isInstanceOf(ResourceConflictException.class)
+                .hasMessage("Email [shop@example.com] is already used by another account.");
+        verify(sellerApplicationRepo, never()).save(any());
     }
 
     @Test
@@ -401,7 +430,7 @@ class SellerApplicationServiceImplTest {
     }
     @Test
     void registration_afterSellerPurged_accepted() {
-        when(sellerRepo.existsByKeycloakUserId(USER_ID)).thenReturn(false);
+        when(sellerRepo.existsByKeycloakUserIdOrApplicantKeycloakUserId(USER_ID, USER_ID)).thenReturn(false);
         when(sellerRepo.existsByInn("1234567890")).thenReturn(false);
         stubApplicationSaveAssignsId();
 

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.InOrder;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -23,6 +24,7 @@ import ru.klimovich.catalog_service.dto.response.ProductResponse;
 import ru.klimovich.catalog_service.dto.response.StoreResponse;
 import ru.klimovich.catalog_service.exception.ResourceConflictException;
 import ru.klimovich.catalog_service.exception.ResourceNotFoundException;
+import ru.klimovich.catalog_service.outbox.ProductDeletionEventWriter;
 import ru.klimovich.catalog_service.exception.SellerServiceUnavailableException;
 import ru.klimovich.catalog_service.mapper.ProductMapper;
 import ru.klimovich.catalog_service.model.Product;
@@ -47,6 +49,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.inOrder;
 
 /**
  * Requirements "Product availability", "Product retrieval by id", "Product changes require active
@@ -65,6 +68,7 @@ class ProductServiceImplTest {
     @Mock private SellerClient sellerClient;
     @Mock private CurrentUserService currentUserService;
     @Mock private MongoTemplate mongoTemplate;
+    @Mock private ProductDeletionEventWriter deletionEventWriter;
 
     private ProductServiceImpl service;
     private final ProductResponse response = new ProductResponse();
@@ -72,7 +76,7 @@ class ProductServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new ProductServiceImpl(productRepo, categoryService, categoryRepo, productMapper,
-                fileStorageService, sellerClient, currentUserService, mongoTemplate);
+                fileStorageService, sellerClient, currentUserService, mongoTemplate, deletionEventWriter);
         lenient().when(productMapper.toDTO(any(), any())).thenReturn(response);
         lenient().when(currentUserService.getAccessToken()).thenReturn(TOKEN);
     }
@@ -307,6 +311,32 @@ class ProductServiceImplTest {
 
         assertThatThrownBy(() -> service.deleteProductById("p1")).isInstanceOf(ResourceConflictException.class);
         verify(productRepo, never()).delete(any());
+        verifyNoInteractions(deletionEventWriter);
+    }
+
+    // ---------- change product-deletion-sync ----------
+
+    @Test
+    @DisplayName("Удаление своего товара: событие PRODUCT_DELETED записано в outbox до удаления документа")
+    void delete_own_writesOutboxBeforeDelete() {
+        Product product = product(Status.ACTIVE, null, null);
+        when(productRepo.findById("p1")).thenReturn(Optional.of(product));
+        when(sellerClient.getMyStoreById(3L, TOKEN)).thenReturn(store("ACTIVE", "ACTIVE"));
+
+        service.deleteProductById("p1");
+
+        InOrder order = inOrder(deletionEventWriter, productRepo);
+        order.verify(deletionEventWriter).record("p1", 3L);
+        order.verify(productRepo).delete(product);
+    }
+
+    @Test
+    @DisplayName("Удаление несуществующего товара: 404, события нет")
+    void delete_notFound_noEvent() {
+        when(productRepo.findById("p1")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deleteProductById("p1")).isInstanceOf(ResourceNotFoundException.class);
+        verifyNoInteractions(deletionEventWriter);
     }
 
     @Test

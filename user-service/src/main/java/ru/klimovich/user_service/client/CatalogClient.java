@@ -6,6 +6,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import reactor.core.publisher.Mono;
 import ru.klimovich.user_service.dto.responce.ProductResponse;
 import ru.klimovich.user_service.exception.CatalogServiceException;
@@ -36,7 +37,7 @@ public class CatalogClient {
                         HttpStatusCode::is4xxClientError,
                         response -> Mono.error(
                                 new ProductNotFoundException(
-                                        MessageKeys.PRODUCT_NOT_FOUND
+                                        MessageKeys.PRODUCT_NOT_FOUND, productId
                                 )
                         )
                 )
@@ -49,6 +50,7 @@ public class CatalogClient {
                         )
                 )
                 .bodyToMono(ProductResponse.class)
+                .onErrorMap(WebClientRequestException.class, CatalogClient::catalogUnavailable)
                 .block()
                 ;
     }
@@ -66,7 +68,7 @@ public class CatalogClient {
                         HttpStatusCode::is4xxClientError,
                         response -> Mono.error(
                                         new ProductNotFoundException(
-                                                MessageKeys.PRODUCT_NOT_FOUND)
+                                                MessageKeys.PRODUCTS_NOT_FOUND)
                         )
                 )
                 .onStatus(
@@ -79,6 +81,15 @@ public class CatalogClient {
                 )
                 .bodyToFlux(ProductResponse.class)
                 .collectList()
+                .onErrorMap(WebClientRequestException.class, CatalogClient::catalogUnavailable)
                 .block();
+    }
+
+    /**
+     * Отказ соединения, таймаут подключения или ответа и другие сетевые ошибки — та же недоступность
+     * каталога, что и ответ 5xx.
+     */
+    private static CatalogServiceException catalogUnavailable(WebClientRequestException e) {
+        return new CatalogServiceException(MessageKeys.CATALOG_SERVICE_UNAVAILABLE);
     }
 }

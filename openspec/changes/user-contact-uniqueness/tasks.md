@@ -29,6 +29,8 @@
 > - Нормализация email и телефона и проверки уникальности в сервисе (409) работают.
 > - `UNIQUE(phone)` в текущей БД **отсутствует**: `ddl-auto: update` не добавил его для существующей колонки, хотя `@Column(unique = true)` объявлен (3.2), а дублей нет (1.1). Есть только `UNIQUE (email)` и `UNIQUE (keycloak_user_id)`.
 > - Поэтому задача 5.1 **не выполнена**.
+> - **2026-10-14:** решение принято — ограничение создается индексом `uq_users_phone` в `schema.sql` user-service (change `user-service-db-constraints`). Проверка 5.1 для локальной БД выполняется вместе с ручной задачей 5.1 того change; в запросе проверять `pg_indexes` (`uq_users_phone`), а не только `pg_constraint`.
+> - **2026-10-14, локальная БД:** после пересборки user-service `pg_indexes` содержит `uq_users_phone ON users (phone)`; повторный рестарт без ошибок. Для локальной БД проверка выполнена; production — не проверялся, поэтому 5.1 остается открытой.
 > - Защита от гонки для phone через DB constraint (решение 3, требования `Contact data uniqueness` и `User service error responses`) **не считается выполненной**: код перевода в 409 (3.3) есть, но без constraint в БД ему нечего перехватывать. Для email защита опирается на существующий `UNIQUE (email)`.
 > - Отклонения реализации от design, которые нужно отразить при правке D3/D4: `ContactNormalizer` и `ContactUniqueViolationTranslator` сделаны статическими утилитами, а не Spring-бинами (конструктор `UserServiceImpl` не меняется). В D3 вместо `PSQLException`/`ServerErrorMessage` используется `java.sql.SQLException` (`getSQLState()` и текст `(email)=` / `(phone)=`), потому что драйвер PostgreSQL подключен со scope `runtime`.
 

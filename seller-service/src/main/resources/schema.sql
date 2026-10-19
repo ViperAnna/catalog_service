@@ -27,3 +27,8 @@ ALTER TABLE seller_applications ADD CONSTRAINT seller_applications_application_t
 -- при одновременной подаче. Таблицу store_change_requests перед этим создает ddl-auto: update.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_store_change_requests_pending
     ON store_change_requests (store_id) WHERE status = 'PENDING';
+
+-- Один продавец на покупателя (change separate-seller-account): аккаунт покупателя-заявителя
+-- уникален среди продавцов. NULL у продавцов, созданных до этого change, допускается многократно.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sellers_applicant
+    ON sellers (applicant_keycloak_user_id) WHERE applicant_keycloak_user_id IS NOT NULL;
